@@ -1,0 +1,215 @@
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DEMAT-BT — Référent & Brief</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+  <header class="topbar">
+  <div class="tb-left">
+    <div class="brand">
+      <div class="brand__title">DEMAT-BT</div>
+      <div class="brand__sub">Dématérialisation BT — Référent d'équipe</div>
+    </div>
+  </div>
+
+  <div class="tb-center">
+    <div class="tb-date" id="tbDateTime">—</div>
+    <div class="tb-metaRow">
+      <div class="tb-liveBadge">
+        <div id="tbDot" class="tbDot tbDot--wait" title="En attente du PDF"></div>
+        <span>Temps réel</span>
+      </div>
+      <div id="tbMeta" class="tb-meta">—</div>
+    </div>
+  </div>
+
+  <div class="tb-right">
+    <div class="topbar__actions">
+      <label class="btn btn--secondary btn--upload">
+        <span>📁</span> Importer PDF du jour
+        <input id="pdfFile" type="file" accept="application/pdf" hidden />
+      </label>
+
+      <button id="btnExtract" class="btn btn--primary">
+        <span>⚡</span> Extraire
+      </button>
+
+      <div class="seg">
+        <button class="seg__btn seg__btn--active" data-view="referent">Référent</button>
+        <button class="seg__btn" data-view="brief">Brief (Flip)</button>
+      </div>
+
+      <button id="btnFullscreen" class="btn btn--secondary" title="Plein écran">
+        <span>⛶</span> Plein écran
+      </button>
+    </div>
+  </div>
+</header>
+
+  <main class="layout">
+    <!-- Left: sidebar -->
+    <aside class="sidebar card">
+      <div class="card__title">Contrôle</div>
+
+      <div class="field">
+        <div class="label">Zones</div>
+        <div id="zonesStatus" class="hint">Chargement…</div>
+      </div>
+
+      <div class="field">
+        <div class="label">PDF</div>
+        <div id="pdfStatus" class="hint">Aucun PDF chargé</div>
+      </div>
+
+      <div class="field">
+        <div class="label">Progression</div>
+        <div id="progMsg" class="hint">Prêt.</div>
+        <div class="progress"><div id="progBar"></div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field">
+        <div class="label">Filtre</div>
+        <input id="searchInput" class="input" placeholder="Rechercher (BT, client, adresse, objet…)" />
+      </div>
+
+      <div class="field">
+        <div class="label">Type de docs</div>
+        <div class="chips" id="typeChips">
+          <!-- injected -->
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field">
+        <div class="label">Technicien</div>
+        <select id="techSelect" class="select">
+          <option value="">— Tous —</option>
+        </select>
+        <div class="hint">Pour le Brief, sélectionne un technicien → ses BT s'affichent.</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="hint">
+        Règle : <b>toute page après un BT</b> est rattachée à ce BT <b>jusqu'au BT suivant</b>.
+      </div>
+    </aside>
+
+    <!-- Right: content -->
+    <section class="content">
+      <!-- Référent view -->
+      <section id="viewReferent" class="view view--active">
+        <div class="row row--space">
+          <div>
+            <h2 class="h2">Référent d'équipe</h2>
+            <div class="sub">Tous les BT détectés + documents associés (AT, procédure, plan, photo, doc…)</div>
+          </div>
+
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <div class="kpis" id="kpis"></div>
+            
+            <div class="seg">
+              <button class="seg__btn seg__btn--active" data-layout="grid">
+                <span>◼</span> Vignettes
+              </button>
+              <button class="seg__btn" data-layout="timeline">
+                <span>◐</span> Timeline
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="btGrid" class="grid"></div>
+        <div id="btTimeline" class="timeline" style="display:none;">
+          <div style="padding:12px 16px; background:#fafbfc; border-bottom:1.5px solid var(--line); display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+            <span style="font-size:12px; font-weight:700; color:var(--txt-light);">Catégories d'intervention :</span>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:11px; font-weight:600;">
+              <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
+                <span style="width:20px; height:3px; background:#2563eb; border-radius:2px;"></span> CLIENTÈLE
+              </span>
+              <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
+                <span style="width:20px; height:3px; background:#10b981; border-radius:2px;"></span> MAINTENANCE
+              </span>
+              <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
+                <span style="width:20px; height:3px; background:#f59e0b; border-radius:2px;"></span> SURVEILLANCE
+              </span>
+              <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
+                <span style="width:20px; height:3px; background:#a855f7; border-radius:2px;"></span> ADMINISTRATIF
+              </span>
+              <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
+                <span style="width:20px; height:3px; background:#64748b; border-radius:2px;"></span> AUTRE
+              </span>
+            </div>
+            <span style="font-size:11px; color:var(--muted); margin-left:auto;">Cliquez sur un BT pour voir les détails</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Brief view -->
+      <section id="viewBrief" class="view">
+        <div class="briefHeader">
+          <div>
+            <h2 class="h2">Brief équipe (Samsung Flip)</h2>
+            <div class="sub">Sélectionne un technicien → ses BT + docs s'affichent instantanément.</div>
+          </div>
+          <div class="briefMeta" id="briefMeta"></div>
+        </div>
+
+        <div id="briefList" class="briefList"></div>
+      </section>
+
+      <!-- Viewer modal -->
+      <div id="modal" class="modal" aria-hidden="true">
+        <div class="modal__backdrop" data-close="1"></div>
+        <div class="modal__panel card">
+          <div class="modal__top">
+            <div>
+              <div id="modalTitle" class="modal__title">Aperçu</div>
+              <div id="modalSubtitle" class="modal__sub"></div>
+            </div>
+
+            <div class="modal__actions">
+              <button id="btnPrevPage" class="btn btn--secondary">
+                <span>←</span> Page -
+              </button>
+              <button id="btnNextPage" class="btn btn--secondary">
+                Page + <span>→</span>
+              </button>
+              <button id="btnExportBt" class="btn">
+                <span>💾</span> Exporter BT (PDF)
+              </button>
+              <button class="btn btn--secondary" data-close="1">Fermer</button>
+            </div>
+          </div>
+
+          <div class="modal__body">
+            <canvas id="canvas"></canvas>
+          </div>
+
+          <div class="modal__footer">
+            <div id="modalInfo" class="hint"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- pdf-lib (export PDF BT) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+
+  <!-- data -->
+  <script src="./data/technicians.js"></script>
+
+  <!-- app -->
+  <script src="./app.js"></script>
+</body>
+</html>
