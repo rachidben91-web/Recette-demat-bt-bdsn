@@ -1,3 +1,36 @@
+/* ==== Compat: techniciens data ==== */
+(function normalizeTechnicians(){
+  // On accepte plusieurs noms de variables selon l'historique du repo.
+  // But: exposer TOUJOURS un tableau dans window.TECHNICIANS
+  const candidates = [
+    window.TECHNICIANS,
+    window.TECHNICIENS,
+    window.technicians,
+    window.techniciens,
+  ].filter(Boolean);
+
+  if (!window.TECHNICIANS) {
+    const first = candidates[0];
+    if (Array.isArray(first)) {
+      window.TECHNICIANS = first;
+    } else if (first && typeof first === "object") {
+      // si c'est un objet { list: [...] } ou { data: [...] }
+      const arr = first.list || first.data || first.items || first.technicians || first.techniciens;
+      window.TECHNICIANS = Array.isArray(arr) ? arr : [];
+    } else {
+      window.TECHNICIANS = [];
+    }
+  }
+
+  // Normalisation légère: champs attendus (nni, name) si existants
+  window.TECHNICIANS = (window.TECHNICIANS || []).map(t => ({
+    ...t,
+    nni: (t.nni || t.NNI || t.id || t.code || "").toString(),
+    name: (t.name || t.nom || t.fullName || t.display || "").toString() || (t.prenom ? `${t.prenom} ${t.nom||""}`.trim() : (t.nom||"")),
+    manager: t.manager || t.Manager || t.referent || t.responsable || ""
+  }));
+})();
+
 /* app.js — DEMAT-BT v2.0 (Version avec modal + viewer)
    Compatible avec TON index.html :
    - Référent:  #viewReferent + #btGrid + #kpis
