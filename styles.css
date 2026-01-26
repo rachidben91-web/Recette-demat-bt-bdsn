@@ -853,3 +853,33 @@ body.flip .briefList{ grid-template-columns: 1fr; } /* Flip = vertical reading *
   font-size: 11px;
   opacity: .85;
 }
+
+
+/* Timeline canvas */
+.timelineCanvas{margin-top:10px;}
+/* --- Timeline (Referent) --- */
+.timelineGrid{border:1px solid rgba(255,255,255,.06); border-radius:14px; overflow:hidden; background:rgba(0,0,0,.18);}
+.tlHead,.tlRow{display:grid; grid-template-columns:220px 1fr;}
+.tlHead{background:rgba(255,255,255,.03); border-bottom:1px solid rgba(255,255,255,.06);}
+.tlHeadLeft{padding:10px 12px; color:rgba(255,255,255,.7); font-size:12px; letter-spacing:.12em; text-transform:uppercase;}
+.tlHeadRight{display:grid; grid-template-columns:repeat(11,1fr); gap:0; align-items:center;}
+.tlTick{padding:10px 8px; font-size:11px; color:rgba(255,255,255,.45); border-left:1px solid rgba(255,255,255,.06); text-align:center; white-space:nowrap;}
+.tlRow{border-bottom:1px solid rgba(255,255,255,.06); min-height:56px; --lanes:1;}
+.tlRow:last-child{border-bottom:none;}
+.tlLeft{padding:10px 12px; display:flex; align-items:center; gap:10px;}
+.tlAvatar{width:28px; height:28px; border-radius:10px; display:grid; place-items:center; background:rgba(0,160,255,.12); border:1px solid rgba(0,160,255,.35); color:#bfe9ff; font-weight:700; font-size:11px;}
+.tlName{color:rgba(255,255,255,.82); font-size:13px; line-height:1.2;}
+.tlRight{position:relative; padding:8px 0; min-height:calc(12px + (var(--lanes) * 26px));}
+.tlRight{display:grid; grid-template-columns:repeat(11,1fr);}
+.tlCol{border-left:1px solid rgba(255,255,255,.06);}
+.tlBlocks{position:absolute; inset:8px 0 8px 0;}
+.tlBlock{position:absolute; height:22px; padding:6px 8px; border-radius:10px; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.06); cursor:pointer; overflow:hidden;}
+.tlBlockTop{font-weight:700; font-size:11px; color:rgba(255,255,255,.92);}
+.tlBlockMid{font-size:10px; color:rgba(255,255,255,.7); margin-top:2px;}
+.tlBlockBot{font-size:10px; color:rgba(255,255,255,.55); margin-top:2px;}
+/* Category colors */
+.tlBlock.cat-clientele{border-color:rgba(46,204,113,.55); box-shadow:0 0 0 1px rgba(46,204,113,.08) inset;}
+.tlBlock.cat-maintenance{border-color:rgba(0,200,255,.55); box-shadow:0 0 0 1px rgba(0,200,255,.08) inset;}
+.tlBlock.cat-surveillance{border-color:rgba(255,159,67,.60); box-shadow:0 0 0 1px rgba(255,159,67,.10) inset;}
+.tlBlock.cat-administratif{border-color:rgba(155,89,182,.60); box-shadow:0 0 0 1px rgba(155,89,182,.10) inset;}
+.tlBlock.cat-autre{border-color:rgba(160,160,160,.55); box-shadow:0 0 0 1px rgba(160,160,160,.08) inset;}

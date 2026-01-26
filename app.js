@@ -44,7 +44,7 @@ const DOC_TYPES = ["BT", "AT", "PROC", "PLAN", "PHOTO", "STREET", "DOC"];
 let ZONES = null;
 
 // ---- Version ----
-const APP_VERSION = "v1.3.0";
+const APP_VERSION = "v1.4.0";
 
 const state = {
   pdf: null,
@@ -74,6 +74,16 @@ const state = {
 const $ = (id) => document.getElementById(id);
 
 function setZonesStatus(msg) {
+
+
+function catClass(raw){
+  const s = (raw||"").toString().toLowerCase();
+  if (s.includes("client")) return "clientele";
+  if (s.includes("maint")) return "maintenance";
+  if (s.includes("surv")) return "surveillance";
+  if (s.includes("admin")) return "administratif";
+  return "autre";
+}
 
 function escapeHtml(input) {
   const s = (input ?? "").toString();
@@ -773,133 +783,152 @@ function renderGrid(filtered, grid) {
   }
 }
 
-function renderTimeline(filtered) {
-  const host = $("referentContent");
+function renderTimeline(filtered, hostEl){
+  const host = hostEl || $("btTimeline");
   if (!host) return;
 
-  host.innerHTML = "";
-
-  // ----- Timeline settings (minute-precise) -----
-  const DAY_START = 7 * 60 + 30; // 07:30
-  const DAY_END   = 17 * 60;     // 17:00
-  const SLOT_MIN  = 30;          // 30-min grid => avoids faux chevauchements
-  const TOTAL_MIN = DAY_END - DAY_START;
-  const cols = Math.ceil(TOTAL_MIN / SLOT_MIN); // 19 colonnes
-
-  // ----- Collect by tech -----
-  const byTech = new Map(); // techLabel => bt[]
-  for (const bt of filtered) {
-    const slot = extractTimeSlot(bt);
-    if (!slot) continue;
-
-    // clamp inside the day (still keep relative sizing)
-    const s = Math.max(DAY_START, Math.min(DAY_END, slot.startMin));
-    const e = Math.max(DAY_START, Math.min(DAY_END, slot.endMin));
-    if (e <= s) continue;
-
-    const team = bt.team || [];
-    const first = team[0] || null;
-    const tech = first ? mapTechByNni(first.nni) : null;
-    const label = tech ? tech.name : (first?.name || "—");
-
-    if (!byTech.has(label)) byTech.set(label, []);
-    byTech.get(label).push({ bt, slot: { ...slot, startMin: s, endMin: e } });
+  // Keep legend if present; render content inside a dedicated canvas container
+  let canvas = host.querySelector(".timelineCanvas");
+  if (!canvas){
+    canvas = document.createElement("div");
+    canvas.className = "timelineCanvas";
+    host.appendChild(canvas);
   }
+  canvas.innerHTML = "";
 
-  if (byTech.size === 0) {
-    host.innerHTML = `<div class="hint">Aucun créneau horaire détecté (données DUREE) pour afficher une timeline.</div>`;
+  if (!filtered || !filtered.length){
+    canvas.innerHTML = `<div class="emptyHint">Aucun BT à afficher.</div>`;
     return;
   }
 
-  // ----- Grid skeleton -----
+  const DAY_START = 7*60 + 30;  // 07h30
+  const DAY_END   = 17*60;      // 17h00
+  const SPAN = Math.max(1, DAY_END - DAY_START);
+
+  // Ticks: 07h30 then every hour
+  const ticks = [];
+  ticks.push({t: DAY_START, label: "07h30"});
+  for (let t = 8*60; t <= DAY_END; t += 60){
+    const hh = Math.floor(t/60);
+    ticks.push({t, label: `${hh}h`});
+  }
+
+  // Group by technician (first in team) for Referent view
+  const byTech = new Map();
+  for (const bt of filtered){
+    const team = Array.isArray(bt.team) ? bt.team : [];
+    const tech = team[0];
+    if (!tech) continue;
+    const key = (tech.nni || tech.NNI || tech.id || tech.code || tech.name || "UNK").toString();
+    if (!byTech.has(key)) byTech.set(key, { tech, bts: [] });
+    byTech.get(key).bts.push(bt);
+  }
+
+  const groups = Array.from(byTech.values());
+  if (!groups.length){
+    canvas.innerHTML = `<div class="emptyHint">Aucun technicien trouvé pour ces BT.</div>`;
+    return;
+  }
+
+  // Build grid
   const grid = document.createElement("div");
   grid.className = "timelineGrid";
-  grid.style.gridTemplateColumns = `220px repeat(${cols}, minmax(46px, 1fr))`;
+  canvas.appendChild(grid);
 
-  // Header: top-left corner
-  const corner = document.createElement("div");
-  corner.className = "timelineCorner";
-  corner.textContent = "Techniciens";
-  grid.appendChild(corner);
+  // Header row
+  const head = document.createElement("div");
+  head.className = "tlHead";
+  grid.appendChild(head);
 
-  // Header: 30-min ticks (07:30, 08:00, ...)
-  for (let i = 0; i < cols; i++) {
-    const tMin = DAY_START + i * SLOT_MIN;
-    const hh = Math.floor(tMin / 60).toString().padStart(2, "0");
-    const mm = (tMin % 60).toString().padStart(2, "0");
-    const cell = document.createElement("div");
-    cell.className = "timelineHour";
-    cell.style.gridColumn = (i + 2);
-    cell.textContent = `${hh}:${mm}`;
-    grid.appendChild(cell);
+  const headLeft = document.createElement("div");
+  headLeft.className = "tlHeadLeft";
+  headLeft.textContent = "Techniciens";
+  head.appendChild(headLeft);
+
+  const headRight = document.createElement("div");
+  headRight.className = "tlHeadRight";
+  head.appendChild(headRight);
+
+  for (const tk of ticks){
+    const el = document.createElement("div");
+    el.className = "tlTick";
+    el.textContent = tk.label;
+    // position using CSS grid; we’ll rely on flex with equal columns
+    headRight.appendChild(el);
   }
 
-  // Tech rows
-  let rowIndex = 2;
-  for (const [techLabel, items] of byTech.entries()) {
-    // Left label
-    const techCell = document.createElement("div");
-    techCell.className = "timelineTech";
-    techCell.style.gridRow = rowIndex;
-    techCell.textContent = techLabel;
-    grid.appendChild(techCell);
+  // Rows
+  for (const g of groups){
+    const row = document.createElement("div");
+    row.className = "tlRow";
+    grid.appendChild(row);
 
-    // Allocate lanes with minute precision (no rounding overlap)
-    const lanes = []; // each lane: [{startMin,endMin}]
-    const sorted = items.slice().sort((a,b) => a.slot.startMin - b.slot.startMin);
+    const left = document.createElement("div");
+    left.className = "tlLeft";
+    left.innerHTML = `<span class="tlAvatar">${(g.tech.name||"?").slice(0,2).toUpperCase()}</span><span class="tlName">${escapeHtml(g.tech.name||"Sans nom")}</span>`;
+    row.appendChild(left);
 
-    for (const it of sorted) {
+    const right = document.createElement("div");
+    right.className = "tlRight";
+    row.appendChild(right);
+
+    // Background tick columns
+    for (let i=0;i<ticks.length;i++){
+      const col = document.createElement("div");
+      col.className = "tlCol";
+      right.appendChild(col);
+    }
+
+    // Place BT blocks with minute-precise positioning
+    const blocks = document.createElement("div");
+    blocks.className = "tlBlocks";
+    right.appendChild(blocks);
+
+    const items = (g.bts||[]).slice().sort((a,b)=>{
+      const sa = (extractTimeSlot(a)?.start ?? 1e9);
+      const sb = (extractTimeSlot(b)?.start ?? 1e9);
+      return sa - sb;
+    });
+
+    // Lane packing to avoid overlap
+    const lanes = []; // lastEnd per lane
+    for (const bt of items){
+      const slot = extractTimeSlot(bt);
+      if (!slot) continue;
+      const s = Math.max(DAY_START, Math.min(DAY_END, slot.start));
+      const e = Math.max(DAY_START, Math.min(DAY_END, slot.end));
+      if (e <= s) continue;
+
       let lane = 0;
-      while (lane < lanes.length) {
-        const last = lanes[lane][lanes[lane].length - 1];
-        if (it.slot.startMin >= last.endMin) break;
-        lane++;
-      }
-      if (!lanes[lane]) lanes[lane] = [];
-      lanes[lane].push({ startMin: it.slot.startMin, endMin: it.slot.endMin, bt: it.bt, slot: it.slot });
+      while (lane < lanes.length && s < lanes[lane]) lane++;
+      if (lane === lanes.length) lanes.push(0);
+      lanes[lane] = e;
+
+      const leftPct = ((s - DAY_START) / SPAN) * 100;
+      const widthPct = ((e - s) / SPAN) * 100;
+
+      const card = document.createElement("div");
+      card.className = `tlBlock cat-${catClass(bt.categorie || bt.cat || bt.type || "")}`;
+      card.style.left = `${leftPct}%`;
+      card.style.width = `${widthPct}%`;
+      card.style.top = `${lane * 26}px`;
+
+      const code = escapeHtml(bt.id || bt.bt || bt.numero || "BT");
+      const cat = escapeHtml(bt.categorie || bt.cat || "");
+      const time = `${formatTime(s)}–${formatTime(e)}`;
+
+      card.innerHTML = `<div class="tlBlockTop">${code}</div><div class="tlBlockMid">${cat}</div><div class="tlBlockBot">${time}</div>`;
+      card.title = `${code} • ${cat} • ${time}`;
+      card.addEventListener("click", ()=>openBtModal(bt));
+      blocks.appendChild(card);
     }
 
-    // Render each lane as its own sub-row (stacked only when overlap is real)
-    for (let li = 0; li < lanes.length; li++) {
-      const baseRow = rowIndex + li;
-
-      // Background strip for the lane (helps reading)
-      const strip = document.createElement("div");
-      strip.className = "timelineStrip";
-      strip.style.gridRow = baseRow;
-      strip.style.gridColumn = `2 / span ${cols}`;
-      grid.appendChild(strip);
-
-      for (const node of lanes[li]) {
-        const startCol = 2 + Math.floor((node.startMin - DAY_START) / SLOT_MIN);
-        const endCol = 2 + Math.ceil((node.endMin - DAY_START) / SLOT_MIN);
-        const btEl = document.createElement("div");
-        btEl.className = `timelineBt ${classificationColorClass(node.bt)}`;
-        btEl.style.gridRow = baseRow;
-        btEl.style.gridColumn = `${startCol} / ${Math.max(startCol + 1, endCol)}`;
-
-        const title = document.createElement("div");
-        title.className = "timelineBtId";
-        title.textContent = node.bt.id;
-
-        const sub = document.createElement("div");
-        sub.className = "timelineBtSub";
-        sub.textContent = `${node.bt.categorie || ""} • ${node.slot.text || ""}`.trim();
-
-        btEl.appendChild(title);
-        btEl.appendChild(sub);
-
-        btEl.addEventListener("click", () => openBtModal(node.bt));
-
-        grid.appendChild(btEl);
-      }
-    }
-
-    rowIndex += Math.max(1, lanes.length);
+    // Adjust row height according to lanes (min 1)
+    const lanesCount = Math.max(1, lanes.length);
+    row.style.setProperty("--lanes", lanesCount);
   }
-
-  host.appendChild(grid);
 }
+
 function renderBriefTimeline(filtered, tech) {
   const host = $("briefTimeline");
   if (!host) return;
