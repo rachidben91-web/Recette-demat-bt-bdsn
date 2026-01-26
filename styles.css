@@ -723,3 +723,57 @@ body.flip .briefList{ grid-template-columns: 1fr; } /* Flip = vertical reading *
 
 /* subtle pulse for brief scroll */
 .pulse{ outline:2px solid rgba(0,163,224,.65); box-shadow: 0 0 0 4px rgba(0,163,224,.15); }
+
+
+/* ===== Referent Timeline (dark) ===== */
+.timeline-grid{
+  display:grid;
+  color: var(--text-primary);
+}
+.timeline-header,
+.timeline-corner{
+  background: var(--bg-secondary);
+  border-bottom:1px solid var(--border-color);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family: var(--font-mono);
+  font-size:11px;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+  color: var(--text-muted);
+}
+.timeline-hour{
+  padding:10px 8px;
+}
+.timeline-corner{
+  justify-content:flex-start;
+  padding:10px 12px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+.timeline-tech{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-bottom:1px solid var(--border-color);
+  background: rgba(255,255,255,0.02);
+  color: var(--text-secondary);
+  font-weight:700;
+}
+.timeline-tech-avatar{
+  width:26px;
+  height:26px;
+  border-radius:10px;
+  background: rgba(14,165,233,0.14);
+  border:1px solid rgba(14,165,233,0.35);
+  display:grid;
+  place-items:center;
+  font-size:12px;
+}
+.timeline-cell{
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  border-left:1px solid rgba(255,255,255,0.05);
+  background: rgba(0,0,0,0.08);
+}

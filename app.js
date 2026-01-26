@@ -71,6 +71,18 @@ const state = {
 const $ = (id) => document.getElementById(id);
 
 function setZonesStatus(msg) {
+
+function escapeHtml(input) {
+  const s = (input ?? "").toString();
+  return s.replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[c]));
+}
+
   const el = $("zonesStatus");
   if (el) el.textContent = msg;
 }
@@ -852,11 +864,12 @@ function renderTimeline(filtered, timeline) {
 
   // Créer la grille
   const container = document.createElement("div");
-  container.style.cssText = "position:relative; overflow-x:auto; background:#fff; border-radius:var(--radius); border:1.5px solid var(--line); box-shadow:var(--shadow);";
+  container.style.cssText = "position:relative; overflow-x:auto; background:var(--card); border-radius:var(--radius); border:1.5px solid var(--line); box-shadow:var(--shadow);";
 
   const grid = document.createElement("div");
   grid.className = "timeline-grid";
   grid.style.gridTemplateColumns = `180px repeat(${hours.length}, minmax(100px, 1fr))`;
+  grid.style.minWidth = `${180 + hours.length * 140}px`;
   grid.style.gridTemplateRows = `50px repeat(${totalRows}, 70px)`;
   grid.style.position = "relative";
 
