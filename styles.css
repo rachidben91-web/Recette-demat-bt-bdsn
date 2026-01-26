@@ -521,3 +521,205 @@ body.flip .kpi{ font-size:14px; padding:10px 14px; }
   .grid{ grid-template-columns: 1fr; }
   .seg__btn{ padding: 0 10px; }
 }
+
+
+/* ===== Views (Référent / Brief) ===== */
+
+.view{ display:none; }
+.view.view--active{ display:block; }
+
+/* ===== Topbar tweaks ===== */
+.tb-date--big{
+  font-size:15px;
+  font-weight:900;
+  letter-spacing:-.02em;
+  color: var(--grdf-blue);
+  border-color: rgba(0,163,224,.35);
+  background: rgba(0,163,224,.06);
+}
+.tb-statusRow{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.tb-statusRow .tb-meta{
+  font-family: var(--font-mono);
+  font-size:11px;
+  color: var(--text-secondary);
+}
+
+/* ===== Timeline legend (Référent) ===== */
+.timelineLegend{
+  padding:12px 16px;
+  background: var(--bg-secondary);
+  border-bottom:1px solid var(--border-color);
+  display:flex;
+  gap:16px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.timelineLegendNote{
+  font-size:11px;
+  color: var(--text-muted);
+  margin-left:auto;
+}
+
+/* ===== Brief (Flip) layout ===== */
+.briefStage{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.briefTop{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.briefModeTitle{
+  font-size:22px;
+  font-weight:900;
+  letter-spacing:-.02em;
+}
+.briefModeSub{
+  margin-top:4px;
+  font-size:13px;
+  color: var(--text-secondary);
+}
+.briefTimelineCard,
+.briefCardsCard{
+  overflow:hidden;
+}
+.briefTimelineHeader,
+.briefCardsHeader{
+  padding:12px 16px;
+  border-bottom:1px solid var(--border-color);
+  background: var(--bg-secondary);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.briefTimelineLabel,
+.briefCardsLabel{
+  font-family: var(--font-mono);
+  font-size:11px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color: var(--text-muted);
+  font-weight:800;
+}
+.briefTimelineHint,
+.briefCardsHint{
+  font-size:12px;
+  color: var(--text-secondary);
+}
+
+/* Brief timeline horizontal */
+.briefTimeline{
+  position:relative;
+  padding:14px 16px 18px;
+  background: var(--bg-primary);
+  overflow-x:auto;
+  overflow-y:hidden;
+}
+.briefTimeline__canvas{
+  position:relative;
+  height:220px;
+  min-width: 980px;
+  border:1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
+}
+.briefTimeline__hours{
+  position:absolute;
+  top:10px;
+  left:0;
+  right:0;
+  height:18px;
+  display:flex;
+  padding:0 12px;
+  gap:0;
+  pointer-events:none;
+  font-family: var(--font-mono);
+  font-size:11px;
+  color: var(--text-secondary);
+}
+.briefTimeline__hour{
+  flex:1 0 auto;
+  width: 90px; /* per hour */
+  text-align:center;
+  opacity:.9;
+}
+.briefTimeline__grid{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+.briefTimeline__gridLine{
+  position:absolute;
+  top:0; bottom:0;
+  width:1px;
+  background: rgba(255,255,255,0.06);
+}
+.briefTimeline__track{
+  position:absolute;
+  left:12px; right:12px;
+  top:40px; bottom:14px;
+}
+.briefTimeline__block{
+  position:absolute;
+  height:44px;
+  border-radius: 12px;
+  border:1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 8px 22px rgba(0,0,0,.35);
+  cursor:pointer;
+  padding:10px 12px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:3px;
+  overflow:hidden;
+}
+.briefTimeline__block:hover{
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+.briefTimeline__id{
+  font-family: var(--font-mono);
+  font-size:11px;
+  font-weight:900;
+  color:#fff;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.briefTimeline__time{
+  font-size:11px;
+  color: rgba(255,255,255,.90);
+  white-space:nowrap;
+}
+
+/* Brief cards */
+.briefList{
+  padding:14px 16px 16px;
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(520px, 1fr));
+  gap:12px;
+  background: var(--bg-primary);
+}
+
+/* Flip mode: maximize content */
+body.flip .layout{
+  grid-template-columns: 360px 1fr;
+}
+body.flip .content{
+  min-height: calc(100dvh - 90px);
+}
+body.flip .briefModeTitle{ font-size:24px; }
+body.flip .briefList{ grid-template-columns: 1fr; } /* Flip = vertical reading */
+
+
+/* subtle pulse for brief scroll */
+.pulse{ outline:2px solid rgba(0,163,224,.65); box-shadow: 0 0 0 4px rgba(0,163,224,.15); }

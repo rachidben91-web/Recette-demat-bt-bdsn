@@ -19,13 +19,10 @@
   </div>
 
   <div class="tb-center">
-    <div class="tb-date" id="tbDateTime">—</div>
-    <div class="tb-metaRow">
-      <div class="tb-liveBadge">
-        <div id="tbDot" class="tbDot tbDot--wait" title="En attente du PDF"></div>
-        <span>Temps réel</span>
-      </div>
-      <div id="tbMeta" class="tb-meta">—</div>
+    <div class="tb-date tb-date--big" id="tbDateTime">—</div>
+    <div class="tb-statusRow">
+      <div id="tbDot" class="tbDot tbDot--wait" title="En attente du PDF"></div>
+      <div id="tbMeta" class="tb-meta">En attente du PDF</div>
     </div>
   </div>
 
@@ -130,7 +127,8 @@
 
         <div id="btGrid" class="grid"></div>
         <div id="btTimeline" class="timeline" style="display:none;">
-          <div style="padding:12px 16px; background:#fafbfc; border-bottom:1.5px solid var(--line); display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+          <div class="timelineLegend">
+          
             <span style="font-size:12px; font-weight:700; color:var(--txt-light);">Catégories d'intervention :</span>
             <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:11px; font-weight:600;">
               <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
@@ -149,25 +147,42 @@
                 <span style="width:20px; height:3px; background:#64748b; border-radius:2px;"></span> AUTRE
               </span>
             </div>
-            <span style="font-size:11px; color:var(--muted); margin-left:auto;">Cliquez sur un BT pour voir les détails</span>
+            <span class="timelineLegendNote">Clique un BT pour voir les détails</span>
           </div>
         </div>
+          </div>
       </section>
 
       <!-- Brief view -->
-      <section id="viewBrief" class="view">
-        <div class="briefHeader">
-          <div>
-            <h2 class="h2">Brief équipe (Samsung Flip)</h2>
-            <div class="sub">Sélectionne un technicien → ses BT + docs s'affichent instantanément.</div>
-          </div>
-          <div class="briefMeta" id="briefMeta"></div>
-        </div>
+<section id="viewBrief" class="view">
+  <div class="briefStage">
+    <div class="briefTop">
+      <div class="briefTitleWrap">
+        <div class="briefModeTitle">Brief équipe (Samsung Flip)</div>
+        <div class="briefModeSub">Sélectionne un technicien → sa journée s'affiche (timeline + BT + docs).</div>
+      </div>
+      <div class="briefMeta" id="briefMeta"></div>
+    </div>
 
-        <div id="briefList" class="briefList"></div>
-      </section>
+    <div class="briefTimelineCard card">
+      <div class="briefTimelineHeader">
+        <div class="briefTimelineLabel">Timeline du technicien</div>
+        <div class="briefTimelineHint">Clique un bloc pour ouvrir le BT.</div>
+      </div>
+      <div id="briefTimeline" class="briefTimeline"></div>
+    </div>
 
-      <!-- Viewer modal -->
+    <div class="briefCardsCard card">
+      <div class="briefCardsHeader">
+        <div class="briefCardsLabel">BT de la journée</div>
+        <div class="briefCardsHint">Clique une carte pour afficher détails & documents.</div>
+      </div>
+      <div id="briefList" class="briefList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Viewer modal -->
       <div id="modal" class="modal" aria-hidden="true">
         <div class="modal__backdrop" data-close="1"></div>
         <div class="modal__panel card">

@@ -123,7 +123,7 @@ function updateTopbarClock() {
   const main = $("tbDateTime");
   if (!main) return;
   const now = new Date();
-  main.textContent = `Journée du ${formatDateFR(now)} — ${formatTimeFR(now)}`;
+  main.textContent = `${formatDateFR(now)} — ${formatTimeFR(now)}`;
   // meta stays whatever status message is
 }
 
@@ -973,6 +973,133 @@ function renderTimeline(filtered, timeline) {
   container.appendChild(grid);
   timeline.appendChild(container);
 }
+function renderBriefTimeline(filtered) {
+  const host = $("briefTimeline");
+  if (!host) return;
+
+  host.innerHTML = "";
+
+  if (!state.filters.techId) {
+    host.innerHTML = `<div class="hint" style="padding:16px;">Sélectionne un technicien pour afficher la timeline.</div>`;
+    return;
+  }
+
+  if (!filtered || filtered.length === 0) {
+    host.innerHTML = `<div class="hint" style="padding:16px;">Aucun BT à afficher sur la timeline.</div>`;
+    return;
+  }
+
+  // Collect time slots
+  const items = [];
+  for (const bt of filtered) {
+    const slot = extractTimeSlot(bt);
+    if (slot) items.push({ bt, slot });
+  }
+
+  if (items.length === 0) {
+    host.innerHTML = `<div class="hint" style="padding:16px;">Aucun créneau horaire détecté sur ces BT.</div>`;
+    return;
+  }
+
+  // Determine hour range (default 7-18)
+  let minH = 7, maxH = 18;
+  const minStart = Math.min(...items.map(x => x.slot.start));
+  const maxEnd = Math.max(...items.map(x => x.slot.end));
+  if (isFinite(minStart) && isFinite(maxEnd)) {
+    minH = Math.max(6, Math.floor(minStart));
+    maxH = Math.min(20, Math.ceil(maxEnd));
+    if (maxH - minH < 6) { minH = Math.max(6, minH - 1); maxH = Math.min(20, maxH + 1); }
+  }
+
+  const hours = [];
+  for (let h = minH; h < maxH; h++) hours.push(h);
+
+  // Layout constants
+  const hourPx = 90;
+  const pad = 12;
+  const canvasW = Math.max(980, (hours.length) * hourPx + pad*2);
+
+  // Assign lanes to avoid overlap
+  items.sort((a,b)=>a.slot.start - b.slot.start);
+  const lanes = []; // lane end time
+  for (const it of items) {
+    let lane = lanes.findIndex(end => end <= it.slot.start);
+    if (lane === -1) { lane = lanes.length; lanes.push(it.slot.end); }
+    else lanes[lane] = it.slot.end;
+    it.lane = lane;
+  }
+  const laneH = 52;
+  const canvasH = Math.max(220, 60 + (lanes.length) * laneH);
+
+  const canvas = document.createElement("div");
+  canvas.className = "briefTimeline__canvas";
+  canvas.style.width = canvasW + "px";
+  canvas.style.height = canvasH + "px";
+
+  // Hours row
+  const hoursRow = document.createElement("div");
+  hoursRow.className = "briefTimeline__hours";
+  for (const h of hours) {
+    const el = document.createElement("div");
+    el.className = "briefTimeline__hour";
+    el.style.width = hourPx + "px";
+    el.textContent = `${String(h).padStart(2,"0")}h`;
+    hoursRow.appendChild(el);
+  }
+  canvas.appendChild(hoursRow);
+
+  // Grid lines
+  const grid = document.createElement("div");
+  grid.className = "briefTimeline__grid";
+  for (let i=0;i<=hours.length;i++){
+    const gl = document.createElement("div");
+    gl.className = "briefTimeline__gridLine";
+    gl.style.left = (pad + i*hourPx) + "px";
+    grid.appendChild(gl);
+  }
+  canvas.appendChild(grid);
+
+  const track = document.createElement("div");
+  track.className = "briefTimeline__track";
+  canvas.appendChild(track);
+
+  // Blocks
+  for (const it of items) {
+    const { bt, slot } = it;
+    const classification = classifyIntervention(bt);
+
+    const left = pad + (slot.start - minH) * hourPx;
+    const width = Math.max(90, (slot.end - slot.start) * hourPx - 6);
+    const top = 6 + it.lane * laneH;
+
+    const block = document.createElement("div");
+    block.className = "briefTimeline__block";
+    block.style.left = left + "px";
+    block.style.width = width + "px";
+    block.style.top = top + "px";
+    block.style.background = classification.color;
+
+    block.innerHTML = `
+      <div class="briefTimeline__id">${escapeHtml(bt.id || "")}</div>
+      <div class="briefTimeline__time">${escapeHtml(slot.text || "")}</div>
+    `;
+
+    block.addEventListener("click", () => {
+      // Scroll to card if present, else open first doc/BT
+      const card = document.getElementById(`briefCard-${bt.id}`);
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "start" });
+        card.classList.add("pulse");
+        setTimeout(()=>card.classList.remove("pulse"), 650);
+      }
+    });
+
+    track.appendChild(block);
+  }
+
+  host.appendChild(canvas);
+}
+
 
 // -------------------------
 // Render Brief (list)
@@ -980,11 +1107,13 @@ function renderTimeline(filtered, timeline) {
 function renderBrief(filtered) {
   const list = $("briefList");
   const meta = $("briefMeta");
+  const tlHost = $("briefTimeline");
   if (!list) return;
 
   // brief => doit avoir un technicien sélectionné
   if (!state.filters.techId) {
     if (meta) meta.textContent = "";
+    if (tlHost) tlHost.innerHTML = `<div class="hint" style="padding:16px;">Sélectionne un technicien pour afficher la timeline.</div>`;
     list.innerHTML = `<div class="hint" style="padding:16px;">
       Mode <b>Brief</b> : sélectionne un technicien à gauche.
     </div>`;
@@ -995,8 +1124,11 @@ function renderBrief(filtered) {
   const t = techs.find(x => techKey(x) === state.filters.techId);
   if (meta) meta.textContent = t ? `${t.name} — ${filtered.length} BT` : "";
 
+  renderBriefTimeline(filtered);
+
   list.innerHTML = "";
   if (filtered.length === 0) {
+    if (tlHost) tlHost.innerHTML = `<div class="hint" style="padding:16px;">Aucun BT à afficher sur la timeline.</div>`;
     list.innerHTML = `<div class="hint" style="padding:16px;">Aucun BT pour ce technicien avec ces filtres.</div>`;
     return;
   }
@@ -1006,6 +1138,7 @@ function renderBrief(filtered) {
     
     const card = document.createElement("div");
     card.className = "card briefCard";
+    card.id = `briefCard-${bt.id}`;
 
     const titleDiv = document.createElement("div");
     titleDiv.style.display = "flex";
