@@ -3,23 +3,40 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>DEMAT-BT — Référent & Brief</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css" />
 </head>
 
 <body>
   <header class="topbar">
+  <div class="tb-left">
     <div class="brand">
       <div class="brand__title">DEMAT-BT</div>
-      <div class="brand__sub">Dématérialisation BT — Référent d'équipe</div>
+      <div class="brand__sub">
+        Dématérialisation BT — Référent d'équipe
+        <span id="appVersion" class="brand__ver">v—</span>
+      </div>
     </div>
+  </div>
 
+  <div class="tb-center">
+    <div class="tb-date tb-date--big" id="tbDateTime">—</div>
+    <div class="tb-statusRow">
+      <div id="tbDot" class="tbDot tbDot--wait" title="En attente du PDF"></div>
+      <div id="tbMeta" class="tb-meta">En attente du PDF</div>
+    </div>
+  </div>
+
+  <div class="tb-right">
     <div class="topbar__actions">
-      <label class="btn btn--secondary">
+      <label class="btn btn--secondary btn--upload">
         <span>📁</span> Importer PDF du jour
         <input id="pdfFile" type="file" accept="application/pdf" hidden />
       </label>
 
-      <button id="btnExtract" class="btn">
+      <button id="btnExtract" class="btn btn--primary">
         <span>⚡</span> Extraire
       </button>
 
@@ -32,7 +49,8 @@
         <span>⛶</span> Plein écran
       </button>
     </div>
-  </header>
+  </div>
+</header>
 
   <main class="layout">
     <!-- Left: sidebar -->
@@ -112,43 +130,62 @@
 
         <div id="btGrid" class="grid"></div>
         <div id="btTimeline" class="timeline" style="display:none;">
-          <div style="padding:12px 16px; background:#fafbfc; border-bottom:1.5px solid var(--line); display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
-            <span style="font-size:12px; font-weight:700; color:var(--txt-light);">Timeline journalière (7h30 → 17h00)</span>
+          <div class="timelineLegend">
+          
+            <span style="font-size:12px; font-weight:700; color:var(--txt-light);">Catégories d'intervention :</span>
             <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:11px; font-weight:600;">
               <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
-                <span style="width:20px; height:12px; background:#2563eb; border-radius:2px;"></span> CLIENTÈLE
+                <span style="width:20px; height:3px; background:#2563eb; border-radius:2px;"></span> CLIENTÈLE
               </span>
               <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
-                <span style="width:20px; height:12px; background:#10b981; border-radius:2px;"></span> MAINTENANCE
+                <span style="width:20px; height:3px; background:#10b981; border-radius:2px;"></span> MAINTENANCE
               </span>
               <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
-                <span style="width:20px; height:12px; background:#f59e0b; border-radius:2px;"></span> SURVEILLANCE
+                <span style="width:20px; height:3px; background:#f59e0b; border-radius:2px;"></span> SURVEILLANCE
               </span>
               <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
-                <span style="width:20px; height:12px; background:#a855f7; border-radius:2px;"></span> ADMINISTRATIF
+                <span style="width:20px; height:3px; background:#a855f7; border-radius:2px;"></span> ADMINISTRATIF
               </span>
               <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
-                <span style="width:20px; height:12px; background:#64748b; border-radius:2px;"></span> AUTRE
+                <span style="width:20px; height:3px; background:#64748b; border-radius:2px;"></span> AUTRE
               </span>
             </div>
+            <span class="timelineLegendNote">Clique un BT pour voir les détails</span>
           </div>
         </div>
+          </div>
       </section>
 
       <!-- Brief view -->
-      <section id="viewBrief" class="view">
-        <div class="briefHeader">
-          <div>
-            <h2 class="h2">Brief équipe (Samsung Flip)</h2>
-            <div class="sub">Sélectionne un technicien → ses BT + docs s'affichent instantanément.</div>
-          </div>
-          <div class="briefMeta" id="briefMeta"></div>
-        </div>
+<section id="viewBrief" class="view">
+  <div class="briefStage">
+    <div class="briefTop">
+      <div class="briefTitleWrap">
+        <div class="briefModeTitle">Brief équipe (Samsung Flip)</div>
+        <div class="briefModeSub">Sélectionne un technicien → sa journée s'affiche (timeline + BT + docs).</div>
+      </div>
+      <div class="briefMeta" id="briefMeta"></div>
+    </div>
 
-        <div id="briefList" class="briefList"></div>
-      </section>
+    <div class="briefTimelineCard card">
+      <div class="briefTimelineHeader">
+        <div class="briefTimelineLabel">Timeline du technicien</div>
+        <div class="briefTimelineHint">Clique un bloc pour ouvrir le BT.</div>
+      </div>
+      <div id="briefTimeline" class="briefTimeline"></div>
+    </div>
 
-      <!-- Viewer modal -->
+    <div class="briefCardsCard card">
+      <div class="briefCardsHeader">
+        <div class="briefCardsLabel">BT de la journée</div>
+        <div class="briefCardsHint">Clique une carte pour afficher détails & documents.</div>
+      </div>
+      <div id="briefList" class="briefList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Viewer modal -->
       <div id="modal" class="modal" aria-hidden="true">
         <div class="modal__backdrop" data-close="1"></div>
         <div class="modal__panel card">
@@ -187,7 +224,10 @@
   <!-- pdf-lib (export PDF BT) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 
-  <!-- data -->
+  <!-- data (fallbacks: selon ton repo) -->
+  <script src="./techniciens.js"></script>
+  <script src="./technicians.js"></script>
+  <script src="./data/techniciens.js"></script>
   <script src="./data/technicians.js"></script>
 
   <!-- app -->
