@@ -1,3 +1,102 @@
+
+function formatTopDateTime(d = new Date()){
+  const date = new Intl.DateTimeFormat("fr-FR", { weekday:"long", year:"numeric", month:"long", day:"2-digit" }).format(d);
+  const time = new Intl.DateTimeFormat("fr-FR", { hour:"2-digit", minute:"2-digit" }).format(d);
+  return `${date} — ${time}`;
+}
+function setTopDateTime(){
+  if (!els.topDatetime) return;
+  els.topDatetime.textContent = formatTopDateTime(new Date());
+}
+function weatherEmojiFromCode(code){
+  const c = Number(code);
+  if (c === 0) return "☀️";
+  if ([1,2,3].includes(c)) return "⛅";
+  if ([45,48].includes(c)) return "🌫️";
+  if (c >= 51 && c <= 57) return "🌦️";
+  if (c >= 61 && c <= 67) return "🌧️";
+  if (c >= 71 && c <= 77) return "❄️";
+  if (c >= 80 && c <= 82) return "🌧️";
+  if (c >= 95 && c <= 99) return "⛈️";
+  return "🌡️";
+}
+async function fetchWeather(lat, lon){
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=temperature_2m,weather_code&timezone=auto`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("meteo_http_" + res.status);
+  return res.json();
+}
+async function updateTopWeather(){
+  if (!els.topWeather) return;
+
+  const communes = [
+    { name: "Ermont", lat: 48.9904, lon: 2.2580 },
+    { name: "La Garenne-Colombes", lat: 48.9056, lon: 2.2445 },
+    { name: "Villeneuve-la-Garenne", lat: 48.9370, lon: 2.3281 },
+    { name: "Groslay", lat: 49.0107, lon: 2.3476 },
+  ];
+
+  try{
+    els.topWeather.textContent = "Météo…";
+
+    const parts = [];
+    for (const c of communes){
+      const data = await fetchWeather(c.lat, c.lon);
+      const cur = data.current || {};
+      const emoji = weatherEmojiFromCode(cur.weather_code);
+      const temp = cur.temperature_2m != null ? `${Math.round(cur.temperature_2m)}°C` : "—";
+      parts.push(`${emoji} ${c.name} ${temp}`);
+    }
+    els.topWeather.textContent = parts.join("  •  ");
+  } catch(e){
+    console.warn("Météo indisponible", e);
+    els.topWeather.textContent = "Météo indisponible";
+  }
+}
+
+/* --- Loaders local-first (GitHub-hosted) with CDN fallback --- */
+function loadScript(src){
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.async = true;
+    s.onload = () => resolve(src);
+    s.onerror = () => reject(new Error("script_load_failed:" + src));
+    document.head.appendChild(s);
+  });
+}
+async function ensurePdfjsLoaded(){
+  if (window.pdfjsLib) return "already";
+  const local = "./libs/pdfjs/pdf.min.js";
+  const cdn = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+  try{
+    await loadScript(local);
+    return "local";
+  } catch{
+    await loadScript(cdn);
+    return "cdn";
+  }
+}
+async function ensurePdfLibLoaded(){
+  if (window.PDFLib) return "already";
+  const local = "./libs/pdf-lib/pdf-lib.min.js";
+  const cdn = "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js";
+  try{
+    await loadScript(local);
+    return "local";
+  } catch{
+    await loadScript(cdn);
+    return "cdn";
+  }
+}
+function setPdfjsWorkerSource(mode){
+  if (!window.pdfjsLib) return;
+  // Worker MUST match the build source.
+  const localWorker = "./libs/pdfjs/pdf.worker.min.js";
+  const cdnWorker = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = (mode === "local") ? localWorker : cdnWorker;
+}
+
 /* app.js — DEMAT-BT v2.0 (Version avec modal + viewer)
    Compatible avec TON index.html :
    - Référent:  #viewReferent + #btGrid + #kpis
