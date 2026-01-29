@@ -1,5 +1,3 @@
-const APP_VERSION = "V8.1";
-
 /* app.js — DEMAT-BT v2.0 (Version avec modal + viewer)
    Compatible avec TON index.html :
    - Référent:  #viewReferent + #btGrid + #kpis
@@ -100,14 +98,30 @@ async function ensurePdfJs() {
 
   await new Promise((resolve, reject) => {
     const s = document.createElement("script");
-    s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.src = "./libs/pdfjs/pdf.min.js";
+    // Fallback CDN si la lib n’est pas présente dans /libs
+    s.onerror = () => {
+      const s2 = document.createElement("script");
+      s2.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+      s2.onload = resolve;
+      s2.onerror = () => reject(new Error("Impossible de charger PDF.js (local + CDN)"));
+      document.head.appendChild(s2);
+    };
     s.onload = resolve;
     s.onerror = () => reject(new Error("Impossible de charger pdf.js"));
     document.head.appendChild(s);
   });
 
   window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    "./libs/pdfjs/pdf.worker.min.js";
+  // Si tu n’as pas mis le worker en local, repasse sur CDN
+  try{
+    // simple check: si le fichier local 404, le fetch échouera (mais worker chargera plus tard)
+    fetch("./libs/pdfjs/pdf.worker.min.js", { method: "HEAD" }).catch(() => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    });
+  } catch(_){}
 }
 
 // -------------------------
