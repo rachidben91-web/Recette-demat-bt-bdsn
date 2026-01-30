@@ -330,6 +330,8 @@ async function extractAll() {
   const bbREAL = getZoneBBox("REALISATION");
   const bbDESI = getZoneBBox("DESIGNATION");
   const bbDUREE = getZoneBBox("DUREE"); // Nouveau: durée prévue
+  const bbANALYSE = getZoneBBox("ANALYSE_DES_RISQUES"); // Analyse des risques
+  const bbOBS = getZoneBBox("OBSERVATIONS"); // Observations
 
   state.bts = [];
   state.countsByTechId = new Map();
@@ -354,6 +356,8 @@ async function extractAll() {
       const realTxt = norm(await extractTextInBBox(page, bbREAL));
       const desiTxt = norm(await extractTextInBBox(page, bbDESI));
       const dureeTxt = norm(await extractTextInBBox(page, bbDUREE)); // Durée prévue
+      const analyseTxt = norm(await extractTextInBBox(page, bbANALYSE)); // Analyse des risques
+      const obsTxt = norm(await extractTextInBBox(page, bbOBS)); // Observations
 
       const team = parseTeamFromRealisation(realTxt);
 
@@ -368,6 +372,8 @@ async function extractAll() {
         team,
         designation: desiTxt,
         duree: dureeTxt, // Stocker la durée
+        analyseDesRisques: analyseTxt, // Stocker l'analyse des risques
+        observations: obsTxt, // Stocker les observations
         docs: [{ page: p, type: "BT" }]
       };
 
@@ -974,6 +980,8 @@ function renderBrief(filtered) {
       <div>👤 ${bt.client || "—"}</div>
       <div>📍 ${bt.localisation || "—"}</div>
       ${bt.atNum ? `<div>🧾 ${bt.atNum}</div>` : ""}
+      ${bt.analyseDesRisques ? `<div style="margin-top: 8px; padding: 8px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px;"><strong style="color: #f59e0b;">⚠️ Analyse des risques :</strong><br/><span style="font-size: 12px; color: #78350f;">${bt.analyseDesRisques}</span></div>` : ""}
+      ${bt.observations ? `<div style="margin-top: 8px; padding: 8px; background: #dbeafe; border-left: 3px solid #3b82f6; border-radius: 4px;"><strong style="color: #3b82f6;">💬 Observations :</strong><br/><span style="font-size: 12px; color: #1e3a8a;">${bt.observations}</span></div>` : ""}
     `;
 
     const docsDiv = document.createElement("div");
