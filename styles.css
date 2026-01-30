@@ -177,6 +177,126 @@ body{
 }
 .sidebar::-webkit-scrollbar-thumb:hover{ background:var(--muted-light); }
 
+/* =====================
+   CONTROL BADGES
+   ===================== */
+.control-badges {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.control-badge {
+  background: linear-gradient(135deg, #fafbfc 0%, #f8f9fb 100%);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: var(--transition);
+  min-height: 90px;
+}
+
+.control-badge:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.control-badge__icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.control-badge__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.control-badge__status {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--txt);
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+/* Zones badge - état OK en vert */
+#zonesBadge.status--ok {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #86efac;
+}
+
+#zonesBadge.status--ok .control-badge__status {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+/* PDF badge - état chargé en bleu */
+#pdfBadge.status--loaded {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #93c5fd;
+}
+
+#pdfBadge.status--loaded .control-badge__status {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* Progress badge */
+.progress-badge {
+  background: linear-gradient(135deg, #fafbfc 0%, #f8f9fb 100%);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.progress-badge__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.progress-badge__icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.progress-badge__text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--txt);
+  flex: 1;
+}
+
+/* Progress badge - extraction en cours */
+.progress-badge.status--active {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #fbbf24;
+}
+
+.progress-badge.status--active .progress-badge__text {
+  color: #b45309;
+  font-weight: 700;
+}
+
+/* Progress badge - terminé */
+.progress-badge.status--complete {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #86efac;
+}
+
+.progress-badge.status--complete .progress-badge__text {
+  color: #16a34a;
+  font-weight: 700;
+}
+
 .content{ 
   min-height: calc(100dvh - 102px); 
 }
@@ -1049,53 +1169,4 @@ body.flip .kpi{
   .modal__panel{
     margin:16px;
   }
-}
-
-/* ===== DEMAT-BT V9.2.1 — Affichages topbar (version + date/heure + météo) ===== */
-.topbar{
-  display: grid !important;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 12px;
-}
-.topbar__actions{ justify-self: end; }
-.topbar__center{
-  justify-self: center;
-  display:flex;
-  align-items:center;
-  gap: 12px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(0,0,0,0.12);
-}
-.topbar__datetime{
-  font-weight: 800;
-  letter-spacing: 0.2px;
-  white-space: nowrap;
-}
-.topbar__weather{
-  font-size: 12.5px;
-  opacity: 0.95;
-  white-space: nowrap;
-}
-@media (max-width: 980px){
-  .topbar__center{ display:none; }
-}
-
-.brand__title{
-  display:flex;
-  align-items: center;
-  gap: 8px;
-}
-.brand__ver{
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.3px;
-  opacity: 0.88;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
-  line-height: 1;
 }

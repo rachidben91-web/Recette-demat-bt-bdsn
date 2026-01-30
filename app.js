@@ -1,5 +1,3 @@
-const APP_VERSION = "V9.2.1";
-
 /* app.js — DEMAT-BT v2.0 (Version avec modal + viewer)
    Compatible avec TON index.html :
    - Référent:  #viewReferent + #btGrid + #kpis
@@ -41,17 +39,67 @@ const $ = (id) => document.getElementById(id);
 
 function setZonesStatus(msg) {
   const el = $("zonesStatus");
+  const badge = $("zonesBadge");
   if (el) el.textContent = msg;
+  
+  // Ajouter classe CSS si OK
+  if (badge) {
+    if (msg === "OK") {
+      badge.classList.add("status--ok");
+    } else {
+      badge.classList.remove("status--ok");
+    }
+  }
 }
+
 function setPdfStatus(msg) {
   const el = $("pdfStatus");
-  if (el) el.textContent = msg;
+  const badge = $("pdfBadge");
+  if (el) {
+    // Afficher nom court du fichier
+    if (msg.includes(".pdf")) {
+      const shortName = msg.length > 30 ? msg.substring(0, 27) + "..." : msg;
+      el.textContent = shortName;
+    } else {
+      el.textContent = msg;
+    }
+  }
+  
+  // Ajouter classe CSS si PDF chargé
+  if (badge) {
+    if (msg !== "Aucun PDF chargé" && msg !== "Erreur PDF" && msg.includes("pdf")) {
+      badge.classList.add("status--loaded");
+    } else {
+      badge.classList.remove("status--loaded");
+    }
+  }
 }
+
 function setProgress(pct, msg) {
   const bar = $("progBar");
   const m = $("progMsg");
+  const badge = $("progressBadge");
+  
   if (bar) bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
   if (m && msg != null) m.textContent = msg;
+  
+  // Gérer les classes CSS du badge
+  if (badge) {
+    // Extraction en cours
+    if (msg && (msg.includes("Analyse") || msg.includes("Extraction"))) {
+      badge.classList.add("status--active");
+      badge.classList.remove("status--complete");
+    }
+    // Terminé
+    else if (msg && (msg.includes("Terminé") || msg.includes("BT détectés") || msg.includes("BT chargés"))) {
+      badge.classList.add("status--complete");
+      badge.classList.remove("status--active");
+    }
+    // État normal
+    else {
+      badge.classList.remove("status--active", "status--complete");
+    }
+  }
 }
 function setExtractEnabled(enabled) {
   const btn = $("btnExtract");
@@ -564,7 +612,19 @@ function buildTechSelectWithCounts() {
     const cnt = state.countsByTechId.get(techKey(t)) || 0;
     const opt = document.createElement("option");
     opt.value = techKey(t);
-    opt.textContent = `${t.name} (${cnt} BT)`;
+    
+    // Construire le texte avec badges PTC/PTD
+    let displayText = `${t.name} (${cnt} BT)`;
+    
+    if (t.ptc && t.ptd) {
+      displayText += " [PTC+PTD]";
+    } else if (t.ptc) {
+      displayText += " [PTC]";
+    } else if (t.ptd) {
+      displayText += " [PTD]";
+    }
+    
+    opt.textContent = displayText;
     sel.appendChild(opt);
   }
 
@@ -652,9 +712,23 @@ function renderGrid(filtered, grid) {
   }
 
   for (const bt of filtered) {
-    const teamTxt = (bt.team || []).map(m => {
+    // Générer le HTML pour l'équipe avec badges PTC/PTD
+    const teamHtml = (bt.team || []).map(m => {
       const tech = mapTechByNni(m.nni);
-      return tech ? tech.name : m.nni;
+      if (!tech) return m.nni;
+      
+      let techDisplay = tech.name;
+      
+      // Ajouter les badges PTC/PTD
+      if (tech.ptc && tech.ptd) {
+        techDisplay += ' <span style="display:inline-block;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:700;background:#10b98115;color:#10b981;border:1px solid #10b981;margin-left:4px;">PTC+PTD</span>';
+      } else if (tech.ptc) {
+        techDisplay += ' <span style="display:inline-block;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:700;background:#3b82f615;color:#3b82f6;border:1px solid #3b82f6;margin-left:4px;">PTC</span>';
+      } else if (tech.ptd) {
+        techDisplay += ' <span style="display:inline-block;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:700;background:#f59e0b15;color:#f59e0b;border:1px solid #f59e0b;margin-left:4px;">PTD</span>';
+      }
+      
+      return techDisplay;
     }).join(" • ") || "—";
 
     // Compter les docs par type
@@ -724,7 +798,7 @@ function renderGrid(filtered, grid) {
       <div>📋 ${bt.objet || "—"}</div>
       <div>👤 ${bt.client || "—"}</div>
       <div>📍 ${bt.localisation || "—"}</div>
-      <div>👥 ${teamTxt}</div>
+      <div>👥 ${teamHtml}</div>
       ${bt.atNum ? `<div>🧾 ${bt.atNum}</div>` : ""}
     `;
     
@@ -1052,6 +1126,7 @@ function renderBrief(filtered) {
     titleDiv.style.alignItems = "center";
     titleDiv.style.gap = "12px";
     titleDiv.style.marginBottom = "10px";
+    titleDiv.style.flexWrap = "wrap";
     
     const idSpan = document.createElement("div");
     idSpan.className = "briefTitle";
@@ -1075,6 +1150,50 @@ function renderBrief(filtered) {
     
     titleDiv.appendChild(idSpan);
     titleDiv.appendChild(categoryBadge);
+    
+    // Ajouter les badges PTC/PTD si le technicien a une convention
+    if (bt.team && bt.team.length > 0) {
+      bt.team.forEach(member => {
+        const tech = mapTechByNni(member.nni);
+        if (tech && (tech.ptc || tech.ptd)) {
+          const conventionBadge = document.createElement("div");
+          let badgeText = "";
+          let badgeColor = "";
+          
+          if (tech.ptc && tech.ptd) {
+            badgeText = "PTC + PTD";
+            badgeColor = "#10b981"; // Vert
+          } else if (tech.ptc) {
+            badgeText = "PTC";
+            badgeColor = "#3b82f6"; // Bleu
+          } else if (tech.ptd) {
+            badgeText = "PTD";
+            badgeColor = "#f59e0b"; // Orange
+          }
+          
+          conventionBadge.style.cssText = `
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            background: ${badgeColor}15;
+            color: ${badgeColor};
+            border: 1.5px solid ${badgeColor};
+          `;
+          conventionBadge.textContent = badgeText;
+          conventionBadge.title = tech.ptc && tech.ptd 
+            ? "Prise de Travail à Distance + Prise de Travail sur Chantier" 
+            : tech.ptc 
+              ? "Prise de Travail à Distance"
+              : "Prise de Travail sur Chantier";
+          
+          titleDiv.appendChild(conventionBadge);
+        }
+      });
+    }
 
     const subDiv = document.createElement("div");
     subDiv.className = "briefSub";

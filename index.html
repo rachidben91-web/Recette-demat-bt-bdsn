@@ -3,13 +3,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>DEMAT-BT — Référent & Brief</title>
-  <link rel="stylesheet" href="./styles.css?v=9.2.1" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="brand__title">DEMAT-BT <span class="brand__ver" id="appVersion">V9.2.1</span></div>
+      <div class="brand__title">DEMAT-BT</div>
       <div class="brand__sub">Dématérialisation BT — Référent d'équipe</div>
     </div>
 
@@ -45,19 +45,27 @@
     <aside class="sidebar card">
       <div class="card__title">Contrôle</div>
 
-      <div class="field">
-        <div class="label">Zones</div>
-        <div id="zonesStatus" class="hint">Chargement…</div>
+      <!-- Badges carrés pour Zones et PDF -->
+      <div class="control-badges">
+        <div class="control-badge" id="zonesBadge">
+          <div class="control-badge__icon">📍</div>
+          <div class="control-badge__label">Zones</div>
+          <div class="control-badge__status" id="zonesStatus">Chargement…</div>
+        </div>
+        
+        <div class="control-badge" id="pdfBadge">
+          <div class="control-badge__icon">📄</div>
+          <div class="control-badge__label">PDF</div>
+          <div class="control-badge__status" id="pdfStatus">Aucun PDF</div>
+        </div>
       </div>
 
-      <div class="field">
-        <div class="label">PDF</div>
-        <div id="pdfStatus" class="hint">Aucun PDF chargé</div>
-      </div>
-
-      <div class="field">
-        <div class="label">Progression</div>
-        <div id="progMsg" class="hint">Prêt.</div>
+      <!-- Badge de progression -->
+      <div class="progress-badge" id="progressBadge">
+        <div class="progress-badge__header">
+          <div class="progress-badge__icon">⚡</div>
+          <div class="progress-badge__text" id="progMsg">Prêt.</div>
+        </div>
         <div class="progress"><div id="progBar"></div></div>
       </div>
 
@@ -206,6 +214,6 @@
   <script src="./data/technicians.js"></script>
 
   <!-- app -->
-  <script src="./app.js?v=9.2.1"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
