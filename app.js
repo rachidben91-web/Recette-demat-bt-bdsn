@@ -729,6 +729,11 @@ function buildTechSelectWithCounts() {
     const opt = document.createElement("option");
     opt.value = techKey(t);
     
+    // Debug: vérifier les propriétés
+    if (cnt === withBt[0] && cnt > 0) {
+      console.log("[DEBUG] Premier technicien:", t.name, "PTC:", t.ptc, "PTD:", t.ptd);
+    }
+    
     // Construire le texte avec badges PTC/PTD
     let displayText = `${t.name} (${cnt} BT)`;
     
@@ -828,25 +833,6 @@ function renderGrid(filtered, grid) {
   }
 
   for (const bt of filtered) {
-    // Générer le HTML pour l'équipe avec badges PTC/PTD
-    const teamHtml = (bt.team || []).map(m => {
-      const tech = mapTechByNni(m.nni);
-      if (!tech) return m.nni;
-      
-      let techDisplay = tech.name;
-      
-      // Ajouter les badges PTC/PTD
-      if (tech.ptc && tech.ptd) {
-        techDisplay += ' <span style="display:inline-block;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:700;background:#10b98115;color:#10b981;border:1px solid #10b981;margin-left:4px;">PTC+PTD</span>';
-      } else if (tech.ptc) {
-        techDisplay += ' <span style="display:inline-block;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:700;background:#3b82f615;color:#3b82f6;border:1px solid #3b82f6;margin-left:4px;">PTC</span>';
-      } else if (tech.ptd) {
-        techDisplay += ' <span style="display:inline-block;padding:2px 6px;border-radius:999px;font-size:9px;font-weight:700;background:#f59e0b15;color:#f59e0b;border:1px solid #f59e0b;margin-left:4px;">PTD</span>';
-      }
-      
-      return techDisplay;
-    }).join(" • ") || "—";
-
     // Compter les docs par type
     const counts = {};
     for (const d of bt.docs || []) counts[d.type] = (counts[d.type] || 0) + 1;
@@ -908,15 +894,95 @@ function renderGrid(filtered, grid) {
     const metaDiv = document.createElement("div");
     metaDiv.className = "btMeta";
     const dureeFormatted = formatDuree(bt.duree);
+    
+    // Créer la ligne d'équipe avec badges PTC/PTD
+    const teamLine = document.createElement("div");
+    teamLine.style.display = "flex";
+    teamLine.style.alignItems = "center";
+    teamLine.style.gap = "6px";
+    teamLine.style.flexWrap = "wrap";
+    
+    const teamIcon = document.createElement("span");
+    teamIcon.textContent = "👥 ";
+    teamLine.appendChild(teamIcon);
+    
+    if (bt.team && bt.team.length > 0) {
+      bt.team.forEach((m, idx) => {
+        const tech = mapTechByNni(m.nni);
+        
+        // Nom du technicien
+        const nameSpan = document.createElement("span");
+        if (tech) {
+          nameSpan.textContent = tech.name;
+        } else {
+          // Technicien non trouvé - afficher le NNI en italique avec icône
+          nameSpan.style.fontStyle = "italic";
+          nameSpan.style.opacity = "0.7";
+          nameSpan.textContent = `${m.nni}`;
+          nameSpan.title = "Technicien non répertorié dans la base";
+        }
+        teamLine.appendChild(nameSpan);
+        
+        // Badge PTC/PTD si applicable
+        if (tech && (tech.ptc || tech.ptd)) {
+          const badge = document.createElement("span");
+          badge.style.cssText = `
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 999px;
+            font-size: 9px;
+            font-weight: 700;
+            margin-left: 3px;
+          `;
+          
+          if (tech.ptc && tech.ptd) {
+            badge.style.background = "#10b98115";
+            badge.style.color = "#10b981";
+            badge.style.border = "1px solid #10b981";
+            badge.textContent = "PTC+PTD";
+          } else if (tech.ptc) {
+            badge.style.background = "#3b82f615";
+            badge.style.color = "#3b82f6";
+            badge.style.border = "1px solid #3b82f6";
+            badge.textContent = "PTC";
+          } else if (tech.ptd) {
+            badge.style.background = "#f59e0b15";
+            badge.style.color = "#f59e0b";
+            badge.style.border = "1px solid #f59e0b";
+            badge.textContent = "PTD";
+          }
+          
+          teamLine.appendChild(badge);
+        }
+        
+        // Ajouter séparateur si pas le dernier
+        if (idx < bt.team.length - 1) {
+          const sep = document.createElement("span");
+          sep.textContent = " • ";
+          sep.style.color = "var(--muted)";
+          teamLine.appendChild(sep);
+        }
+      });
+    } else {
+      const emptySpan = document.createElement("span");
+      emptySpan.textContent = "—";
+      teamLine.appendChild(emptySpan);
+    }
+    
+    // Construire le reste des métadonnées
     metaDiv.innerHTML = `
       <div>📅 ${bt.datePrevue || "—"}</div>
       ${dureeFormatted ? `<div>⏱️ ${dureeFormatted}</div>` : ""}
       <div>📋 ${bt.objet || "—"}</div>
       <div>👤 ${bt.client || "—"}</div>
       <div>📍 ${bt.localisation || "—"}</div>
-      <div>👥 ${teamHtml}</div>
       ${bt.atNum ? `<div>🧾 ${bt.atNum}</div>` : ""}
     `;
+    
+    // Insérer la ligne d'équipe dans metaDiv
+    const teamContainer = document.createElement("div");
+    teamContainer.appendChild(teamLine);
+    metaDiv.appendChild(teamContainer);
     
     // Actions (boutons pour voir les docs)
     const actionsDiv = document.createElement("div");
