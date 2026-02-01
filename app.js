@@ -3,7 +3,7 @@
    - Baseline: V9.2
 */
 
-const APP_VERSION = "V9.3";
+const APP_VERSION = "V9.3.1";
 const DOC_TYPES = ["BT", "AT", "PROC", "PLAN", "PHOTO", "STREET", "DOC"];
 let ZONES = null;
 
@@ -1584,6 +1584,111 @@ async function exportBTPDF() {
   }
 }
 
+
+// Export "Journée Technicien" (PDF unique : tous les BT + docs associés pour le technicien sélectionné)
+function formatLocalDateYYYYMMDD(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+async function exportDayPDF() {
+  if (!state.pdfFile || !state.pdf || !window.PDFLib) {
+    alert("Impossible de générer : PDF ou pdf-lib non chargé.");
+    return;
+  }
+
+  const techId = state.filters.techId;
+  if (!techId) {
+    alert("Sélectionne d'abord un technicien (dans le menu).");
+    return;
+  }
+
+  // Récupérer le technicien (nom lisible)
+  const tech = (window.TECHNICIANS || []).find(t => (t.id || t.nni) === techId);
+  const techLabel = tech ? tech.name : techId;
+
+  // BT affectés à ce technicien
+  const btsForTech = state.bts
+    .filter(bt => (bt.team || []).some(m => {
+      const t = mapTechByNni(m.nni);
+      return techKey(t) === techId;
+    }))
+    .sort((a, b) => (a.pageStart || 0) - (b.pageStart || 0));
+
+  if (btsForTech.length === 0) {
+    alert("Aucun BT trouvé pour ce technicien avec le PDF chargé.");
+    return;
+  }
+
+  try {
+    setProgress(0, `Génération PDF journée (${techLabel})…`);
+
+    // Charger le PDF original
+    const arrayBuf = await state.pdfFile.arrayBuffer();
+    const srcPdf = await window.PDFLib.PDFDocument.load(arrayBuf);
+
+    // Nouveau PDF
+    const outPdf = await window.PDFLib.PDFDocument.create();
+
+    // Pages à copier, dans l'ordre BT -> docs, sans doublons
+    const orderedPages = [];
+    const seen = new Set();
+
+    for (const bt of btsForTech) {
+      const pages = (bt.docs || [])
+        .map(d => d.page)
+        .filter(Boolean)
+        .sort((a, b) => a - b);
+
+      for (const p of pages) {
+        if (!seen.has(p)) {
+          seen.add(p);
+          orderedPages.push(p);
+        }
+      }
+    }
+
+    // Copier pages
+    for (let i = 0; i < orderedPages.length; i++) {
+      const pageNum = orderedPages[i];
+      const [copied] = await outPdf.copyPages(srcPdf, [pageNum - 1]);
+      outPdf.addPage(copied);
+
+      if (i % 5 === 0) {
+        const pct = Math.round((i / orderedPages.length) * 100);
+        setProgress(pct, `Assemblage pages… (${i + 1}/${orderedPages.length})`);
+      }
+    }
+
+    const pdfBytes = await outPdf.save();
+    const blob = new Blob([pdfBytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+
+    const safeName = String(techLabel)
+      .replace(/[^\w\d\- ]+/g, "")
+      .trim()
+      .replace(/\s+/g, "_")
+      .slice(0, 40);
+
+    const fileName = `JOURNEE_${formatLocalDateYYYYMMDD()}_${safeName || techId}.pdf`;
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+
+    URL.revokeObjectURL(url);
+
+    setProgress(100, `✅ Journée générée : ${btsForTech.length} BT / ${orderedPages.length} pages`);
+  } catch (e) {
+    console.error("Erreur export journée:", e);
+    setProgress(0, "Erreur génération journée (voir console).");
+    alert("Erreur lors de la génération du PDF journée.");
+  }
+}
+
 // -------------------------
 // Render global + switch vues
 // -------------------------
@@ -1742,6 +1847,10 @@ function wireEvents() {
   // Modal export
   const btnExport = $("btnExportBt");
   if (btnExport) btnExport.addEventListener("click", exportBTPDF);
+
+  // Export journée technicien (Brief)
+  const btnExportDay = $("btnExportDay");
+  if (btnExportDay) btnExportDay.addEventListener("click", exportDayPDF);
 
   // Fullscreen
   const btnFS = $("btnFullscreen");
