@@ -842,6 +842,17 @@ body{
   letter-spacing:-.01em;
 }
 
+.briefActions{
+  display:flex;
+  gap:10px;
+  align-items:flex-end;
+}
+
+.briefActions .btn{
+  white-space:nowrap;
+}
+
+
 .briefList{ 
   display:grid; 
   grid-template-columns: 1fr; 

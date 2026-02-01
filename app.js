@@ -1,12 +1,9 @@
-/* app.js — DEMAT-BT v2.0 (Version avec modal + viewer)
-   Compatible avec TON index.html :
-   - Référent:  #viewReferent + #btGrid + #kpis
-   - Brief:     #viewBrief + #briefList + #briefMeta
-   - Import PDF: input#pdfFile
-   - Extraire:   button#btnExtract
-   - Modal viewer: #modal avec canvas
+/* app.js — DEMAT-BT V9.3
+   - Ajout: Génération PDF "Journée Technicien" (Brief)
+   - Baseline: V9.2
 */
 
+const APP_VERSION = "V9.3";
 const DOC_TYPES = ["BT", "AT", "PROC", "PLAN", "PHOTO", "STREET", "DOC"];
 let ZONES = null;
 

@@ -17,6 +17,7 @@
   // PTD = Prise de Travail sur Chantier
   const raw = [
     ["ABIR", "Bilal", "H26975", "Rachid Ben Daoud", true, true],
+    ["AIT MANSOUR", "Myriam", "J25784", "Sabrina Salemkour", false, false],
     ["ARIF", "Kamel", "F62981", "Mustapha Arbib", true, false],
     ["ASSOUMO", "Alain-Bruno", "D45777", "Sabrina Salemkour", true, true],
     ["BEEHARRY-PANRAY", "Sanjeet", "B09571", "Rachid Ben Daoud", false, false],
