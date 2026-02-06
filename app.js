@@ -1,9 +1,12 @@
-/* app.js — DEMAT-BT V9.3
-   - Ajout: Génération PDF "Journée Technicien" (Brief)
-   - Baseline: V9.2
+/* app.js — DEMAT-BT V9.4
+   - Fix: Gestion d'erreur PDF améliorée avec logs console détaillés
+   - Ajout: Limite de taille fichier (15 MB par défaut)
+   - Ajout: Logs de debug pour identifier les problèmes de chargement
+   - Baseline: V9.3
+   Date: 2026-02-06
 */
 
-const APP_VERSION = "V9.3.1";
+const APP_VERSION = "V9.4";
 const DOC_TYPES = ["BT", "AT", "PROC", "PLAN", "PHOTO", "STREET", "DOC"];
 let ZONES = null;
 
@@ -1783,16 +1786,43 @@ function wireEvents() {
       if (!f) return;
 
       try {
+        // Vérifier la taille du fichier AVANT de le charger
+        const MAX_SIZE_MB = 15;
+        const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+        const sizeMB = (f.size / 1024 / 1024).toFixed(1);
+        
+        console.log(`[PDF] 📄 Fichier sélectionné : ${f.name}`);
+        console.log(`[PDF] 📊 Taille : ${sizeMB} MB (${f.size} bytes)`);
+        console.log(`[PDF] 📝 Type MIME : ${f.type}`);
+        
+        if (f.size > MAX_SIZE_BYTES) {
+          const errorMsg = `❌ PDF trop volumineux : ${sizeMB} MB (limite : ${MAX_SIZE_MB} MB)`;
+          console.error(errorMsg);
+          console.error(`💡 Solution : Réduisez la taille du PDF ou augmentez MAX_SIZE_MB dans le code`);
+          
+          setPdfStatus("Erreur : trop lourd");
+          setProgress(0, errorMsg);
+          setExtractEnabled(false);
+          alert(`${errorMsg}\n\n💡 Conseils :\n- Compressez le PDF en ligne\n- Divisez-le en plusieurs fichiers\n- Contactez le support`);
+          return;
+        }
+
         setExtractEnabled(false);
         setPdfStatus(f.name);
         setProgress(0, "Chargement PDF…");
+        console.log(`[PDF] ⏳ Début du chargement...`);
 
         await ensurePdfJs();
+        console.log(`[PDF] ✅ PDF.js chargé`);
 
         state.pdfFile = f;
         state.pdfName = f.name;
 
+        console.log(`[PDF] 🔄 Lecture du fichier en ArrayBuffer...`);
         const buf = await f.arrayBuffer();
+        console.log(`[PDF] ✅ ArrayBuffer créé (${(buf.byteLength / 1024 / 1024).toFixed(1)} MB)`);
+        
+        console.log(`[PDF] 🔄 Parsing PDF avec PDF.js...`);
         const loadingTask = window.pdfjsLib.getDocument({ data: buf });
         state.pdf = await loadingTask.promise;
         state.totalPages = state.pdf.numPages;
@@ -1800,10 +1830,57 @@ function wireEvents() {
         console.log("[DEMAT-BT] PDF chargé ✅", state.totalPages, "pages");
         setProgress(0, `PDF chargé (${state.totalPages} pages).`);
         setExtractEnabled(true);
+        
+        // Sauvegarder dans IndexedDB
+        console.log(`[PDF] 💾 Sauvegarde dans IndexedDB...`);
+        await savePdfToCache(f.name, buf);
+        console.log(`[PDF] ✅ PDF sauvegardé en cache`);
+        
       } catch (e) {
-        console.error(e);
+        // AFFICHAGE DÉTAILLÉ DE L'ERREUR
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.error("❌ ERREUR CHARGEMENT PDF");
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.error("📛 Type d'erreur :", e.name || "Inconnu");
+        console.error("💬 Message :", e.message || "Aucun message");
+        console.error("📍 Objet erreur complet :", e);
+        
+        if (e.stack) {
+          console.error("📚 Stack trace :");
+          console.error(e.stack);
+        }
+        
+        if (f) {
+          console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+          console.error("📄 Informations fichier :");
+          console.error("  • Nom :", f.name);
+          console.error("  • Taille :", (f.size / 1024 / 1024).toFixed(1), "MB");
+          console.error("  • Type :", f.type);
+          console.error("  • Dernière modif :", f.lastModified ? new Date(f.lastModified) : "N/A");
+        }
+        
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.error("💡 Causes possibles :");
+        console.error("  1. PDF corrompu ou invalide");
+        console.error("  2. Mémoire insuffisante (PDF trop lourd)");
+        console.error("  3. Format PDF non standard");
+        console.error("  4. Erreur réseau (chargement PDF.js)");
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        
+        // Message utilisateur adapté
+        let userMsg = "Erreur chargement PDF";
+        if (e.message) {
+          if (e.message.includes("Invalid PDF") || e.message.includes("invalid")) {
+            userMsg = "PDF invalide ou corrompu";
+          } else if (e.message.includes("memory") || e.message.includes("Memory")) {
+            userMsg = "Mémoire insuffisante (PDF trop lourd)";
+          } else if (e.message.includes("password") || e.message.includes("encrypted")) {
+            userMsg = "PDF protégé par mot de passe";
+          }
+        }
+        
         setPdfStatus("Erreur PDF");
-        setProgress(0, "Erreur chargement PDF (voir console).");
+        setProgress(0, `❌ ${userMsg} - Ouvrir Console (F12)`);
         setExtractEnabled(false);
       }
     });
