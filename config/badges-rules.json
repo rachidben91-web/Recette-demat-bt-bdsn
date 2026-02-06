@@ -1,6 +1,6 @@
 {
-  "version": "ruleset-1.1",
-  "description": "DEMAT-BT — Règles pastilles métier (corrigé: faux positifs TRAVAUX/LOCA, matching par mots)",
+  "version": "ruleset-1.2",
+  "description": "DEMAT-BT — Règles pastilles métier (mode 1 pastille, LOCA strict, CLIENT prioritaire vs TRAVAUX)",
   "detection": {
     "normalize": {
       "uppercase": true,
@@ -24,31 +24,25 @@
         {
           "any": [
             "LOCA",
-            "ADF"
-          ]
-        },
-        {
-          "all": [
-            "LOCALISATION",
-            "FUITE"
-          ]
-        },
-        {
-          "all": [
-            "LOCALISATION",
-            "ODEUR"
-          ]
-        },
-        {
-          "any": [
-            "ODEUR DE GAZ",
-            "ODEUR GAZ"
+            "ADF",
+            "SURVEILLANCE DE FUITE",
+            "SUIVI DES ALERTE",
+            "ALERTE FUITE",
+            "ALERTE DE FUITE"
           ]
         },
         {
           "all": [
             "ODEUR",
             "GAZ"
+          ],
+          "any2": [
+            "ALERTE",
+            "APPEL",
+            "URGENCE",
+            "LOCA",
+            "ADF",
+            "LOCALISATION"
           ]
         },
         {
@@ -60,8 +54,36 @@
             "ALERTE",
             "APPEL",
             "URGENCE",
+            "LOCA",
+            "ADF",
             "LOCALISATION",
-            "INTERVENTION"
+            "SURVEILLANCE"
+          ]
+        },
+        {
+          "all": [
+            "LOCALISATION",
+            "FUITE"
+          ],
+          "any2": [
+            "ALERTE",
+            "APPEL",
+            "URGENCE",
+            "LOCA",
+            "ADF"
+          ]
+        },
+        {
+          "all": [
+            "LOCALISATION",
+            "ODEUR"
+          ],
+          "any2": [
+            "ALERTE",
+            "APPEL",
+            "URGENCE",
+            "LOCA",
+            "ADF"
           ]
         }
       ],
@@ -332,10 +354,16 @@
         }
       ],
       "exclude": [
-        "RSF",
-        "SAP",
+        "COMPTEUR",
+        "DEMANDE FOURNISSEUR",
+        "FOURNISSEUR",
+        "MANOEUVRABILITE",
+        "MISE EN SERVICE",
+        "MISE HORS SERVICE",
         "PIS",
-        "MANOEUVRABILITE"
+        "POSTE CLIENT",
+        "RSF",
+        "SAP"
       ]
     },
     {
@@ -388,16 +416,23 @@
       "label": "CLIENT",
       "icon": "👤",
       "color": "#43A047",
-      "priority": 600,
+      "priority": 760,
       "rules": [
         {
           "any": [
             "ACTIVITE CLIENTELE",
+            "CHANGEMENT CPR",
+            "CHGT CPR",
             "CLIENT",
             "COMPTEUR",
-            "RENDEZ VOUS CLIENT",
+            "DEMANDE FOURNISSEUR",
+            "DEPPOSE COMPTEUR",
             "MISE EN SERVICE",
+            "MISE HORS SERVICE",
+            "POSE COMPTEUR",
+            "POSTE CLIENT",
             "REMISE EN SERVICE",
+            "RENDEZ VOUS CLIENT",
             "VERIF BRANCHEMENT",
             "VERIFIER BRANCHEMENT"
           ]
