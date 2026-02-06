@@ -1,6 +1,6 @@
 {
-  "version": "ruleset-1.2",
-  "description": "DEMAT-BT — Règles pastilles métier (mode 1 pastille, LOCA strict, CLIENT prioritaire vs TRAVAUX)",
+  "version": "ruleset-1.3",
+  "description": "DEMAT-BT — Règles pastilles v1.3 (LOCA strict + suivi alerte fuite + clientèle/ident corrigés)",
   "detection": {
     "normalize": {
       "uppercase": true,
@@ -23,67 +23,13 @@
       "rules": [
         {
           "any": [
-            "LOCA",
-            "ADF",
-            "SURVEILLANCE DE FUITE",
-            "SUIVI DES ALERTE",
-            "ALERTE FUITE",
-            "ALERTE DE FUITE"
-          ]
-        },
-        {
-          "all": [
-            "ODEUR",
-            "GAZ"
-          ],
-          "any2": [
-            "ALERTE",
-            "APPEL",
-            "URGENCE",
-            "LOCA",
-            "ADF",
-            "LOCALISATION"
-          ]
-        },
-        {
-          "all": [
-            "FUITE",
-            "GAZ"
-          ],
-          "any2": [
-            "ALERTE",
-            "APPEL",
-            "URGENCE",
-            "LOCA",
-            "ADF",
-            "LOCALISATION",
-            "SURVEILLANCE"
-          ]
-        },
-        {
-          "all": [
-            "LOCALISATION",
-            "FUITE"
-          ],
-          "any2": [
-            "ALERTE",
-            "APPEL",
-            "URGENCE",
-            "LOCA",
-            "ADF"
-          ]
-        },
-        {
-          "all": [
-            "LOCALISATION",
-            "ODEUR"
-          ],
-          "any2": [
-            "ALERTE",
-            "APPEL",
-            "URGENCE",
-            "LOCA",
-            "ADF"
+            " LOCALISATION DE FUITE ",
+            " LOCALISATION FUITE ",
+            " LOCA ",
+            " ODEUR DE GAZ ",
+            " ALERTE DE FUITE ",
+            " FUITE AVEREE ",
+            " INTERVENTION FUITE "
           ]
         }
       ],
@@ -218,17 +164,21 @@
       "rules": [
         {
           "any": [
-            "RSF",
-            "SAP",
-            "RECHERCHE DE FUITE",
-            "SURVEILLANCE A PIED",
-            "A PIED"
+            " RSF ",
+            " SAP ",
+            " RECHERCHE DE FUITE ",
+            " A PIED ",
+            " SURVEILLANCE DE FUITE ",
+            " SUIVI DES ALERTE DE FUITE ",
+            " SUIVI DES ALERTES DE FUITE "
           ]
         }
       ],
       "exclude": [
-        "PIS",
-        "MANOEUVRABILITE"
+        " LOCALISATION DE FUITE ",
+        " LOCALISATION FUITE ",
+        " LOCA ",
+        " ODEUR DE GAZ "
       ]
     },
     {
@@ -354,16 +304,20 @@
         }
       ],
       "exclude": [
-        "COMPTEUR",
-        "DEMANDE FOURNISSEUR",
-        "FOURNISSEUR",
+        "SAP",
         "MANOEUVRABILITE",
-        "MISE EN SERVICE",
-        "MISE HORS SERVICE",
+        " REUNION ",
+        "FOURNISSEUR",
+        " ADMINISTRATIF ",
+        "COMPTEUR",
         "PIS",
-        "POSTE CLIENT",
+        " MAGASIN ",
+        " MISE A DISPOSITION ",
+        "DEMANDE FOURNISSEUR",
         "RSF",
-        "SAP"
+        "MISE HORS SERVICE",
+        "POSTE CLIENT",
+        "MISE EN SERVICE"
       ]
     },
     {
@@ -375,18 +329,20 @@
       "rules": [
         {
           "any": [
-            "IDENTIFICATION",
-            "REPERAGE",
-            "LEVE DE DOUTE",
-            "POSITION INCERTAINE"
+            " IDENTIFICATION ",
+            " REPERAGE ",
+            " LEVE DE DOUTE ",
+            " POSITION INCERTAINE "
           ]
         }
       ],
       "exclude": [
-        "RSF",
-        "SAP",
-        "ODEUR",
-        "FUITE"
+        " LOCA ",
+        " LOCALISATION DE FUITE ",
+        " ODEUR ",
+        " FUITE ",
+        " RSF ",
+        " SAP "
       ]
     },
     {
@@ -420,21 +376,15 @@
       "rules": [
         {
           "any": [
-            "ACTIVITE CLIENTELE",
-            "CHANGEMENT CPR",
-            "CHGT CPR",
-            "CLIENT",
-            "COMPTEUR",
-            "DEMANDE FOURNISSEUR",
-            "DEPPOSE COMPTEUR",
-            "MISE EN SERVICE",
-            "MISE HORS SERVICE",
-            "POSE COMPTEUR",
-            "POSTE CLIENT",
-            "REMISE EN SERVICE",
-            "RENDEZ VOUS CLIENT",
-            "VERIF BRANCHEMENT",
-            "VERIFIER BRANCHEMENT"
+            " CLIENT ",
+            " COMPTEUR ",
+            " RENDEZ-VOUS CLIENT ",
+            " MISE EN SERVICE ",
+            " REMISE EN SERVICE ",
+            " MISE HORS SERVICE ",
+            " POSTE CLIENT ",
+            " DEPOSE COMPTEUR ",
+            " POSE COMPTEUR "
           ]
         }
       ],
