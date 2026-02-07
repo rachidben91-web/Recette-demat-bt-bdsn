@@ -1,10 +1,24 @@
-/* app.js — DEMAT-BT V9.3
-   - Ajout: Génération PDF "Journée Technicien" (Brief)
-   - Baseline: V9.2
+/* app.js — DEMAT-BT V10.0
+   - Amélioration majeure: Détection avancée des pièces jointes (AT, PROC, PLAN, PHOTO, STREET)
+   - Ajout: Analyse du contenu des pages (détection d'images pour PHOTO)
+   - Ajout: Filtres visuels avec icônes et compteurs pour types de documents
+   - Ajout: Badges colorés avec icônes pour chaque type de document
+   - Amélioration: Patterns de reconnaissance multiples et robustes
+   - Amélioration: Interface utilisateur avec couleurs et icônes distinctives
+   - Baseline: V9.3
 */
 
-const APP_VERSION = "V9.3.4";
-const DOC_TYPES = ["BT", "AT", "PROC", "PLAN", "PHOTO", "STREET", "DOC"];
+const APP_VERSION = "V10.0";
+const DOC_TYPES_CONFIG = {
+  "BT": { label: "BT", icon: "📋", color: "#1e293b", desc: "Bon de Travail" },
+  "AT": { label: "AT", icon: "✅", color: "#059669", desc: "Autorisation de Travail" },
+  "PROC": { label: "PROC", icon: "📝", color: "#2563eb", desc: "Procédure d'exécution" },
+  "PLAN": { label: "PLAN", icon: "🗺️", color: "#7c3aed", desc: "Plan de situation" },
+  "PHOTO": { label: "PHOTO", icon: "📷", color: "#dc2626", desc: "Photos/Images" },
+  "STREET": { label: "STREET", icon: "🌍", color: "#ea580c", desc: "Street View" },
+  "DOC": { label: "DOC", icon: "📄", color: "#64748b", desc: "Document générique" }
+};
+const DOC_TYPES = Object.keys(DOC_TYPES_CONFIG);
 let ZONES = null;
 
 // -------------------------
@@ -80,10 +94,10 @@ function ruleMatches(text, rule) {
 }
 
 function detectBadgesForBT(bt) {
-  // Mode "une seule pastille" : on renvoie uniquement la meilleure (plus haute priorité)
   if (!BADGE_RULES?.badges?.length) return [];
 
   const text = buildBTBadgeText(bt);
+  const badges = [];
 
   // Tri par priorité (desc)
   const ordered = [...BADGE_RULES.badges].sort((a, b) => (b.priority || 0) - (a.priority || 0));
@@ -94,10 +108,21 @@ function detectBadgesForBT(bt) {
 
     const rules = badge.rules || [];
     const matched = rules.some(r => ruleMatches(text, r));
-    if (matched) return [badge.id]; // first match wins
+    if (matched) badges.push(badge.id);
   }
 
-  return [];
+  // Appliquer l'ordre d'empilement si défini + maxBadgesPerBT
+  const stackOrder = BADGE_RULES?.notes?.ui?.display?.stackOrder || [];
+  const max = BADGE_RULES?.notes?.ui?.display?.maxBadgesPerBT || 2;
+
+  const byOrder = (id) => {
+    const idx = stackOrder.indexOf(id);
+    return idx === -1 ? 9999 : idx;
+  };
+
+  const unique = [...new Set(badges)];
+  unique.sort((a, b) => byOrder(a) - byOrder(b));
+  return unique.slice(0, max);
 }
 
 function getBadgeCfg(id) {
@@ -291,13 +316,91 @@ function pickBTId(text) {
 function pickATId(text) {
   return ((text || "").match(/AT\d{3,}/i) || [""])[0].toUpperCase();
 }
-function detectDocTypeFromHeader(text) {
-  const up = safeUpper(text);
-  if (up.includes("AUTORISATION") || up.includes("AT N")) return "AT";
-  if (up.includes("PROCEDURE") || up.includes("PROC") || up.includes("ORDONNANCEMENT")) return "PROC";
-  if (up.includes("PLAN") || up.includes("PLANS")) return "PLAN";
-  if (up.includes("PHOTO") || up.includes("PHOTOS")) return "PHOTO";
-  if (up.includes("STREET")) return "STREET";
+async function detectDocTypeFromHeader(page, headerText) {
+  const up = safeUpper(headerText);
+  
+  // AT - Autorisation de Travail (patterns multiples)
+  if (up.includes("AUTORISATION DE TRAVAIL") || 
+      up.includes("AUTORISATION TRAVAIL") ||
+      /AT\s*N[°O]?\s*\d+/i.test(up) ||
+      /AT\d{3,}/i.test(up) ||
+      up.includes("AT N") ||
+      up.includes("A.T.") ||
+      up.includes("AUTORISATION SPECIFIQUE")) {
+    return "AT";
+  }
+  
+  // PROC - Procédure d'exécution
+  if (up.includes("PROCEDURE D EXECUTION") ||
+      up.includes("PROCEDURE D'EXECUTION") ||
+      up.includes("PROCEDURE EXECUTION") ||
+      up.includes("PE N") ||
+      /PE\s*\d{3,}/i.test(up) ||
+      up.includes("ORDONNANCEMENT") ||
+      up.includes("MODE OPERATOIRE") ||
+      up.includes("CONSIGNES") ||
+      up.includes("INSTRUCTIONS TECHNIQUES")) {
+    return "PROC";
+  }
+  
+  // PLAN - Plans et schémas
+  if (up.includes("PLAN DE SITUATION") ||
+      up.includes("PLAN DE RECOLLEMENT") ||
+      up.includes("PLAN DE MASSE") ||
+      up.includes("PLAN DU SITE") ||
+      up.includes("SCHEMA") ||
+      up.includes("COUPE") ||
+      up.includes("PLAN D IMPLANTATION") ||
+      up.includes("PLAN ") || // Plan suivi d'un espace
+      up.includes("PLANS") ||
+      up.includes("CARTOGRAPHIE")) {
+    return "PLAN";
+  }
+  
+  // PHOTO - Détection d'images/photos
+  // Vérifier si la page contient beaucoup d'images
+  try {
+    const ops = await page.getOperatorList();
+    const imageCount = ops.fnArray.filter(fn => 
+      fn === window.pdfjsLib.OPS.paintImageXObject || 
+      fn === window.pdfjsLib.OPS.paintJpegXObject
+    ).length;
+    
+    if (imageCount > 2 || // Plus de 2 images = probablement des photos
+        up.includes("PHOTO") ||
+        up.includes("PHOTOS") ||
+        up.includes("CLICHE") ||
+        up.includes("IMAGE") ||
+        up.includes("VUE GENERALE") ||
+        up.includes("VUE SUR SITE") ||
+        up.includes("REPORTAGE PHOTO")) {
+      return "PHOTO";
+    }
+  } catch (e) {
+    // Fallback sur texte uniquement si erreur
+    if (up.includes("PHOTO") || up.includes("PHOTOS") || up.includes("CLICHE")) {
+      return "PHOTO";
+    }
+  }
+  
+  // STREET VIEW - Google Street View
+  if (up.includes("STREET VIEW") ||
+      up.includes("STREET-VIEW") ||
+      up.includes("GOOGLE STREET") ||
+      up.includes("VUE STREET") ||
+      up.includes("LOCALISATION STREET")) {
+    return "STREET";
+  }
+  
+  // DOC - Documents génériques
+  if (up.includes("DOCUMENT") ||
+      up.includes("ANNEXE") ||
+      up.includes("PIECE JOINTE") ||
+      up.includes("COMPLEMENT")) {
+    return "DOC";
+  }
+  
+  // Pas de match spécifique = DOC
   return "DOC";
 }
 
@@ -541,7 +644,7 @@ async function extractAll() {
     // pages suivantes rattachées au dernier BT
     if (currentBT) {
       const header = norm(await extractTextInBBox(page, bbOBJ));
-      const type = detectDocTypeFromHeader(header);
+      const type = await detectDocTypeFromHeader(page, header);
       currentBT.docs.push({ page: p, type });
       // Recalculer les pastilles métier si des docs supplémentaires influencent la détection
       currentBT.badges = detectBadgesForBT(currentBT);
@@ -774,17 +877,40 @@ function getCacheInfo() {
 }
 
 // -------------------------
-// UI: chips types
+// UI: chips types (avec icônes et compteurs)
 // -------------------------
 function buildTypeChips() {
   const root = $("typeChips");
   if (!root) return;
 
+  // Compter les documents par type
+  const docCounts = new Map();
+  for (const bt of state.bts) {
+    for (const doc of bt.docs || []) {
+      const type = doc.type;
+      docCounts.set(type, (docCounts.get(type) || 0) + 1);
+    }
+  }
+
   root.innerHTML = "";
   for (const t of DOC_TYPES) {
+    const config = DOC_TYPES_CONFIG[t];
+    const count = docCounts.get(t) || 0;
+    
+    // Ne pas afficher les types sans documents (sauf BT qui est toujours présent)
+    if (count === 0 && t !== "BT") continue;
+    
     const btn = document.createElement("button");
     btn.className = "chip";
-    btn.textContent = t;
+    btn.title = config.desc;
+    
+    // Contenu avec icône et compteur
+    btn.innerHTML = `
+      <span style="margin-right: 4px;">${config.icon}</span>
+      <span style="font-weight: 700;">${config.label}</span>
+      <span style="opacity: 0.7; margin-left: 4px; font-size: 10px;">(${count})</span>
+    `;
+    
     btn.addEventListener("click", () => {
       if (state.filters.types.has(t)) state.filters.types.delete(t);
       else state.filters.types.add(t);
@@ -799,9 +925,26 @@ function buildTypeChips() {
 function syncTypeChipsUI() {
   const root = $("typeChips");
   if (!root) return;
-  [...root.querySelectorAll(".chip")].forEach(chip => {
-    const t = chip.textContent.trim();
-    chip.classList.toggle("chip--active", state.filters.types.has(t));
+  [...root.querySelectorAll(".chip")].forEach((chip, idx) => {
+    const t = DOC_TYPES.find((type, i) => {
+      const config = DOC_TYPES_CONFIG[type];
+      return chip.innerHTML.includes(config.label);
+    });
+    if (t) {
+      chip.classList.toggle("chip--active", state.filters.types.has(t));
+      
+      // Appliquer la couleur du type
+      if (state.filters.types.has(t)) {
+        const config = DOC_TYPES_CONFIG[t];
+        chip.style.backgroundColor = config.color;
+        chip.style.borderColor = config.color;
+        chip.style.color = "#fff";
+      } else {
+        chip.style.backgroundColor = "";
+        chip.style.borderColor = "";
+        chip.style.color = "";
+      }
+    }
   });
 }
 
@@ -979,15 +1122,55 @@ function renderGrid(filtered, grid) {
     
     leftSection.appendChild(idDiv);
     leftSection.appendChild(categoryBadge);
+
+
+    // Ligne des pastilles métier (max 2)
+    if (metierIds.length) {
+      const metierWrap = document.createElement("div");
+      metierWrap.style.display = "flex";
+      metierWrap.style.flexWrap = "wrap";
+      metierWrap.style.gap = "6px";
+      metierWrap.style.marginTop = "2px";
+
+      for (const bid of metierIds) {
+        const cfg = getBadgeCfg(bid);
+        if (!cfg) continue;
+        const pill = document.createElement("span");
+        pill.className = "badge badge--strong";
+        pill.style.background = cfg.color || "#444";
+        pill.style.color = "#fff";
+        pill.style.border = "none";
+        pill.style.fontWeight = "900";
+        pill.textContent = `${cfg.icon} ${cfg.label}`;
+        metierWrap.appendChild(pill);
+      }
+      leftSection.appendChild(metierWrap);
+    }
     
     const badgesDiv = document.createElement("div");
     badgesDiv.className = "badges";
     
-    // Créer des badges pour chaque type de doc
+    // Créer des badges pour chaque type de doc avec icônes
     for (const [type, count] of Object.entries(counts)) {
+      const config = DOC_TYPES_CONFIG[type];
       const badge = document.createElement("span");
       badge.className = type === "BT" ? "badge badge--strong" : "badge";
-      badge.textContent = `${type}:${count}`;
+      badge.title = config.desc;
+      badge.style.cssText = `
+        background: ${type === "BT" ? "var(--bg)" : config.color + "15"};
+        color: ${type === "BT" ? "var(--txt)" : config.color};
+        border: 1.5px solid ${type === "BT" ? "var(--line-strong)" : config.color};
+        font-weight: 700;
+        padding: 4px 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      `;
+      badge.innerHTML = `
+        <span>${config.icon}</span>
+        <span>${type}</span>
+        <span style="opacity: 0.7;">×${count}</span>
+      `;
       badgesDiv.appendChild(badge);
     }
     
@@ -1092,12 +1275,31 @@ function renderGrid(filtered, grid) {
     const actionsDiv = document.createElement("div");
     actionsDiv.className = "btActions";
     
-    // Créer un bouton pour chaque document
+    // Créer un bouton pour chaque document avec icône
     for (const doc of bt.docs || []) {
+      const config = DOC_TYPES_CONFIG[doc.type];
       const btn = document.createElement("button");
       btn.className = "btn btn--secondary";
-      btn.textContent = `${doc.type} (p.${doc.page})`;
+      btn.style.cssText = `
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-color: ${config.color};
+        color: ${config.color};
+      `;
+      btn.innerHTML = `
+        <span>${config.icon}</span>
+        <span style="font-weight: 700;">${doc.type}</span>
+        <span style="opacity: 0.7; font-size: 11px;">(p.${doc.page})</span>
+      `;
+      btn.title = config.desc;
       btn.addEventListener("click", () => openModal(bt, doc.page));
+      btn.addEventListener("mouseenter", () => {
+        btn.style.background = config.color + "15";
+      });
+      btn.addEventListener("mouseleave", () => {
+        btn.style.background = "";
+      });
       actionsDiv.appendChild(btn);
     }
     
@@ -1530,12 +1732,31 @@ function renderBrief(filtered) {
     const docsDiv = document.createElement("div");
     docsDiv.className = "briefDocs";
 
-    // Créer un bouton pour chaque document
+    // Créer un bouton pour chaque document avec icône
     for (const doc of bt.docs || []) {
+      const config = DOC_TYPES_CONFIG[doc.type];
       const btn = document.createElement("button");
       btn.className = "docBtn";
-      btn.textContent = `${doc.type} (p.${doc.page})`;
+      btn.style.cssText = `
+        border-color: ${config.color};
+        color: ${config.color};
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      `;
+      btn.innerHTML = `
+        <span>${config.icon}</span>
+        <span style="font-weight: 700;">${doc.type}</span>
+        <span style="opacity: 0.7; font-size: 11px;">(p.${doc.page})</span>
+      `;
+      btn.title = config.desc;
       btn.addEventListener("click", () => openModal(bt, doc.page));
+      btn.addEventListener("mouseenter", () => {
+        btn.style.background = config.color + "15";
+      });
+      btn.addEventListener("mouseleave", () => {
+        btn.style.background = "";
+      });
       docsDiv.appendChild(btn);
     }
 
