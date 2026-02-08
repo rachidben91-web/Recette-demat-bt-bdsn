@@ -1124,28 +1124,7 @@ function renderGrid(filtered, grid) {
     leftSection.appendChild(categoryBadge);
 
 
-    // Ligne des pastilles métier (max 2)
-    if (metierIds.length) {
-      const metierWrap = document.createElement("div");
-      metierWrap.style.display = "flex";
-      metierWrap.style.flexWrap = "wrap";
-      metierWrap.style.gap = "6px";
-      metierWrap.style.marginTop = "2px";
-
-      for (const bid of metierIds) {
-        const cfg = getBadgeCfg(bid);
-        if (!cfg) continue;
-        const pill = document.createElement("span");
-        pill.className = "badge badge--strong";
-        pill.style.background = cfg.color || "#444";
-        pill.style.color = "#fff";
-        pill.style.border = "none";
-        pill.style.fontWeight = "900";
-        pill.textContent = `${cfg.icon} ${cfg.label}`;
-        metierWrap.appendChild(pill);
-      }
-      leftSection.appendChild(metierWrap);
-    }
+    // Pastille métier unique (1 seul badge par BT)
     
     const badgesDiv = document.createElement("div");
     badgesDiv.className = "badges";
