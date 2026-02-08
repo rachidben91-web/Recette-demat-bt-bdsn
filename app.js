@@ -1,128 +1,14 @@
-/* app.js — DEMAT-BT V10.0
-   - Amélioration majeure: Détection avancée des pièces jointes (AT, PROC, PLAN, PHOTO, STREET)
-   - Ajout: Analyse du contenu des pages (détection d'images pour PHOTO)
-   - Ajout: Filtres visuels avec icônes et compteurs pour types de documents
-   - Ajout: Badges colorés avec icônes pour chaque type de document
-   - Amélioration: Patterns de reconnaissance multiples et robustes
-   - Amélioration: Interface utilisateur avec couleurs et icônes distinctives
-   - Baseline: V9.3
+/* app.js — DEMAT-BT v2.0 (Version avec modal + viewer)
+   Compatible avec TON index.html :
+   - Référent:  #viewReferent + #btGrid + #kpis
+   - Brief:     #viewBrief + #briefList + #briefMeta
+   - Import PDF: input#pdfFile
+   - Extraire:   button#btnExtract
+   - Modal viewer: #modal avec canvas
 */
 
-const APP_VERSION = "V10.0";
-const DOC_TYPES_CONFIG = {
-  "BT": { label: "BT", icon: "📋", color: "#1e293b", desc: "Bon de Travail" },
-  "AT": { label: "AT", icon: "✅", color: "#059669", desc: "Autorisation de Travail" },
-  "PROC": { label: "PROC", icon: "📝", color: "#2563eb", desc: "Procédure d'exécution" },
-  "PLAN": { label: "PLAN", icon: "🗺️", color: "#7c3aed", desc: "Plan de situation" },
-  "PHOTO": { label: "PHOTO", icon: "📷", color: "#dc2626", desc: "Photos/Images" },
-  "STREET": { label: "STREET", icon: "🌍", color: "#ea580c", desc: "Street View" },
-  "DOC": { label: "DOC", icon: "📄", color: "#64748b", desc: "Document générique" }
-};
-const DOC_TYPES = Object.keys(DOC_TYPES_CONFIG);
+const DOC_TYPES = ["BT", "AT", "PROC", "PLAN", "PHOTO", "STREET", "DOC"];
 let ZONES = null;
-
-// -------------------------
-// Badges métier (pastilles) — config JSON
-// -------------------------
-let BADGE_RULES = null;
-
-async function loadBadgeRules() {
-  try {
-    const res = await fetch("./config/badges-rules.json", { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    BADGE_RULES = await res.json();
-    console.log("[BADGES] Règles chargées ✅", BADGE_RULES?.version || "");
-  } catch (e) {
-    console.warn("[BADGES] Impossible de charger ./config/badges-rules.json — pastilles métier désactivées.", e);
-    BADGE_RULES = null;
-  }
-}
-
-function normalizeBadgeText(str = "") {
-  // Normalisation robuste pour matching par mots (réduit fortement les faux positifs)
-  // - majuscules + suppression accents
-  // - ponctuation -> espaces
-  // - espaces multiples -> 1 espace
-  // - padding espaces début/fin pour matcher des mots entiers via includes(" MOT ")
-  const s = String(str)
-    .toUpperCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^A-Z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return ` ${s} `;
-}
-
-function buildBTBadgeText(bt) {
-  // Détection sur objet + precisionObjet UNIQUEMENT (les autres champs polluent la détection)
-  return normalizeBadgeText([
-    bt.objet,
-    bt.precisionObjet
-  ].filter(Boolean).join(" | "));
-}
-
-function normalizeBadgeKey(k = "") {
-  // même normalisation que le texte BT, pour aligner les comparaisons
-  const s = String(k)
-    .toUpperCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^A-Z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return ` ${s} `;
-}
-
-function ruleMatches(text, rule) {
-  if (!rule) return false;
-
-  const has = (k) => text.includes(normalizeBadgeKey(k));
-
-  const anyOk = !rule.any || rule.any.some(has);
-  const allOk = !rule.all || rule.all.every(has);
-  // Compat: any2 = groupe "au moins un" supplémentaire
-  const any2Ok = !rule.any2 || rule.any2.some(has);
-
-  return anyOk && any2Ok && allOk;
-}
-
-function detectBadgesForBT(bt) {
-  if (!BADGE_RULES?.badges?.length) return [];
-
-  const text = buildBTBadgeText(bt);
-  const badges = [];
-
-  // Tri par priorité (desc)
-  const ordered = [...BADGE_RULES.badges].sort((a, b) => (b.priority || 0) - (a.priority || 0));
-
-  for (const badge of ordered) {
-    const excludes = badge.exclude || [];
-    if (excludes.some(ex => text.includes(normalizeBadgeKey(ex)))) continue;
-
-    const rules = badge.rules || [];
-    const matched = rules.some(r => ruleMatches(text, r));
-    if (matched) badges.push(badge.id);
-  }
-
-  // Appliquer l'ordre d'empilement si défini + maxBadgesPerBT
-  const stackOrder = BADGE_RULES?.notes?.ui?.display?.stackOrder || [];
-  const max = BADGE_RULES?.notes?.ui?.display?.maxBadgesPerBT || 2;
-
-  const byOrder = (id) => {
-    const idx = stackOrder.indexOf(id);
-    return idx === -1 ? 9999 : idx;
-  };
-
-  const unique = [...new Set(badges)];
-  unique.sort((a, b) => byOrder(a) - byOrder(b));
-  return unique.slice(0, max);
-}
-
-function getBadgeCfg(id) {
-  if (!BADGE_RULES?.badges) return null;
-  return BADGE_RULES.badges.find(b => b.id === id) || null;
-}
 
 const state = {
   pdf: null,
@@ -310,91 +196,13 @@ function pickBTId(text) {
 function pickATId(text) {
   return ((text || "").match(/AT\d{3,}/i) || [""])[0].toUpperCase();
 }
-async function detectDocTypeFromHeader(page, headerText) {
-  const up = safeUpper(headerText);
-  
-  // AT - Autorisation de Travail (patterns multiples)
-  if (up.includes("AUTORISATION DE TRAVAIL") || 
-      up.includes("AUTORISATION TRAVAIL") ||
-      /AT\s*N[°O]?\s*\d+/i.test(up) ||
-      /AT\d{3,}/i.test(up) ||
-      up.includes("AT N") ||
-      up.includes("A.T.") ||
-      up.includes("AUTORISATION SPECIFIQUE")) {
-    return "AT";
-  }
-  
-  // PROC - Procédure d'exécution
-  if (up.includes("PROCEDURE D EXECUTION") ||
-      up.includes("PROCEDURE D'EXECUTION") ||
-      up.includes("PROCEDURE EXECUTION") ||
-      up.includes("PE N") ||
-      /PE\s*\d{3,}/i.test(up) ||
-      up.includes("ORDONNANCEMENT") ||
-      up.includes("MODE OPERATOIRE") ||
-      up.includes("CONSIGNES") ||
-      up.includes("INSTRUCTIONS TECHNIQUES")) {
-    return "PROC";
-  }
-  
-  // PLAN - Plans et schémas
-  if (up.includes("PLAN DE SITUATION") ||
-      up.includes("PLAN DE RECOLLEMENT") ||
-      up.includes("PLAN DE MASSE") ||
-      up.includes("PLAN DU SITE") ||
-      up.includes("SCHEMA") ||
-      up.includes("COUPE") ||
-      up.includes("PLAN D IMPLANTATION") ||
-      up.includes("PLAN ") || // Plan suivi d'un espace
-      up.includes("PLANS") ||
-      up.includes("CARTOGRAPHIE")) {
-    return "PLAN";
-  }
-  
-  // PHOTO - Détection d'images/photos
-  // Vérifier si la page contient beaucoup d'images
-  try {
-    const ops = await page.getOperatorList();
-    const imageCount = ops.fnArray.filter(fn => 
-      fn === window.pdfjsLib.OPS.paintImageXObject || 
-      fn === window.pdfjsLib.OPS.paintJpegXObject
-    ).length;
-    
-    if (imageCount > 2 || // Plus de 2 images = probablement des photos
-        up.includes("PHOTO") ||
-        up.includes("PHOTOS") ||
-        up.includes("CLICHE") ||
-        up.includes("IMAGE") ||
-        up.includes("VUE GENERALE") ||
-        up.includes("VUE SUR SITE") ||
-        up.includes("REPORTAGE PHOTO")) {
-      return "PHOTO";
-    }
-  } catch (e) {
-    // Fallback sur texte uniquement si erreur
-    if (up.includes("PHOTO") || up.includes("PHOTOS") || up.includes("CLICHE")) {
-      return "PHOTO";
-    }
-  }
-  
-  // STREET VIEW - Google Street View
-  if (up.includes("STREET VIEW") ||
-      up.includes("STREET-VIEW") ||
-      up.includes("GOOGLE STREET") ||
-      up.includes("VUE STREET") ||
-      up.includes("LOCALISATION STREET")) {
-    return "STREET";
-  }
-  
-  // DOC - Documents génériques
-  if (up.includes("DOCUMENT") ||
-      up.includes("ANNEXE") ||
-      up.includes("PIECE JOINTE") ||
-      up.includes("COMPLEMENT")) {
-    return "DOC";
-  }
-  
-  // Pas de match spécifique = DOC
+function detectDocTypeFromHeader(text) {
+  const up = safeUpper(text);
+  if (up.includes("AUTORISATION") || up.includes("AT N")) return "AT";
+  if (up.includes("PROCEDURE") || up.includes("PROC") || up.includes("ORDONNANCEMENT")) return "PROC";
+  if (up.includes("PLAN") || up.includes("PLANS")) return "PLAN";
+  if (up.includes("PHOTO") || up.includes("PHOTOS")) return "PHOTO";
+  if (up.includes("STREET")) return "STREET";
   return "DOC";
 }
 
@@ -616,11 +424,8 @@ async function extractAll() {
         duree: dureeTxt, // Stocker la durée
         analyseDesRisques: analyseTxt, // Stocker l'analyse des risques
         observations: obsTxt, // Stocker les observations
-        docs: [{ page: p, type: "BT" }],
-        badges: []
+        docs: [{ page: p, type: "BT" }]
       };
-
-      currentBT.badges = detectBadgesForBT(currentBT);
 
       state.bts.push(currentBT);
 
@@ -638,10 +443,8 @@ async function extractAll() {
     // pages suivantes rattachées au dernier BT
     if (currentBT) {
       const header = norm(await extractTextInBBox(page, bbOBJ));
-      const type = await detectDocTypeFromHeader(page, header);
+      const type = detectDocTypeFromHeader(header);
       currentBT.docs.push({ page: p, type });
-      // Recalculer les pastilles métier si des docs supplémentaires influencent la détection
-      currentBT.badges = detectBadgesForBT(currentBT);
     }
   }
 
@@ -812,7 +615,7 @@ async function loadFromCache() {
     
     if (pdfData && pdfData.data) {
       try {
-        const loadingTask = window.pdfjsLib.getDocument({ data: pdfData.data, stopAtErrors: false, disableAutoFetch: true });
+        const loadingTask = window.pdfjsLib.getDocument({ data: pdfData.data });
         state.pdf = await loadingTask.promise;
         console.log("[CACHE] PDF restauré depuis IndexedDB ✅");
       } catch (err) {
@@ -871,40 +674,17 @@ function getCacheInfo() {
 }
 
 // -------------------------
-// UI: chips types (avec icônes et compteurs)
+// UI: chips types
 // -------------------------
 function buildTypeChips() {
   const root = $("typeChips");
   if (!root) return;
 
-  // Compter les documents par type
-  const docCounts = new Map();
-  for (const bt of state.bts) {
-    for (const doc of bt.docs || []) {
-      const type = doc.type;
-      docCounts.set(type, (docCounts.get(type) || 0) + 1);
-    }
-  }
-
   root.innerHTML = "";
   for (const t of DOC_TYPES) {
-    const config = DOC_TYPES_CONFIG[t];
-    const count = docCounts.get(t) || 0;
-    
-    // Ne pas afficher les types sans documents (sauf BT qui est toujours présent)
-    if (count === 0 && t !== "BT") continue;
-    
     const btn = document.createElement("button");
     btn.className = "chip";
-    btn.title = config.desc;
-    
-    // Contenu avec icône et compteur
-    btn.innerHTML = `
-      <span style="margin-right: 4px;">${config.icon}</span>
-      <span style="font-weight: 700;">${config.label}</span>
-      <span style="opacity: 0.7; margin-left: 4px; font-size: 10px;">(${count})</span>
-    `;
-    
+    btn.textContent = t;
     btn.addEventListener("click", () => {
       if (state.filters.types.has(t)) state.filters.types.delete(t);
       else state.filters.types.add(t);
@@ -919,26 +699,9 @@ function buildTypeChips() {
 function syncTypeChipsUI() {
   const root = $("typeChips");
   if (!root) return;
-  [...root.querySelectorAll(".chip")].forEach((chip, idx) => {
-    const t = DOC_TYPES.find((type, i) => {
-      const config = DOC_TYPES_CONFIG[type];
-      return chip.innerHTML.includes(config.label);
-    });
-    if (t) {
-      chip.classList.toggle("chip--active", state.filters.types.has(t));
-      
-      // Appliquer la couleur du type
-      if (state.filters.types.has(t)) {
-        const config = DOC_TYPES_CONFIG[t];
-        chip.style.backgroundColor = config.color;
-        chip.style.borderColor = config.color;
-        chip.style.color = "#fff";
-      } else {
-        chip.style.backgroundColor = "";
-        chip.style.borderColor = "";
-        chip.style.color = "";
-      }
-    }
+  [...root.querySelectorAll(".chip")].forEach(chip => {
+    const t = chip.textContent.trim();
+    chip.classList.toggle("chip--active", state.filters.types.has(t));
   });
 }
 
@@ -1077,10 +840,6 @@ function renderGrid(filtered, grid) {
     // Classification de l'intervention
     const classification = classifyIntervention(bt);
 
-    // Pastilles métier (issues du badges-rules.json)
-    const metierIds = Array.isArray(bt.badges) ? bt.badges : [];
-    const primaryMetier = metierIds.length ? getBadgeCfg(metierIds[0]) : null;
-
     const card = document.createElement("div");
     card.className = "card btCard";
     
@@ -1108,42 +867,23 @@ function renderGrid(filtered, grid) {
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      background: ${(primaryMetier && primaryMetier.color) ? primaryMetier.color : classification.color};
+      background: ${classification.color};
       color: #fff;
-      box-shadow: 0 2px 8px ${((primaryMetier && primaryMetier.color) ? primaryMetier.color : classification.color)}40;
+      box-shadow: 0 2px 8px ${classification.color}40;
     `;
-    categoryBadge.textContent = primaryMetier ? `${primaryMetier.icon} ${primaryMetier.label}` : classification.label;
+    categoryBadge.textContent = classification.label;
     
     leftSection.appendChild(idDiv);
     leftSection.appendChild(categoryBadge);
-
-
-    // Pastille métier unique (1 seul badge par BT)
     
     const badgesDiv = document.createElement("div");
     badgesDiv.className = "badges";
     
-    // Créer des badges pour chaque type de doc avec icônes
+    // Créer des badges pour chaque type de doc
     for (const [type, count] of Object.entries(counts)) {
-      const config = DOC_TYPES_CONFIG[type];
       const badge = document.createElement("span");
       badge.className = type === "BT" ? "badge badge--strong" : "badge";
-      badge.title = config.desc;
-      badge.style.cssText = `
-        background: ${type === "BT" ? "var(--bg)" : config.color + "15"};
-        color: ${type === "BT" ? "var(--txt)" : config.color};
-        border: 1.5px solid ${type === "BT" ? "var(--line-strong)" : config.color};
-        font-weight: 700;
-        padding: 4px 8px;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-      `;
-      badge.innerHTML = `
-        <span>${config.icon}</span>
-        <span>${type}</span>
-        <span style="opacity: 0.7;">×${count}</span>
-      `;
+      badge.textContent = `${type}:${count}`;
       badgesDiv.appendChild(badge);
     }
     
@@ -1248,31 +988,12 @@ function renderGrid(filtered, grid) {
     const actionsDiv = document.createElement("div");
     actionsDiv.className = "btActions";
     
-    // Créer un bouton pour chaque document avec icône
+    // Créer un bouton pour chaque document
     for (const doc of bt.docs || []) {
-      const config = DOC_TYPES_CONFIG[doc.type];
       const btn = document.createElement("button");
       btn.className = "btn btn--secondary";
-      btn.style.cssText = `
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        border-color: ${config.color};
-        color: ${config.color};
-      `;
-      btn.innerHTML = `
-        <span>${config.icon}</span>
-        <span style="font-weight: 700;">${doc.type}</span>
-        <span style="opacity: 0.7; font-size: 11px;">(p.${doc.page})</span>
-      `;
-      btn.title = config.desc;
+      btn.textContent = `${doc.type} (p.${doc.page})`;
       btn.addEventListener("click", () => openModal(bt, doc.page));
-      btn.addEventListener("mouseenter", () => {
-        btn.style.background = config.color + "15";
-      });
-      btn.addEventListener("mouseleave", () => {
-        btn.style.background = "";
-      });
       actionsDiv.appendChild(btn);
     }
     
@@ -1603,11 +1324,11 @@ function renderBrief(filtered) {
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      background: ${(primaryMetier && primaryMetier.color) ? primaryMetier.color : classification.color};
+      background: ${classification.color};
       color: #fff;
-      box-shadow: 0 2px 8px ${((primaryMetier && primaryMetier.color) ? primaryMetier.color : classification.color)}40;
+      box-shadow: 0 2px 8px ${classification.color}40;
     `;
-    categoryBadge.textContent = primaryMetier ? `${primaryMetier.icon} ${primaryMetier.label}` : classification.label;
+    categoryBadge.textContent = classification.label;
     
     titleDiv.appendChild(idSpan);
     titleDiv.appendChild(categoryBadge);
@@ -1705,31 +1426,12 @@ function renderBrief(filtered) {
     const docsDiv = document.createElement("div");
     docsDiv.className = "briefDocs";
 
-    // Créer un bouton pour chaque document avec icône
+    // Créer un bouton pour chaque document
     for (const doc of bt.docs || []) {
-      const config = DOC_TYPES_CONFIG[doc.type];
       const btn = document.createElement("button");
       btn.className = "docBtn";
-      btn.style.cssText = `
-        border-color: ${config.color};
-        color: ${config.color};
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-      `;
-      btn.innerHTML = `
-        <span>${config.icon}</span>
-        <span style="font-weight: 700;">${doc.type}</span>
-        <span style="opacity: 0.7; font-size: 11px;">(p.${doc.page})</span>
-      `;
-      btn.title = config.desc;
+      btn.textContent = `${doc.type} (p.${doc.page})`;
       btn.addEventListener("click", () => openModal(bt, doc.page));
-      btn.addEventListener("mouseenter", () => {
-        btn.style.background = config.color + "15";
-      });
-      btn.addEventListener("mouseleave", () => {
-        btn.style.background = "";
-      });
       docsDiv.appendChild(btn);
     }
 
@@ -1885,111 +1587,6 @@ async function exportBTPDF() {
   }
 }
 
-
-// Export "Journée Technicien" (PDF unique : tous les BT + docs associés pour le technicien sélectionné)
-function formatLocalDateYYYYMMDD(d = new Date()) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-async function exportDayPDF() {
-  if (!state.pdfFile || !state.pdf || !window.PDFLib) {
-    alert("Impossible de générer : PDF ou pdf-lib non chargé.");
-    return;
-  }
-
-  const techId = state.filters.techId;
-  if (!techId) {
-    alert("Sélectionne d'abord un technicien (dans le menu).");
-    return;
-  }
-
-  // Récupérer le technicien (nom lisible)
-  const tech = (window.TECHNICIANS || []).find(t => (t.id || t.nni) === techId);
-  const techLabel = tech ? tech.name : techId;
-
-  // BT affectés à ce technicien
-  const btsForTech = state.bts
-    .filter(bt => (bt.team || []).some(m => {
-      const t = mapTechByNni(m.nni);
-      return techKey(t) === techId;
-    }))
-    .sort((a, b) => (a.pageStart || 0) - (b.pageStart || 0));
-
-  if (btsForTech.length === 0) {
-    alert("Aucun BT trouvé pour ce technicien avec le PDF chargé.");
-    return;
-  }
-
-  try {
-    setProgress(0, `Génération PDF journée (${techLabel})…`);
-
-    // Charger le PDF original
-    const arrayBuf = await state.pdfFile.arrayBuffer();
-    const srcPdf = await window.PDFLib.PDFDocument.load(arrayBuf);
-
-    // Nouveau PDF
-    const outPdf = await window.PDFLib.PDFDocument.create();
-
-    // Pages à copier, dans l'ordre BT -> docs, sans doublons
-    const orderedPages = [];
-    const seen = new Set();
-
-    for (const bt of btsForTech) {
-      const pages = (bt.docs || [])
-        .map(d => d.page)
-        .filter(Boolean)
-        .sort((a, b) => a - b);
-
-      for (const p of pages) {
-        if (!seen.has(p)) {
-          seen.add(p);
-          orderedPages.push(p);
-        }
-      }
-    }
-
-    // Copier pages
-    for (let i = 0; i < orderedPages.length; i++) {
-      const pageNum = orderedPages[i];
-      const [copied] = await outPdf.copyPages(srcPdf, [pageNum - 1]);
-      outPdf.addPage(copied);
-
-      if (i % 5 === 0) {
-        const pct = Math.round((i / orderedPages.length) * 100);
-        setProgress(pct, `Assemblage pages… (${i + 1}/${orderedPages.length})`);
-      }
-    }
-
-    const pdfBytes = await outPdf.save();
-    const blob = new Blob([pdfBytes], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-
-    const safeName = String(techLabel)
-      .replace(/[^\w\d\- ]+/g, "")
-      .trim()
-      .replace(/\s+/g, "_")
-      .slice(0, 40);
-
-    const fileName = `JOURNEE_${formatLocalDateYYYYMMDD()}_${safeName || techId}.pdf`;
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
-
-    URL.revokeObjectURL(url);
-
-    setProgress(100, `✅ Journée générée : ${btsForTech.length} BT / ${orderedPages.length} pages`);
-  } catch (e) {
-    console.error("Erreur export journée:", e);
-    setProgress(0, "Erreur génération journée (voir console).");
-    alert("Erreur lors de la génération du PDF journée.");
-  }
-}
-
 // -------------------------
 // Render global + switch vues
 // -------------------------
@@ -2094,7 +1691,7 @@ function wireEvents() {
         state.pdfName = f.name;
 
         const buf = await f.arrayBuffer();
-        const loadingTask = window.pdfjsLib.getDocument({ data: buf, stopAtErrors: false, disableAutoFetch: true });
+        const loadingTask = window.pdfjsLib.getDocument({ data: buf });
         state.pdf = await loadingTask.promise;
         state.totalPages = state.pdf.numPages;
 
@@ -2148,10 +1745,6 @@ function wireEvents() {
   // Modal export
   const btnExport = $("btnExportBt");
   if (btnExport) btnExport.addEventListener("click", exportBTPDF);
-
-  // Export journée technicien (Brief)
-  const btnExportDay = $("btnExportDay");
-  if (btnExportDay) btnExportDay.addEventListener("click", exportDayPDF);
 
   // Fullscreen
   const btnFS = $("btnFullscreen");
@@ -2353,9 +1946,6 @@ async function init() {
     wireEvents();
 
     await loadZones();
-
-    // Charger les règles de pastilles métier
-    await loadBadgeRules();
 
     // Mise à jour date/heure
     updateDateTime();
