@@ -17,6 +17,20 @@ function safeUpper(s) {
   return norm(s).toUpperCase();
 }
 
+function extractDayFromFilename(filename) {
+  if (!filename) return null;
+
+  const match = filename.match(/_(\d{8})_/);
+  if (!match) return null;
+
+  const raw = match[1]; // 20260119
+  const yyyy = raw.substring(0, 4);
+  const mm   = raw.substring(4, 6);
+  const dd   = raw.substring(6, 8);
+
+  return `${dd}/${mm}/${yyyy}`;
+}
+
 // Formatage durée "01h00\n08h00 - 09h00" → "1h (08h00-09h00)"
 function formatDuree(raw) {
   if (!raw) return "";
