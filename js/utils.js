@@ -17,17 +17,15 @@ function safeUpper(s) {
   return norm(s).toUpperCase();
 }
 
-function extractDayFromFilename(filename) {
-  if (!filename) return null;
+function extractDayFromFilename(input) {
+  if (!input) return null;
+  const str = String(input);
 
-  const match = filename.match(/_(\d{8})_/);
-  if (!match) return null;
+  // Attrape 20260119 où qu'il soit dans la chaîne (nom fichier, cache, etc.)
+  const m = str.match(/(20\d{2})(\d{2})(\d{2})/);
+  if (!m) return null;
 
-  const raw = match[1]; // 20260119
-  const yyyy = raw.substring(0, 4);
-  const mm   = raw.substring(4, 6);
-  const dd   = raw.substring(6, 8);
-
+  const yyyy = m[1], mm = m[2], dd = m[3];
   return `${dd}/${mm}/${yyyy}`;
 }
 
