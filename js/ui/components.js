@@ -2,6 +2,45 @@
    Composants UI partagés entre les vues (grid, timeline, brief)
    → Élimine la duplication de code entre les 3 rendus
 */
+/* ===============================
+   PDF Day Premium Display
+   =============================== */
+
+.pdf-day-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pdf-day-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  color: #64748b; /* gris élégant */
+}
+
+.pdf-day-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  color: #1e3a8a;
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(30, 58, 138, 0.08);
+  transition: all 0.2s ease;
+}
+
+.pdf-day-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(30, 58, 138, 0.12);
+}
+
+.pdf-day-icon {
+  font-size: 14px;
+}
 
 // -------------------------
 // Badge de catégorie (pastille métier ou classification)
