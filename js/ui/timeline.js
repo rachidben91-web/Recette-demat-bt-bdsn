@@ -198,7 +198,7 @@ function applyTechFilter(techId) {
 function renderActivitiesView(filteredBTs) {
   _ensureActivityStylesOnce();
 
-  const root = document.getElementById("timelineView") || document.getElementById("timeline") || document.getElementById("mainView");
+  const root = document.getElementById("btTimeline");
   // NOTE: on garde des fallbacks car ton HTML peut nommer le container différemment selon versions
   if (!root) return;
 
