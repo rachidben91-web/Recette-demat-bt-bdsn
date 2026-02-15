@@ -4,10 +4,10 @@
 */
 
 const WEATHER_COMMUNES = [
-  { name: "Villeneuve-la-Garenne", lat: 48.9369, lon: 2.3260 },
+  { name: "Villeneuve_la_Garenne", lat: 48.9369, lon: 2.3260 },
   { name: "Groslay",               lat: 48.9867, lon: 2.3444 },
-  { name: "Bois-Colombes",         lat: 48.9169, lon: 2.2694 },
-  { name: "Saint-Denis",           lat: 48.9362, lon: 2.3574 }
+  { name: "Bois_Colombes",         lat: 48.9169, lon: 2.2694 },
+  { name: "Saint_Denis",           lat: 48.9362, lon: 2.3574 }
 ];
 
 // Open-Meteo weather codes: https://open-meteo.com/en/docs
