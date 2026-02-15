@@ -1,9 +1,11 @@
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Recette DEMAT-BT — Référent & Brief</title>
+  <title>DEMAT-BT v11.0 — Référent & Brief</title>
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./css/components.css" />
 </head>
 
 <body>
@@ -13,7 +15,6 @@
       <div class="brand__sub">Dématérialisation BT — Référent d'équipe</div>
     </div>
 
-    
     <div class="topbar__center">
       <div class="topbar__datetime" id="topDatetime">—</div>
       <div class="topbar__weather" id="topWeather">Météo communes</div>
@@ -103,10 +104,6 @@
       </div>
 
       <div class="divider"></div>
-
-      <div class="hint">
-        
-      </div>
     </aside>
 
     <!-- Right: content -->
@@ -212,13 +209,39 @@
     </section>
   </main>
 
-  <!-- pdf-lib (export PDF BT) -->
+  <!-- =====================
+       SCRIPTS (ordre de chargement : dépendances → modules → main)
+       ===================== -->
+
+  <!-- Librairies externes -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 
-  <!-- data -->
+  <!-- Données -->
   <script src="./data/technicians.js"></script>
 
-  <!-- app -->
-  <script src="./app.js"></script>
+  <!-- Core : utilitaires et état (aucune dépendance) -->
+  <script src="./js/utils.js"></script>
+  <script src="./js/state.js"></script>
+
+  <!-- Moteurs métier (dépendent de utils + state) -->
+  <script src="./js/badge-engine.js"></script>
+  <script src="./js/classify.js"></script>
+  <script src="./js/weather.js"></script>
+
+  <!-- Infrastructure (dépend de utils + state) -->
+  <script src="./js/cache.js"></script>
+  <script src="./js/pdf-extractor.js"></script>
+  <script src="./js/export.js"></script>
+
+  <!-- UI : composants partagés puis vues -->
+  <script src="./js/ui/components.js"></script>
+  <script src="./js/ui/sidebar.js"></script>
+  <script src="./js/ui/grid.js"></script>
+  <script src="./js/ui/timeline.js"></script>
+  <script src="./js/ui/brief.js"></script>
+  <script src="./js/ui/modal.js"></script>
+
+  <!-- Point d'entrée (dépend de tout le reste) -->
+  <script src="./js/main.js"></script>
 </body>
 </html>
