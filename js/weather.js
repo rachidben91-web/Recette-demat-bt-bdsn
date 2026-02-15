@@ -5,9 +5,7 @@
 
 const WEATHER_COMMUNES = [
   { name: "Villeneuve-la-Garenne", lat: 48.9369, lon: 2.3260 },
-  { name: "Gennevilliers",         lat: 48.9326, lon: 2.2927 },
-  { name: "Asnières-sur-Seine",    lat: 48.9142, lon: 2.2872 },
-  { name: "Colombes",              lat: 48.9233, lon: 2.2527 },
+  { name: "Groslay",               lat: 48.9867, lon: 2.3444 },
   { name: "Bois-Colombes",         lat: 48.9169, lon: 2.2694 },
   { name: "Saint-Denis",           lat: 48.9362, lon: 2.3574 }
 ];
