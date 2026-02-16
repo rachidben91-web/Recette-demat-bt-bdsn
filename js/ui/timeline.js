@@ -1,17 +1,16 @@
-/* js/ui/timeline.js — DEMAT-BT v11.1.0 — 16/02/2026
+/* js/ui/timeline.js — DEMAT-BT v11.1.2 — 16/02/2026
    Vue "Brief / Activités" (basée SUR LES PASTILLES)
-   - Catégories (IS, DEP, etc.)
-   - Sous-lignes (IS J1/J2/J3, DEP J1/J2/J3)
-   - Chips techniciens à droite
-   
-   v11.1.0 : Réorganisation de l'ordre des catégories + ajout RSF/MAGASIN
+   v11.1.2 : 
+   - Ajout couleurs : 1/4 COM, EAP, REUNION, CLIENT, VISUELLE, PIS
+   - Correction ordre d'affichage
+   - Tri techniciens optimisé
 */
 
 /* global state, mapTechByNni, techKey */
 
 (function () {
   // ------------------------
-  // Styles (injectés 1 seule fois)
+  // 1. Styles (injectés 1 seule fois)
   // ------------------------
   function ensureStylesOnce() {
     if (document.getElementById("briefTimelineStyles")) return;
@@ -154,7 +153,7 @@
   }
 
   // ------------------------
-  // Helpers tech filter (réutilise ton select sidebar)
+  // 2. Helpers Tech (Filtre + Mapping)
   // ------------------------
   function applyTechFilter(techId) {
     const sel = document.getElementById("techSelect");
@@ -182,74 +181,94 @@
   }
 
   // ------------------------
-  // BADGES : on se base sur bt.badges (pastilles)
+  // 3. Logique des GROUPES (Cœur du tri)
   // ------------------------
 
-  // Choix IMPORTANT : on classe un BT selon SA pastille principale
-  // (la 1ère du tableau bt.badges). Si tu veux autre chose, on ajuste.
   function getPrimaryBadgeId(bt) {
     const b = Array.isArray(bt?.badges) ? bt.badges : [];
     return (b[0] || "AUTRES").toString();
   }
 
-  // Groupe “manager” basé sur l’ID pastille
   function getGroupKeyFromBadgeId(badgeId) {
     const id = (badgeId || "").toUpperCase();
 
-    // IS / DEP : regroupement demandé
+    // 1. Groupes Prioritaires (IS/DEP)
     if (id.startsWith("IS_") || id === "IS") return "IS";
     if (id.startsWith("DEP_") || id === "DEP") return "DEP";
 
-    // MAINT_*
-    if (id.startsWith("MAINT_") || id.includes("CICM")) return "MAINT";
-
-    // FUITE / SURV_FUITE / SUIV_FUITE
-    if (id.includes("FUITE") || id.includes("SURV_FUITE") || id.includes("SUIV_FUITE") || id.includes("URGEN")) return "FUITE";
-
-    // TRAVAUX
+    // 2. Groupes Techniques
+    if (id.startsWith("MAINT_") || id.includes("CICM") || id.includes("ROBINET")) return "MAINT";
+    if (id.includes("FUITE") || id.includes("URGEN")) return "FUITE";
     if (id.includes("TRAVAUX") || id.includes("CHANTIER") || id.includes("RACC")) return "TRAVAUX";
-    
-    // RSF / SAP
     if (id.includes("RSF") || id.includes("SAP")) return "RSF_SAP";
-    
-    // MAGASIN
     if (id.includes("MAGASIN")) return "MAGASIN";
+    
+    // 3. Groupes Sécurité / Admin / Client (C'est ici qu'on améliore la détection)
+    if (id.includes("1/4 COM") || id.includes("COM") || id.includes("BRIEF")) return "1/4 COM";
+    if (id.includes("EAP")) return "EAP";
+    if (id.includes("PIS")) return "PIS"; // Ajouté car vu sur ta capture
+    if (id.includes("REUNION") || id.includes("ADMIN")) return "REUNION";
+    if (id.includes("CLIENT")) return "CLIENT";
+    if (id.includes("VISUELLE")) return "VISUELLE";
 
-    // ADMIN / BRIEF / REUNION / EAP etc.
+    // 4. Fallback
+    if (id === "AUTRES") return "AUTRES";
+
     return id;
   }
 
-  // Labels jolis : on affiche “IS J1” au lieu de “IS_J1”
   function humanLabelFromBadgeId(badgeId) {
     const id = (badgeId || "").toUpperCase();
-    // IS_J1 -> IS J1
     if (id.includes("_")) return id.replaceAll("_", " ");
     return id;
   }
 
-  // Couleurs de groupes (lisibles, brief)
+  // --- PALETTE DE COULEURS ÉTENDUE ---
   const GROUP_COLOR = {
-    IS: "#eab308",       // jaune
-    DEP: "#f59e0b",      // orange
-    FUITE: "#ef4444",    // rouge
-    MAINT: "#3b82f6",    // bleu
-    TRAVAUX: "#10b981",  // vert
-    RSF_SAP: "#eab308",  // jaune
-    MAGASIN: "#a855f7",  // violet
-    DEFAULT: "#64748b"   // gris
+    IS: "#eab308",       // Jaune
+    DEP: "#f59e0b",      // Orange
+    FUITE: "#ef4444",    // Rouge
+    MAINT: "#3b82f6",    // Bleu
+    TRAVAUX: "#10b981",  // Vert
+    RSF_SAP: "#8b5cf6",  // Violet
+    MAGASIN: "#6366f1",  // Indigo
+    
+    // Nouvelles couleurs pour remplacer le gris
+    "1/4 COM": "#06b6d4", // Cyan (Sécurité)
+    EAP: "#4f46e5",       // Royal Blue
+    PIS: "#64748b",       // Slate (Gris bleuté, distinct)
+    REUNION: "#ec4899",   // Rose (Admin)
+    CLIENT: "#14b8a6",    // Teal
+    VISUELLE: "#f43f5e",  // Rose vif
+    AUTRES: "#94a3b8",    // Gris clair
+    
+    DEFAULT: "#64748b"    // Gris défaut
   };
 
-  // Ordre brief (A + E)
-  const GROUP_ORDER = ["IS", "DEP", "FUITE", "TRAVAUX", "RSF_SAP", "MAGASIN"];
+  // --- ORDRE D'AFFICHAGE ---
+  const GROUP_ORDER = [
+    "1/4 COM",   // Souvent prioritaire le matin
+    "IS", 
+    "DEP", 
+    "FUITE", 
+    "TRAVAUX", 
+    "RSF_SAP", 
+    "MAGASIN", 
+    "EAP",
+    "CLIENT",
+    "REUNION",
+    "VISUELLE",
+    "PIS",
+    "MAINT"
+  ];
 
-  // Sous-ordre à l’intérieur des groupes IS/DEP
   const SUB_ORDER = {
     IS: ["IS_J1", "IS_J2", "IS_J3"],
     DEP: ["DEP_J1", "DEP_J2", "DEP_J3"]
   };
 
   // ------------------------
-  // Render
+  // 4. Render Logic
   // ------------------------
   function renderBriefActivities(filteredBTs) {
     ensureStylesOnce();
@@ -260,17 +279,17 @@
     root.innerHTML = `<div class="briefView" id="briefViewRoot"></div>`;
     const container = document.getElementById("briefViewRoot");
 
-    // agg : groupKey -> subKey -> { btCount, techs: Map(techId -> {name,count}) }
+    // Agrégation
     const agg = new Map();
 
     for (const bt of (filteredBTs || [])) {
-      const badgeId = getPrimaryBadgeId(bt);           // ✅ basé pastille
+      const badgeId = getPrimaryBadgeId(bt);
       const groupKey = getGroupKeyFromBadgeId(badgeId);
 
       if (!agg.has(groupKey)) agg.set(groupKey, new Map());
       const subMap = agg.get(groupKey);
 
-      const subKey = badgeId; // on conserve la pastille exacte en sous-ligne
+      const subKey = badgeId; 
       if (!subMap.has(subKey)) subMap.set(subKey, { btCount: 0, techs: new Map() });
       const entry = subMap.get(subKey);
 
@@ -284,7 +303,7 @@
       }
     }
 
-    // Trie des groupes : d’abord GROUP_ORDER, puis le reste par volume
+    // Conversion en tableau pour le tri
     const allGroups = [...agg.entries()].map(([groupKey, subMap]) => {
       let btSum = 0;
       let techSet = new Set();
@@ -295,26 +314,27 @@
       return { groupKey, subMap, btSum, techCount: techSet.size };
     });
 
+    // Tri des groupes (Ordre défini + Volume)
     allGroups.sort((a, b) => {
       const ia = GROUP_ORDER.indexOf(a.groupKey);
       const ib = GROUP_ORDER.indexOf(b.groupKey);
       if (ia !== -1 || ib !== -1) return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-      // le reste : volume desc
       return b.btSum - a.btSum || a.groupKey.localeCompare(b.groupKey);
     });
 
-    // Render groupes
+    // Génération du DOM
     for (const g of allGroups) {
       const color = GROUP_COLOR[g.groupKey] || GROUP_COLOR.DEFAULT;
 
-      // Card
+      // Création Carte
       const card = document.createElement("div");
       card.className = "groupCard";
-      // On ouvre par défaut les groupes importants + ceux qui ont du contenu
+      
+      // Ouverture auto : si dans la liste prioritaire OU si contient des BT
       const openByDefault = (GROUP_ORDER.includes(g.groupKey) || g.btSum > 0);
       card.dataset.open = openByDefault ? "true" : "false";
 
-      // Header
+      // Header Carte
       const header = document.createElement("div");
       header.className = "groupHeader";
       header.innerHTML = `
@@ -335,15 +355,14 @@
 
       card.appendChild(header);
 
-      // Body
+      // Body Carte
       const body = document.createElement("div");
       body.className = "groupBody";
 
-      // Sous-lignes triées
+      // Tri des sous-lignes
       const subs = [...g.subMap.entries()].map(([subKey, v]) => ({ subKey, ...v }));
-
-      // Ordre spécial IS/DEP
       const forced = SUB_ORDER[g.groupKey];
+      
       if (forced && forced.length) {
         subs.sort((a, b) => {
           const ia = forced.indexOf(a.subKey.toUpperCase());
@@ -352,7 +371,6 @@
           return b.btCount - a.btCount || a.subKey.localeCompare(b.subKey);
         });
       } else {
-        // défaut : volume desc
         subs.sort((a, b) => b.btCount - a.btCount || a.subKey.localeCompare(b.subKey));
       }
 
@@ -363,6 +381,7 @@
         body.appendChild(empty);
       } else {
         for (const s of subs) {
+          // Tri des techs (Volume décroissant puis alphabétique)
           const techEntries = [...s.techs.entries()]
             .map(([id, v]) => ({ id, name: v.name, count: v.count }))
             .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
@@ -370,6 +389,7 @@
           const subRow = document.createElement("div");
           subRow.className = "subRow";
 
+          // Construction HTML de la ligne (Gauche + Droite vide)
           subRow.innerHTML = `
             <div class="subLeft">
               <div class="subTitle">
@@ -409,7 +429,9 @@
     }
   }
 
-  // API publique — appelée par ton moteur
+  // ------------------------
+  // 5. API Publique
+  // ------------------------
   function renderTimeline(filtered) {
     renderBriefActivities(filtered || []);
   }
