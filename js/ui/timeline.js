@@ -1,9 +1,8 @@
-/* js/ui/timeline.js — DEMAT-BT v11.1.2 — 16/02/2026
+/* js/ui/timeline.js — DEMAT-BT v11.1.3 — 16/02/2026
    Vue "Brief / Activités" (basée SUR LES PASTILLES)
-   v11.1.2 : 
-   - Ajout couleurs : 1/4 COM, EAP, REUNION, CLIENT, VISUELLE, PIS
-   - Correction ordre d'affichage
-   - Tri techniciens optimisé
+   v11.1.3 : 
+   - Ajout du mot-clé "SURVEILLANCE" dans le groupe FUITE
+   - (Correctif précédent : couleurs 1/4 COM, EAP, PIS, etc.)
 */
 
 /* global state, mapTechByNni, techKey */
@@ -198,15 +197,18 @@
 
     // 2. Groupes Techniques
     if (id.startsWith("MAINT_") || id.includes("CICM") || id.includes("ROBINET")) return "MAINT";
-    if (id.includes("FUITE") || id.includes("URGEN")) return "FUITE";
+    
+    // === MODIFICATION ICI : Ajout de SURVEILLANCE ===
+    if (id.includes("FUITE") || id.includes("URGEN") || id.includes("SURVEILLANCE")) return "FUITE";
+    
     if (id.includes("TRAVAUX") || id.includes("CHANTIER") || id.includes("RACC")) return "TRAVAUX";
     if (id.includes("RSF") || id.includes("SAP")) return "RSF_SAP";
     if (id.includes("MAGASIN")) return "MAGASIN";
     
-    // 3. Groupes Sécurité / Admin / Client (C'est ici qu'on améliore la détection)
+    // 3. Groupes Sécurité / Admin / Client
     if (id.includes("1/4 COM") || id.includes("COM") || id.includes("BRIEF")) return "1/4 COM";
     if (id.includes("EAP")) return "EAP";
-    if (id.includes("PIS")) return "PIS"; // Ajouté car vu sur ta capture
+    if (id.includes("PIS")) return "PIS";
     if (id.includes("REUNION") || id.includes("ADMIN")) return "REUNION";
     if (id.includes("CLIENT")) return "CLIENT";
     if (id.includes("VISUELLE")) return "VISUELLE";
@@ -233,11 +235,10 @@
     RSF_SAP: "#8b5cf6",  // Violet
     MAGASIN: "#6366f1",  // Indigo
     
-    // Nouvelles couleurs pour remplacer le gris
-    "1/4 COM": "#06b6d4", // Cyan (Sécurité)
+    "1/4 COM": "#06b6d4", // Cyan
     EAP: "#4f46e5",       // Royal Blue
-    PIS: "#64748b",       // Slate (Gris bleuté, distinct)
-    REUNION: "#ec4899",   // Rose (Admin)
+    PIS: "#64748b",       // Slate
+    REUNION: "#ec4899",   // Rose
     CLIENT: "#14b8a6",    // Teal
     VISUELLE: "#f43f5e",  // Rose vif
     AUTRES: "#94a3b8",    // Gris clair
@@ -247,7 +248,7 @@
 
   // --- ORDRE D'AFFICHAGE ---
   const GROUP_ORDER = [
-    "1/4 COM",   // Souvent prioritaire le matin
+    "1/4 COM",
     "IS", 
     "DEP", 
     "FUITE", 
@@ -330,7 +331,6 @@
       const card = document.createElement("div");
       card.className = "groupCard";
       
-      // Ouverture auto : si dans la liste prioritaire OU si contient des BT
       const openByDefault = (GROUP_ORDER.includes(g.groupKey) || g.btSum > 0);
       card.dataset.open = openByDefault ? "true" : "false";
 
@@ -381,7 +381,7 @@
         body.appendChild(empty);
       } else {
         for (const s of subs) {
-          // Tri des techs (Volume décroissant puis alphabétique)
+          // Tri des techs
           const techEntries = [...s.techs.entries()]
             .map(([id, v]) => ({ id, name: v.name, count: v.count }))
             .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
@@ -389,7 +389,6 @@
           const subRow = document.createElement("div");
           subRow.className = "subRow";
 
-          // Construction HTML de la ligne (Gauche + Droite vide)
           subRow.innerHTML = `
             <div class="subLeft">
               <div class="subTitle">
