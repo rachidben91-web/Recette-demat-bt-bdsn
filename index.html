@@ -2,17 +2,8 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>RECETTE — DEMAT-BT v11.1</title>
-  
-  <!-- Icônes pour l'onglet et mobile -->
-  <link rel="icon" type="image/png" href="./assets/favicon.png">
-  <link rel="apple-touch-icon" href="./assets/favicon.png">
-  
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#17499c">
-
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DEMAT-BT v11.0 — Référent & Brief</title>
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./css/components.css" />
 </head>
@@ -40,8 +31,8 @@
       </button>
 
       <div class="seg">
-        <button class="seg__btn seg__btn--active" data-view="referent">Référent</button>
-        <button class="seg__btn" data-view="brief">Brief (Flip)</button>
+        <button class="seg__btn seg__btn--active" onclick="switchView('referent')" data-view="referent">Référent</button>
+        <button class="seg__btn" onclick="switchView('brief')" data-view="brief">Brief (Flip)</button>
       </div>
 
       <button id="btnFullscreen" class="btn btn--secondary" title="Plein écran">
@@ -51,11 +42,17 @@
   </header>
 
   <main class="layout">
-    <!-- Left: sidebar -->
     <aside class="sidebar card">
       <div class="card__title">Contrôle</div>
 
-      <!-- Badges carrés pour Zones et PDF -->
+      <div class="field">
+        <button class="btn" style="width:100%; justify-content:center; background:white; color:var(--primary); border: 2px solid var(--primary); font-weight:800;" onclick="switchView('support')">
+           📊 Support Journée
+        </button>
+      </div>
+
+      <div class="divider"></div>
+
       <div class="control-badges">
         <div class="control-badge" id="zonesBadge">
           <div class="control-badge__icon">📍</div>
@@ -70,7 +67,6 @@
         </div>
       </div>
 
-      <!-- Badge de progression -->
       <div class="progress-badge" id="progressBadge">
         <div class="progress-badge__header">
           <div class="progress-badge__icon">⚡</div>
@@ -98,8 +94,7 @@
       <div class="field">
         <div class="label">Type de docs</div>
         <div class="chips" id="typeChips">
-          <!-- injected -->
-        </div>
+          </div>
       </div>
 
       <div class="divider"></div>
@@ -115,9 +110,8 @@
       <div class="divider"></div>
     </aside>
 
-    <!-- Right: content -->
     <section class="content">
-      <!-- Référent view -->
+      
       <section id="viewReferent" class="view view--active">
         <div class="row row--space">
           <div>
@@ -141,30 +135,9 @@
 
         <div id="btGrid" class="grid"></div>
         <div id="btTimeline" class="timeline" style="display:none;">
-          <div style="padding:12px 16px; background:#fafbfc; border-bottom:1.5px solid var(--line); display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
-            <span style="font-size:12px; font-weight:700; color:var(--txt-light);">Timeline journalière (7h30 → 17h00)</span>
-            <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:11px; font-weight:600;">
-              <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
-                <span style="width:20px; height:12px; background:#2563eb; border-radius:2px;"></span> CLIENTÈLE
-              </span>
-              <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
-                <span style="width:20px; height:12px; background:#10b981; border-radius:2px;"></span> MAINTENANCE
-              </span>
-              <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
-                <span style="width:20px; height:12px; background:#f59e0b; border-radius:2px;"></span> SURVEILLANCE
-              </span>
-              <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
-                <span style="width:20px; height:12px; background:#a855f7; border-radius:2px;"></span> ADMINISTRATIF
-              </span>
-              <span style="display:flex; align-items:center; gap:6px; color:var(--txt-light);">
-                <span style="width:20px; height:12px; background:#64748b; border-radius:2px;"></span> AUTRE
-              </span>
-            </div>
           </div>
-        </div>
       </section>
 
-      <!-- Brief view -->
       <section id="viewBrief" class="view">
         <div class="briefHeader">
           <div>
@@ -182,7 +155,173 @@
         <div id="briefList" class="briefList"></div>
       </section>
 
-      <!-- Viewer modal -->
+      <section id="viewSupport" class="view" style="display:none;">
+        
+        <div class="row row--space screen-only" style="margin-bottom: 15px;">
+            <div>
+                <h2 class="h2">Pilotage Quotidien</h2>
+                <div class="sub">Gestion des activités, brief et débrief d'équipe.</div>
+            </div>
+        </div>
+
+        <nav class="support-tabs screen-only">
+            <button class="support-tab active" onclick="SupportModule.switchTab('tabBrief')">📝 Brief / Débrief</button>
+            <button class="support-tab" onclick="SupportModule.switchTab('tabParam')">🎨 Param Activités</button>
+            <button class="support-tab" onclick="SupportModule.switchTab('tabHistory')">📊 Données & Historique</button>
+        </nav>
+
+        <div id="tabBrief" class="support-panel active">
+            
+            <div class="print-header">
+    <div class="print-title-box">
+        BRIEF / DÉBRIEF — SUPPORT JOURNÉE
+    </div>
+    <div class="print-date-section">
+        <div class="print-date-row">
+            <span class="print-label">Date :</span>
+            <span id="printDateBox" class="print-value">--</span>
+        </div>
+        <div class="print-date-row">
+            <span class="print-label">Semaine :</span>
+            <span id="printWeekBox" class="print-value">--</span>
+        </div>
+    </div>
+</div>
+
+            <div class="day-nav screen-only">
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn--secondary" onclick="SupportModule.changeDay(-1)">◀ J-1</button>
+                    <button class="btn btn--secondary" onclick="SupportModule.goToday()">Auj.</button>
+                    <button class="btn btn--secondary" onclick="SupportModule.changeDay(1)">J+1 ▶</button>
+                    <input type="date" id="supportDatePicker" class="input" style="width:auto;" onchange="SupportModule.goToDate(this.value)">
+                </div>
+                
+                <div class="day-title-group">
+                    <div class="day-title-main" id="dayDisplayTitle">CHARGEMENT...</div>
+                    <div class="day-title-sub" id="dayDisplaySub">Semaine ...</div>
+                </div>
+
+                <div class="kpi-group">
+                    <div class="kpi-badge"><div class="kpi-dot" style="background:#22c55e"></div> Présents: <span id="kpiPres">0</span></div>
+                    <div class="kpi-badge"><div class="kpi-dot" style="background:#ef4444"></div> Absents: <span id="kpiAbs">0</span></div>
+                    <div class="kpi-badge"><div class="kpi-dot" style="background:#f59e0b"></div> Grève: <span id="kpiGreve">0</span></div>
+                </div>
+            </div>
+
+            <div class="support-toolbar screen-only">
+                <button class="btn" onclick="SupportModule.saveDay()">💾 Enregistrer</button>
+                <button class="btn btn--secondary" onclick="SupportModule.printDay()">🖨️ Imprimer</button>
+                <button class="btn btn--secondary" onclick="SupportModule.exportCSV()">📤 CSV</button>
+                <div style="flex:1"></div>
+                <button class="btn" style="background:#fee2e2; color:#991b1b; border:none;" onclick="SupportModule.clearDay()">🗑️ Vider</button>
+            </div>
+
+            <div class="brief-table-container">
+                <table class="brief-table">
+                    <thead>
+                        <tr>
+                            <th style="width:40px">#</th>
+                            <th>Agent</th>
+                            <th>PTC-PTD</th>
+                            <th>CP</th>
+                            <th>Activité</th>
+                            <th>Observations</th>
+                            <th colspan="2">Brief</th>
+                            <th colspan="2">Débrief</th>
+                            <th style="width:60px">NTP</th>
+                            <th style="width:60px">Grève</th>
+                        </tr>
+                        <tr>
+                            <th colspan="6"></th> <th style="font-size:10px">A</th>
+                            <th style="font-size:10px">D</th>
+                            <th style="font-size:10px">A</th>
+                            <th style="font-size:10px">D</th>
+                            <th colspan="2"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="briefTableBody">
+                        </tbody>
+                </table>
+            </div>
+
+            <div class="screen-only" style="margin-top:15px;">
+                <label class="label">📌 Observation générale de la journée :</label>
+                <textarea id="obsGlobal" class="input" rows="2" placeholder="Notez ici les points importants du brief..."></textarea>
+            </div>
+
+            <div class="print-footer">
+                <div class="print-obs-box">
+                    <div class="print-obs-label">OBSERVATION :</div>
+                    </div>
+                
+                <div class="print-bottom-row">
+                    <div class="print-info-left" id="printTime">Imprimé le : --/--/----</div>
+                    
+                    <div class="print-logo">
+                        <img src="./assets/grdf-logo.png" alt="Logo GRDF" class="print-logo-img">
+                    </div>
+                    
+                    <div class="print-info-right">Page 1/1</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tabParam" class="support-panel">
+            <h3 class="h2" style="font-size:18px; margin-bottom:15px;">Activités & Couleurs</h3>
+            <div id="paramGrid" class="param-grid"></div>
+            
+            <div style="margin-top:20px; padding:15px; background:#fff; border:1px solid var(--line); border-radius:8px; display:flex; gap:10px; align-items:center;">
+                <input type="text" id="newActName" class="input" placeholder="Nom nouvelle activité..." style="width:200px;">
+                <input type="color" id="newActColor" value="#3b82f6" style="height:38px; width:50px; padding:0; border:none; cursor:pointer;">
+                <button class="btn" onclick="SupportModule.addActivity()">➕ Ajouter</button>
+            </div>
+        </div>
+
+        <div id="tabHistory" class="support-panel">
+            <h3 class="h2" style="font-size:18px; margin-bottom:15px;">Statistiques & Archives</h3>
+            
+            <div class="stats-container">
+                <div class="stat-box">
+                    <div class="stat-num" id="statDays">0</div>
+                    <div class="stat-lbl">Jours Saisis</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-num" id="statRecords">0</div>
+                    <div class="stat-lbl">Lignes totales</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-num" id="statTopAct">-</div>
+                    <div class="stat-lbl">Top Activité</div>
+                </div>
+            </div>
+
+            <div class="support-toolbar">
+                <input type="date" id="histDateFrom" class="input" style="width:auto;">
+                <span style="align-self:center">à</span>
+                <input type="date" id="histDateTo" class="input" style="width:auto;">
+                <select id="histFilterAgent" class="select" style="width:auto;"><option value="">Tous agents</option></select>
+                <button class="btn" onclick="SupportModule.renderHistory()">🔍 Filtrer</button>
+            </div>
+
+            <div class="brief-table-container" style="max-height:600px;">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th onclick="SupportModule.sortHistory('date')">Date ↕</th>
+                            <th onclick="SupportModule.sortHistory('agent')">Agent ↕</th>
+                            <th>Activité</th>
+                            <th>Obs</th>
+                            <th>Brief</th>
+                            <th>Débrief</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+      </section>
+
       <div id="modal" class="modal" aria-hidden="true">
         <div class="modal__backdrop" data-close="1"></div>
         <div class="modal__panel card">
@@ -218,39 +357,30 @@
     </section>
   </main>
 
-  <!-- =====================
-       SCRIPTS (ordre de chargement : dépendances → modules → main)
-       ===================== -->
-
-  <!-- Librairies externes -->
   <script src="./libs/pdf-lib/pdf-lib.min.js"></script>
 
-  <!-- Données -->
   <script src="./data/technicians.js"></script>
 
-  <!-- Core : utilitaires et état (aucune dépendance) -->
   <script src="./js/utils.js"></script>
   <script src="./js/state.js"></script>
 
-  <!-- Moteurs métier (dépendent de utils + state) -->
   <script src="./js/badge-engine.js"></script>
   <script src="./js/classify.js"></script>
   <script src="./js/weather.js"></script>
 
-  <!-- Infrastructure (dépend de utils + state) -->
   <script src="./js/cache.js"></script>
   <script src="./js/pdf-extractor.js"></script>
   <script src="./js/export.js"></script>
 
-  <!-- UI : composants partagés puis vues -->
   <script src="./js/ui/components.js"></script>
   <script src="./js/ui/sidebar.js"></script>
   <script src="./js/ui/grid.js"></script>
   <script src="./js/ui/timeline.js"></script>
   <script src="./js/ui/brief.js"></script>
   <script src="./js/ui/modal.js"></script>
+  
+  <script src="./js/ui/support.js"></script>
 
-  <!-- Point d'entrée (dépend de tout le reste) -->
   <script src="./js/main.js"></script>
 </body>
 </html>
