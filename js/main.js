@@ -1,12 +1,13 @@
-// js/main.js — DEMAT-BT v11.2.0 — 19/02/2026
-// Point d'entrée principal — CORRIGÉ : renderAll, Weather init, refreshAllViews
-// FIX: renderAll is not defined, weather is not defined, grid vide, techniciens vide
+// js/main.js — DEMAT-BT v11.2.1 — 19/02/2026
+// Point d'entrée principal
+// FIX v11.2.0: renderAll alias, weather init, refreshAllViews
+// FIX v11.2.1: Modal event listeners + loadBadgeRules() + loadBadgeRules avant cache
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 DEMAT-BT v11.2.0 démarré.");
+    console.log("🚀 DEMAT-BT v11.2.1 démarré.");
 
     // ============================================================
-    // PATCH RECETTE v11.2.0 — helpers UI attendus par pdf-extractor.js
+    // HELPERS UI attendus par pdf-extractor.js
     // ============================================================
     window.setZonesStatus = function (msg) {
         const el = document.getElementById('zonesStatus');
@@ -44,78 +45,68 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================================
     // 1. INITIALISATION DES MODULES & DONNÉES
     // ============================================================
-    
-    // Initialiser l'état global (State) si nécessaire
+
+    // Initialiser l'état global
     if (window.State && window.State.init) window.State.init();
 
-    // ── FIX MÉTÉO ──────────────────────────────────────────────
-    // weather.js expose updateWeather() et updateDateTime() en global,
-    // PAS un objet window.Weather. On appelle directement ces fonctions.
+    // ── MÉTÉO ──────────────────────────────────────────────────
     if (typeof updateDateTime === 'function') {
         updateDateTime();
         setInterval(updateDateTime, 1000);
         console.log("[MAIN] ✅ DateTime initialisé");
-    } else {
-        console.warn("[MAIN] ⚠️ updateDateTime non trouvé (weather.js chargé ?)");
     }
     if (typeof updateWeather === 'function') {
         updateWeather();
-        setInterval(updateWeather, 10 * 60 * 1000); // Rafraîchir toutes les 10 min
+        setInterval(updateWeather, 10 * 60 * 1000);
         console.log("[MAIN] ✅ Météo initialisée");
-    } else {
-        console.warn("[MAIN] ⚠️ updateWeather non trouvé (weather.js chargé ?)");
     }
 
-    // Initialiser Sidebar si disponible
+    // Sidebar & Cache
     if (window.Sidebar && window.Sidebar.init) window.Sidebar.init();
-
-    // Initialiser Cache si disponible
     if (window.Cache && window.Cache.init) window.Cache.init();
 
-    // Charger zones.json automatiquement (si dispo)
+    // Charger zones.json
     if (window.loadZones) window.loadZones().catch(err => console.error("[MAIN] Erreur zones:", err));
 
-    // Support Module s'auto-initialise via son DOMContentLoaded
+    // ── FIX v11.2.1 : Charger les règles badges AVANT la restauration du cache ──
+    // Sans ça, BADGE_RULES reste null → timeline affiche tout en "AUTRES"
+    const badgeRulesReady = (typeof loadBadgeRules === 'function')
+        ? loadBadgeRules().then(() => console.log("[MAIN] ✅ Badge rules chargées"))
+                          .catch(err => console.warn("[MAIN] ⚠️ Badge rules non chargées:", err))
+        : Promise.resolve();
 
     // ============================================================
     // 2. FONCTIONS DE RENDU GLOBAL
     // ============================================================
 
-    /**
-     * refreshAllViews() — Rafraîchit toutes les vues (Grid, Timeline, Brief, Sidebar)
-     * C'est la fonction centrale appelée après chaque changement de données.
-     */
     function refreshAllViews() {
-        console.log("[MAIN] refreshAllViews() — rendu de toutes les vues");
+        console.log("[MAIN] refreshAllViews()");
 
-        // 1. Filtrer les BT selon les filtres actifs
         const filtered = (typeof filterBTs === 'function') ? filterBTs() : (state.bts || []);
 
-        // 2. Sidebar : KPIs + chips type + liste techniciens
+        // Sidebar
         if (typeof renderKpis === 'function') renderKpis(filtered);
         if (typeof buildTypeChips === 'function') buildTypeChips();
         if (typeof renderTechList === 'function') renderTechList();
 
-        // 3. Grille de vignettes
+        // Grille vignettes
         const gridEl = document.getElementById('btGrid');
         if (gridEl && typeof renderGrid === 'function') {
             renderGrid(filtered, gridEl);
         }
 
-        // 4. Timeline
-        const timelineEl = document.getElementById('btTimeline');
-        if (timelineEl && typeof renderTimeline === 'function') {
-            renderTimeline(filtered, timelineEl);
+        // Timeline / Catégories
+        if (typeof renderTimeline === 'function') {
+            renderTimeline(filtered);
         }
 
-        // 5. Brief
+        // Brief (Flip)
         if (typeof renderBrief === 'function') {
             renderBrief(filtered);
         }
     }
 
-    // ── FIX CRITIQUE : renderAll alias global ──────────────────
-    // pdf-extractor.js et sidebar.js appellent renderAll() — on crée l'alias
+    // ── Alias globaux pour compatibilité ──
     window.renderAll = refreshAllViews;
     window.refreshAllViews = refreshAllViews;
 
@@ -126,16 +117,16 @@ document.addEventListener('DOMContentLoaded', () => {
     window.switchView = function(viewName) {
         console.log("Navigation vers :", viewName);
 
-        // A. Cacher toutes les vues
+        // Cacher toutes les vues
         document.querySelectorAll('.view').forEach(el => {
             el.style.display = 'none';
             el.classList.remove('view--active');
         });
 
-        // B. Désactiver tous les boutons de navigation
+        // Désactiver tous les boutons
         document.querySelectorAll('.seg__btn').forEach(btn => btn.classList.remove('seg__btn--active'));
 
-        // C. Afficher la vue demandée
+        // Afficher la vue demandée
         let targetId = '';
         if (viewName === 'referent') targetId = 'viewReferent';
         else if (viewName === 'brief') targetId = 'viewBrief';
@@ -147,37 +138,21 @@ document.addEventListener('DOMContentLoaded', () => {
             targetEl.classList.add('view--active');
         }
 
-        // D. Gestion spécifique selon la vue
         if (viewName === 'referent' || viewName === 'brief') {
-            // Réactiver le bouton correspondant en haut
             const activeBtn = document.querySelector(`.seg__btn[data-view="${viewName}"]`);
             if (activeBtn) activeBtn.classList.add('seg__btn--active');
-            
-            // Mode Flip (Samsung) uniquement pour le brief
             document.body.classList.toggle('flip', viewName === 'brief');
-            
-            // Rafraîchir les grilles
             refreshAllViews();
         } else {
-            // Pour le Support Journée
             document.body.classList.remove('flip');
         }
-        
-        // Remonter en haut de page
+
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // Écouteurs pour les boutons du haut (Référent / Brief)
-    document.querySelectorAll('.seg__btn[data-view]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            switchView(e.currentTarget.dataset.view);
-        });
-    });
-
-    // Écouteurs pour les sous-vues (Vignettes / Catégories dans Référent)
+    // Sous-vues (Vignettes / Catégories)
     document.querySelectorAll('.seg__btn[data-layout]').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // Gestion active class
             e.target.parentElement.querySelectorAll('.seg__btn').forEach(b => b.classList.remove('seg__btn--active'));
             e.target.classList.add('seg__btn--active');
 
@@ -198,10 +173,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ============================================================
-    // 4. FONCTIONS GLOBALES (Recherche, Filtres, PDF)
+    // 4. ÉVÉNEMENTS GLOBAUX (Recherche, Filtres, PDF)
     // ============================================================
 
-    // Barre de Recherche
+    // Recherche
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -246,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Bouton Vider le Cache
+    // Vider le Cache
     const btnClearCache = document.getElementById('btnClearCache');
     if (btnClearCache) {
         btnClearCache.addEventListener('click', () => {
@@ -270,21 +245,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // 5. RESTAURATION DU CACHE AU DÉMARRAGE
+    // 5. MODAL — Événements des boutons (FIX v11.2.1)
     // ============================================================
 
-    // Si le cache contient des BT, on les affiche immédiatement
-    if (typeof loadFromCache === 'function') {
-        loadFromCache().then(restored => {
-            if (restored) {
-                console.log("[MAIN] ✅ Cache restauré, lancement du rendu");
-                refreshAllViews();
-            }
-        }).catch(err => console.warn("[MAIN] Cache non restauré:", err));
+    // Bouton Page Précédente
+    const btnPrev = document.getElementById('btnPrevPage');
+    if (btnPrev) {
+        btnPrev.addEventListener('click', () => {
+            if (typeof prevPage === 'function') prevPage();
+        });
     }
 
-    // Lancer la vue par défaut au démarrage
-    switchView('referent');
+    // Bouton Page Suivante
+    const btnNext = document.getElementById('btnNextPage');
+    if (btnNext) {
+        btnNext.addEventListener('click', () => {
+            if (typeof nextPage === 'function') nextPage();
+        });
+    }
 
-    console.log("[MAIN] ✅ Initialisation terminée");
+    // Bouton Export PDF
+    const btnExport = document.getElementById('btnExportBt');
+    if (btnExport) {
+        btnExport.addEventListener('click', () => {
+            if (typeof exportBTPDF === 'function') exportBTPDF();
+        });
+    }
+
+    // Bouton Fermer + Backdrop (tous les éléments data-close)
+    document.querySelectorAll('[data-close]').forEach(el => {
+        el.addEventListener('click', () => {
+            if (typeof closeModal === 'function') closeModal();
+        });
+    });
+
+    // Fermer modal avec Échap
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && state.modal && state.modal.open) {
+            if (typeof closeModal === 'function') closeModal();
+        }
+    });
+
+    // ============================================================
+    // 6. RESTAURATION DU CACHE AU DÉMARRAGE
+    // ============================================================
+
+    // On attend que les badge rules soient chargées AVANT de restaurer le cache
+    // Sinon la timeline affiche tout en "AUTRES"
+    badgeRulesReady.then(() => {
+        if (typeof loadFromCache === 'function') {
+            loadFromCache().then(restored => {
+                if (restored) {
+                    console.log("[MAIN] ✅ Cache restauré, lancement du rendu");
+                    refreshAllViews();
+                }
+            }).catch(err => console.warn("[MAIN] Cache non restauré:", err));
+        }
+
+        // Vue par défaut
+        switchView('referent');
+        console.log("[MAIN] ✅ Initialisation terminée");
+    });
 });
