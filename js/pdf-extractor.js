@@ -304,3 +304,66 @@ async function extractAll() {
   await saveToCache();
   renderAll();
 }
+
+// ============================================================
+// Export API (Recette patch) — DEMAT-BT v11.1.2 — 2026-02-19
+// Objectif : compatibilité avec main.js (window.PdfExtractor.*)
+// ============================================================
+
+// Fallbacks si les helpers UI n'existent pas (évite les ReferenceError)
+if (typeof window.setZonesStatus !== "function") window.setZonesStatus = () => {};
+if (typeof window.setPdfStatus   !== "function") window.setPdfStatus   = () => {};
+if (typeof window.setProgress    !== "function") window.setProgress    = () => {};
+if (typeof window.setExtractEnabled !== "function") window.setExtractEnabled = () => {};
+
+// Exposer quelques fonctions utiles en debug
+window.loadZones = loadZones;
+window.ensurePdfJs = ensurePdfJs;
+
+// API attendue par main.js
+async function processFile(file) {
+  if (!file) return;
+  try {
+    window.setExtractEnabled(false);
+    window.setPdfStatus(file.name);
+    window.setProgress(0, "Chargement PDF…");
+
+    await ensurePdfJs();
+
+    state.pdfFile = file;
+    state.pdfName = file.name;
+
+    const buf = await file.arrayBuffer();
+    const loadingTask = window.pdfjsLib.getDocument({ data: buf });
+    state.pdf = await loadingTask.promise;
+    state.totalPages = state.pdf.numPages;
+
+    console.log("[DEMAT-BT] PDF chargé ✅", state.totalPages, "pages");
+    window.setProgress(0, `PDF chargé (${state.totalPages} pages).`);
+    window.setExtractEnabled(true);
+  } catch (e) {
+    console.error(e);
+    window.setPdfStatus("Erreur PDF");
+    window.setProgress(0, "Erreur chargement PDF (voir console).");
+    window.setExtractEnabled(false);
+    throw e;
+  }
+}
+
+async function runExtraction() {
+  if (!state.pdf) throw new Error("PDF non chargé.");
+  if (!ZONES) await loadZones();
+  try {
+    window.setExtractEnabled(false);
+    window.setProgress(0, "Extraction en cours…");
+    await extractAll();
+    window.setProgress(100, `Terminé : ${state.bts.length} BT détectés.`);
+  } finally {
+    window.setExtractEnabled(!!state.pdf);
+  }
+}
+
+window.PdfExtractor = {
+  processFile,
+  runExtraction
+};
