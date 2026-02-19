@@ -1413,7 +1413,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 
   /* Observations (col 6) — tout l'espace restant */
   table.brief-table tbody td:nth-child(6) {
-    width: auto !important; white-space: normal !important;
+    width: 200px !important; white-space: normal !important;
     word-wrap: break-word !important; overflow-wrap: break-word !important;
     line-height: 12px !important; font-size: 8px !important; padding: 2px 4px !important;
   }
