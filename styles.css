@@ -1363,14 +1363,14 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     border: 0.5px solid #000 !important;
   }
 
-  table.brief-table tr { height: 17px !important; }
+  table.brief-table tr { height: 18px !important; }
 
   table.brief-table th,
   table.brief-table td {
     border: 0.5px solid #000 !important;
     padding: 0 2px !important;
-    font-size: 8px !important;         /* 👈 Agent lisible */
-    line-height: 15px !important;
+    font-size: 9px !important;         /* 👈 Agent lisible */
+    line-height: 16px !important;
     vertical-align: middle !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
@@ -1400,6 +1400,8 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   table.brief-table td:nth-child(2) {
     width: 260px !important;
     font-weight: 800 !important;
+    font-size: 9px !important;
+    letter-spacing: 0.2px !important;
   }
 
   /* PTC */
