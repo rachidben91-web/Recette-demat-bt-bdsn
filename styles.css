@@ -1478,4 +1478,48 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 /* cacher header/footer en mode écran */
 .print-header, .print-footer { display: none; }
 
+/* ===== A3 PORTRAIT + 1 PAGE ===== */
+@page { size: A3 portrait; margin: 4mm; }
+
+@media print {
+  /* 1) Forcer le tableau à rentrer (Chrome/Edge) */
+  html, body { height: auto !important; }
+  .page, .sheet, .print-root { page-break-after: avoid !important; page-break-inside: avoid !important; }
+
+  /* Si ça déborde encore : léger “zoom out” print (très efficace) */
+  body { zoom: 0.92; } /* ajuste 0.90 ↔ 0.96 si besoin */
+
+  /* 2) Table bien “fixe” */
+  table.brief-table { table-layout: fixed !important; width: 100% !important; }
+
+  /* 3) Largeurs COHÉRENTES THEAD + TBODY (sinon colspan te trahit) */
+  /* # */
+  table.brief-table thead th:nth-child(1),
+  table.brief-table tbody td:nth-child(1) { width: 3% !important; }
+
+  /* Agent */
+  table.brief-table thead th:nth-child(2),
+  table.brief-table tbody td:nth-child(2) { width: 18% !important; }
+
+  /* PTC-PTD */
+  table.brief-table thead th:nth-child(3),
+  table.brief-table tbody td:nth-child(3) { width: 8% !important; }
+
+  /* Activité (on RÉDUIT pour libérer Observations) */
+  table.brief-table thead th:nth-child(4),
+  table.brief-table tbody td:nth-child(4) { width: 12% !important; }
+
+  /* ✅ Observations (on AUGMENTE) */
+  table.brief-table thead th:nth-child(5),
+  table.brief-table tbody td:nth-child(5) { width: 28% !important; }
+
+  /* Brief (colspan=2 => largeur globale) */
+  table.brief-table thead th:nth-child(6) { width: 12% !important; } /* 2 sous-colonnes */
+  /* Débrief (colspan=2 => largeur globale) */
+  table.brief-table thead th:nth-child(7) { width: 12% !important; }
+
+  /* NTP */
+  table.brief-table thead th:nth-child(8),
+  table.brief-table tbody td:last-child { width: 7% !important; }
+}
 
