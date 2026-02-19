@@ -1262,7 +1262,7 @@ table.brief-table tr:hover { background-color: #f8fafc; }
 
 /* Cellules spécifiques */
 .cell-name { font-weight: 700; color: var(--txt); min-width: 180px; }
-.cell-ptc { text-align: center; color: var(--muted); font-size: 11px; }
+.cell-ptc { text-align: center; color: #1a3a5c; font-size: 11px; font-weight: 700; }
 
 /* Selects éditables */
 .editable-select {
@@ -1303,7 +1303,11 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 .row-absent .cell-name { color: #e11d48; }
 
 /* ==========================================================================
-   IMPRESSION A3 OFFICIELLE — VERSION PRO
+   IMPRESSION A3 OFFICIELLE — VERSION PRO v2.0 — 19/02/2026
+   FIX: Colonnes corrigées (indices réels HTML)
+   Colonnes tableau : 1=#, 2=Agent, 3=PTC-PTD, 4=CP(masqué), 5=Activité,
+                       6=Observations, 7=BriefA, 8=BriefD, 9=DebriefA,
+                       10=DebriefD, 11=NTP, 12=Grève(masqué)
    ========================================================================== */
 @media print {
 
@@ -1317,7 +1321,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     print-color-adjust: exact;
   }
 
-  /* Masquer interface */
+  /* Masquer interface écran */
   .topbar, .sidebar, .support-tabs, .day-nav,
   .support-toolbar, .toast, .screen-only, .row--space {
     display: none !important;
@@ -1332,44 +1336,66 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     box-sizing: border-box !important;
   }
 
-  /* HEADER */
+  /* ── HEADER ─────────────────────────────────────────── */
   .print-header {
     display: flex !important;
     justify-content: space-between !important;
-    border-bottom: 1.5px solid #1f4e78 !important;
-    padding-bottom: 5px !important;
-    margin-bottom: 5px !important;
+    align-items: flex-end !important;
+    border-bottom: 2px solid #1f4e78 !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 4px !important;
   }
 
   .print-title-box {
-    font-size: 16px !important;
+    font-size: 17px !important;
     font-weight: 900 !important;
     color: #1f4e78 !important;
+    letter-spacing: 0.5px !important;
   }
 
-  .print-label { font-size: 9px !important; font-weight: 700 !important; }
-  .print-value { font-size: 11px !important; font-weight: 900 !important; }
+  .print-label { font-size: 9px !important; font-weight: 700 !important; color: #333 !important; }
+  .print-value { font-size: 12px !important; font-weight: 900 !important; color: #1f4e78 !important; }
 
-  /* TABLE */
+  /* ── TABLE ──────────────────────────────────────────── */
   .brief-table-container {
     flex: 1 !important;
     margin: 0 !important;
+    overflow: visible !important;
   }
 
   table.brief-table {
     width: 100% !important;
     border-collapse: collapse !important;
     table-layout: fixed !important;
-    border: 0.5px solid #000 !important;
+    border: 0.5px solid #333 !important;
   }
 
-  table.brief-table tr { height: 18px !important; }
+  /* En-têtes */
+  table.brief-table thead th {
+    background: #1f4e78 !important;
+    color: #fff !important;
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    padding: 3px 2px !important;
+    border: 0.5px solid #fff !important;
+  }
+  table.brief-table thead tr:nth-child(2) th {
+    background: #c9daf1 !important;
+    color: #1f4e78 !important;
+    font-size: 8px !important;
+    padding: 1px 2px !important;
+  }
+
+  /* Lignes de données */
+  table.brief-table tr { height: 19px !important; }
+  table.brief-table tbody tr:nth-child(even) { background: #f5f8fc !important; }
+  table.brief-table tbody tr:nth-child(odd) { background: #fff !important; }
 
   table.brief-table th,
   table.brief-table td {
-    border: 0.5px solid #000 !important;
-    padding: 0 2px !important;
-    font-size: 9px !important;         /* 👈 Agent lisible */
+    border: 0.5px solid #999 !important;
+    padding: 1px 3px !important;
+    font-size: 9px !important;
     line-height: 16px !important;
     vertical-align: middle !important;
     overflow: hidden !important;
@@ -1377,8 +1403,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     white-space: nowrap !important;
   }
 
-  /* ========= SUPPRESSION CP (4) ET GREVE (12) ========= */
-
+  /* ── COLONNES MASQUÉES : CP(4) et Grève(12) ──────── */
   table.brief-table th:nth-child(4),
   table.brief-table td:nth-child(4),
   table.brief-table th:nth-child(12),
@@ -1386,95 +1411,144 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     display: none !important;
   }
 
-  /* ========= COLONNES ÉQUILIBRÉES ========= */
+  /* ── LARGEURS PAR COLONNE (indices HTML réels) ────── */
 
-/* # */
-table.brief-table th:nth-child(1),
-table.brief-table td:nth-child(1) {
-  width: 22px !important;
-}
+  /* Col 1 : # */
+  table.brief-table th:nth-child(1),
+  table.brief-table td:nth-child(1) {
+    width: 20px !important;
+    text-align: center !important;
+    font-size: 8px !important;
+    color: #666 !important;
+  }
 
-/* Agent */
-table.brief-table th:nth-child(2),
-table.brief-table td:nth-child(2) {
-  width: 180px !important;
-  font-weight: 800 !important;
-  font-size: 9px !important;
-}
+  /* Col 2 : Agent — POLICE AGRANDIE */
+  table.brief-table th:nth-child(2),
+  table.brief-table td:nth-child(2) {
+    width: 170px !important;
+    font-weight: 800 !important;
+    font-size: 10px !important;
+    color: #111 !important;
+    letter-spacing: 0.2px !important;
+    padding-left: 4px !important;
+  }
 
-/* PTC */
-table.brief-table th:nth-child(3),
-table.brief-table td:nth-child(3) {
-  width: 70px !important;
-  text-align: center !important;
-}
+  /* Col 3 : PTC-PTD — PLUS FONCÉ ET LISIBLE */
+  table.brief-table th:nth-child(3),
+  table.brief-table td:nth-child(3) {
+    width: 60px !important;
+    text-align: center !important;
+    font-size: 8px !important;
+    font-weight: 800 !important;
+    color: #1a3a5c !important;
+    background-color: inherit !important;
+  }
 
-/* Activité */
-table.brief-table th:nth-child(4),
-table.brief-table td:nth-child(4) {
-  width: 150px !important;
-}
+  /* Col 5 : Activité — RÉDUITE */
+  table.brief-table th:nth-child(5),
+  table.brief-table td:nth-child(5) {
+    width: 130px !important;
+    font-size: 8px !important;
+    font-weight: 700 !important;
+  }
 
-/* Observations (dominante mais contrôlée) */
-table.brief-table th:nth-child(5),
-table.brief-table td:nth-child(5) {
-  width: 600px !important;
-  white-space: normal !important;
-  line-height: 13px !important;
-}
+  /* Col 6 : Observations — ÉLARGIE, texte wrappé */
+  table.brief-table th:nth-child(6),
+  table.brief-table td:nth-child(6) {
+    width: auto !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    line-height: 12px !important;
+    font-size: 8px !important;
+    padding: 2px 4px !important;
+  }
 
-/* Brief & Débrief */
-table.brief-table th:nth-child(6),
-table.brief-table td:nth-child(6),
-table.brief-table th:nth-child(7),
-table.brief-table td:nth-child(7),
-table.brief-table th:nth-child(8),
-table.brief-table td:nth-child(8),
-table.brief-table th:nth-child(9),
-table.brief-table td:nth-child(9) {
-  width: 60px !important;
-  text-align: center !important;
-}
+  /* Cols 7-8 : Brief (A, D) */
+  table.brief-table th:nth-child(7),
+  table.brief-table td:nth-child(7),
+  table.brief-table th:nth-child(8),
+  table.brief-table td:nth-child(8) {
+    width: 32px !important;
+    text-align: center !important;
+    font-size: 8px !important;
+    font-weight: 700 !important;
+  }
 
-/* NTP */
-table.brief-table th:nth-child(10),
-table.brief-table td:nth-child(10) {
-  width: 35px !important;
-  text-align: center !important;
-}
+  /* Cols 9-10 : Débrief (A, D) */
+  table.brief-table th:nth-child(9),
+  table.brief-table td:nth-child(9),
+  table.brief-table th:nth-child(10),
+  table.brief-table td:nth-child(10) {
+    width: 32px !important;
+    text-align: center !important;
+    font-size: 8px !important;
+    font-weight: 700 !important;
+  }
 
-  /* ========= SUPPRESSION FLECHES SELECT ========= */
+  /* Col 11 : NTP */
+  table.brief-table th:nth-child(11),
+  table.brief-table td:nth-child(11) {
+    width: 30px !important;
+    text-align: center !important;
+    font-size: 8px !important;
+  }
 
+  /* ── VALEURS OUI/NON COLORÉES ───────────────────── */
+  table.brief-table .val-oui {
+    background-color: #d4edda !important;
+    color: #155724 !important;
+    font-weight: 800 !important;
+  }
+  table.brief-table .val-non {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+    font-weight: 800 !important;
+  }
+
+  /* Ligne absent (fond rosé) */
+  .row-absent { background-color: #fff0f0 !important; }
+  .row-absent .cell-name { color: #c0392b !important; }
+
+  /* ── SELECTS & INPUTS (aspect imprimé) ──────────── */
   table.brief-table select,
   table.brief-table input {
-    height: 14px !important;
-    min-height: 14px !important;
-    line-height: 14px !important;
+    height: 15px !important;
+    min-height: 15px !important;
+    line-height: 15px !important;
     font-size: 8px !important;
+    font-weight: 700 !important;
     padding: 0 2px !important;
     margin: 0 !important;
+    border: none !important;
     border-radius: 0 !important;
-
     appearance: none !important;
     -webkit-appearance: none !important;
     background: transparent !important;
     background-image: none !important;
+    color: inherit !important;
   }
 
   table.brief-table select::-ms-expand {
     display: none !important;
   }
 
-  /* FOOTER */
+  /* Activité select avec fond couleur */
+  table.brief-table .input-act {
+    font-weight: 800 !important;
+    font-size: 8px !important;
+  }
+
+  /* ── FOOTER ─────────────────────────────────────── */
   .print-footer {
     display: flex !important;
     flex-direction: column !important;
-    margin-top: 6px !important;
+    margin-top: 4px !important;
   }
 
   .print-obs-box {
-    border: 3px solid #1f4e78 !important;
-    height: 300px !important;
+    border: 2.5px solid #1f4e78 !important;
+    min-height: 180px !important;
     padding: 10px !important;
     position: relative !important;
   }
@@ -1491,11 +1565,14 @@ table.brief-table td:nth-child(10) {
   .print-bottom-row {
     display: flex !important;
     justify-content: space-between !important;
+    align-items: center !important;
     font-size: 7px !important;
+    margin-top: 4px !important;
+    color: #555 !important;
   }
 
   .print-logo-img {
-    max-height: 80px !important;
+    max-height: 70px !important;
   }
 }
 
