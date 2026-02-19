@@ -1306,38 +1306,19 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
    IMPRESSION "STYLE EXCEL" (A3 PORTRAIT)
    ========================================================================== */
 @media print {
-
   @page {
     size: A3 portrait;
-    margin: 5mm;
+    margin: 5mm; /* Marges ultra-réduites pour gagner de la place */
   }
 
   body {
     background: white !important;
-    font-size: 8px;
+    font-size: 8px; /* On descend à 8px pour garantir le "1 seule page" */
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     margin: 0;
     padding: 0;
   }
-
-  table.brief-table th,
-  table.brief-table td {
-    padding: 0px 2px !important;
-    height: 13px !important;
-    line-height: 13px !important;
-    font-size: 7px !important;
-  }
-
-  .editable-select,
-  .editable-input {
-    padding: 0px 2px !important;
-    height: 12px !important;
-    line-height: 12px !important;
-    font-size: 7px !important;
-  }
-
-}
 
   /* Cache tout l'inutile */
   .topbar, .sidebar, .support-tabs, .day-nav, .support-toolbar, .toast, .screen-only, .row--space {
@@ -1387,8 +1368,8 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   table.brief-table th, table.brief-table td {
     border: 0.5px solid #000 !important;
     padding: 0px 2px !important; /* Zéro padding vertical */
-    height: 15px !important; /* Hauteur de ligne réduite de 17px à 15px */
-    line-height: 15px !important;
+    height: 5px !important; /* Hauteur de ligne réduite de 17px à 15px */
+    line-height: 5px !important;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
