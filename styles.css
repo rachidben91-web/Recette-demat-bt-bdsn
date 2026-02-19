@@ -1434,7 +1434,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   table.brief-table td:nth-child(9),
   table.brief-table th:nth-child(10),
   table.brief-table td:nth-child(10) {
-    width: 32px !important;
+    width: 40px !important;
     text-align: center !important;
   }
 
@@ -1476,8 +1476,8 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 
   .print-obs-box {
     border: 1px solid #1f4e78 !important;
-    height: 65px !important;
-    padding: 6px !important;
+    height: 130px !important;
+    padding: 10px !important;
     position: relative !important;
   }
 
@@ -1497,7 +1497,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   }
 
   .print-logo-img {
-    max-height: 45px !important;
+    max-height: 60px !important;
   }
 }
 
