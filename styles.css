@@ -1306,19 +1306,38 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
    IMPRESSION "STYLE EXCEL" (A3 PORTRAIT)
    ========================================================================== */
 @media print {
+
   @page {
     size: A3 portrait;
-    margin: 5mm; /* Marges ultra-réduites pour gagner de la place */
+    margin: 5mm;
   }
 
   body {
     background: white !important;
-    font-size: 8px; /* On descend à 8px pour garantir le "1 seule page" */
+    font-size: 8px;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     margin: 0;
     padding: 0;
   }
+
+  table.brief-table th,
+  table.brief-table td {
+    padding: 0px 2px !important;
+    height: 13px !important;
+    line-height: 13px !important;
+    font-size: 7px !important;
+  }
+
+  .editable-select,
+  .editable-input {
+    padding: 0px 2px !important;
+    height: 12px !important;
+    line-height: 12px !important;
+    font-size: 7px !important;
+  }
+
+}
 
   /* Cache tout l'inutile */
   .topbar, .sidebar, .support-tabs, .day-nav, .support-toolbar, .toast, .screen-only, .row--space {
