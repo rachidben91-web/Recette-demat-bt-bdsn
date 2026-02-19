@@ -1303,103 +1303,175 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 .row-absent .cell-name { color: #e11d48; }
 
 /* ==========================================================================
-   IMPRESSION "STYLE EXCEL" (A3 PORTRAIT)
+   IMPRESSION "STYLE EXCEL" (A3 PORTRAIT) — VERSION STABLE COMPACTE
    ========================================================================== */
+
 @media print {
+
+  /* FORMAT PAGE */
   @page {
     size: A3 portrait;
-    margin: 5mm; /* Marges ultra-réduites pour gagner de la place */
+    margin: 4mm;
   }
 
   body {
     background: white !important;
-    font-size: 8px; /* On descend à 8px pour garantir le "1 seule page" */
+    font-size: 8px !important;
+    margin: 0 !important;
+    padding: 0 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-    margin: 0;
-    padding: 0;
   }
 
-  /* Cache tout l'inutile */
-  .topbar, .sidebar, .support-tabs, .day-nav, .support-toolbar, .toast, .screen-only, .row--space {
+  /* Masquer éléments inutiles */
+  .topbar,
+  .sidebar,
+  .support-tabs,
+  .day-nav,
+  .support-toolbar,
+  .toast,
+  .screen-only,
+  .row--space {
     display: none !important;
   }
 
-  /* LE CADRE GLOBAL (Cadre bleu pro) */
+  /* Cadre principal */
   #tabBrief {
     display: block !important;
-    border: 1.5px solid #1f4e78 !important; 
-    padding: 5px;
-    height: auto !important;
+    border: 1.5px solid #1f4e78 !important;
+    padding: 5px !important;
+    height: auto !important; /* surtout pas 98vh */
     background: white !important;
     box-sizing: border-box;
   }
 
-  /* EN-TÊTE COMPACT */
+  /* ============================= */
+  /* EN-TÊTE */
+  /* ============================= */
+
   .print-header {
     display: flex !important;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1.5px solid #1f4e78;
-    margin-bottom: 5px;
-    padding-bottom: 4px;
+    margin-bottom: 4px;
+    padding-bottom: 3px;
   }
 
   .print-title-box {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 900;
     color: #1f4e78;
   }
 
-  .print-date-section { text-align: right; }
-  .print-label { font-weight: bold; font-size: 9px; }
-  .print-value { font-weight: 800; color: #1f4e78; font-size: 12px; }
-
-  /* TABLEAU : LA CLÉ DU PASSAGE SUR 1 PAGE */
-  .brief-table-container { border: none !important; box-shadow: none !important; margin: 0 !important; }
-  
-  table.brief-table {
-    width: 100% !important;
-    border: 0.5px solid #000 !important; /* Bordures plus fines */
-    border-collapse: collapse !important;
-    table-layout: fixed; /* Force le respect des largeurs de colonnes */
+  .print-date-section {
+    text-align: right;
   }
 
-  table.brief-table th, table.brief-table td {
-  border: 0.5px solid #000 !important;
-  padding: 0 2px !important;       /* très compact */
-  height: auto !important;         /* surtout pas fixe */
-  line-height: 1.05 !important;    /* compact mais ok */
-  font-size: 7px !important;       /* densité A3 */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+  .print-label {
+    font-weight: bold;
+    font-size: 8px;
+  }
 
-  /* LARGEURS DE COLONNES FIXES (Pour éviter le décalage) */
-  .cell-name { width: 300px !important; text-align: left; padding-left: 4px !important; font-weight: 700; }
-  .cell-ptc { width: 60px !important; text-align: center; }
-  /* Les autres colonnes s'ajustent automatiquement */
+  .print-value {
+    font-weight: 800;
+    color: #1f4e78;
+    font-size: 10px;
+  }
 
-  /* PIED DE PAGE RÉDUIT */
+  /* ============================= */
+  /* TABLEAU PRINCIPAL */
+  /* ============================= */
+
+  .brief-table-container {
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+
+  table.brief-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border: 0.5px solid #000 !important;
+    table-layout: fixed;
+  }
+
+  table.brief-table th,
+  table.brief-table td {
+    border: 0.5px solid #000 !important;
+    padding: 0 2px !important;
+    font-size: 7px !important;
+    line-height: 12px !important;
+    vertical-align: middle !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Forcer une hauteur compacte réelle */
+  table.brief-table tr {
+    height: 14px !important;
+  }
+
+  /* ============================= */
+  /* SELECT / INPUT (le vrai problème) */
+  /* ============================= */
+
+  table.brief-table select,
+  table.brief-table input,
+  .editable-select,
+  .editable-input {
+    height: 12px !important;
+    min-height: 12px !important;
+    line-height: 12px !important;
+    padding: 0 2px !important;
+    margin: 0 !important;
+    font-size: 7px !important;
+    border-radius: 0 !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background: none !important;
+  }
+
+  /* ============================= */
+  /* LARGEURS COLONNES */
+  /* ============================= */
+
+  .cell-name {
+    width: 280px !important;
+    text-align: left;
+    padding-left: 4px !important;
+    font-weight: 700;
+  }
+
+  .cell-ptc {
+    width: 55px !important;
+    text-align: center;
+  }
+
+  /* ============================= */
+  /* PIED DE PAGE */
+  /* ============================= */
+
   .print-footer {
     display: flex !important;
     flex-direction: column;
-    margin-top: 5px;
+    margin-top: 4px;
   }
 
   .print-obs-box {
     border: 1px solid #1f4e78;
-    height: 50px; /* Réduit de 90px à 60px pour remonter le tout */
+    height: 45px;
     position: relative;
     padding: 5px;
   }
 
   .print-obs-label {
     position: absolute;
-    top: 2px; left: 5px;
+    top: 2px;
+    left: 5px;
     font-weight: 800;
-    font-size: 10px;
+    font-size: 9px;
     color: #1f4e78;
     text-decoration: underline;
   }
@@ -1412,8 +1484,13 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     font-size: 7px;
   }
 
-  .print-logo-img { max-height: 45px; }
+  .print-logo-img {
+    max-height: 40px;
+  }
 }
 
-/* Masquer le header/footer d'impression à l'écran normal */
-.print-header, .print-footer { display: none; }
+/* Masquer header/footer impression à l'écran */
+.print-header,
+.print-footer {
+  display: none;
+}
