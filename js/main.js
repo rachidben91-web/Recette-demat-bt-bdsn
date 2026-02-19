@@ -70,6 +70,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.SupportModule && window.SupportModule.init) {
         // Déjà géré par le timeout dans support.js, mais ça ne fait pas de mal
     }
+    if (window.loadZones) {
+        loadZones().catch(err => console.error(err));
+    }
 
     // ============================================================
     // 2. NAVIGATION (C'est ici que le bouton Support est géré)
