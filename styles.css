@@ -1330,7 +1330,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     display: block !important;
     border: 1.5px solid #1f4e78 !important; 
     padding: 5px;
-    height: 98vh; /* Force le cadre à rester dans la page */
+    height: auto !important;
     background: white !important;
     box-sizing: border-box;
   }
