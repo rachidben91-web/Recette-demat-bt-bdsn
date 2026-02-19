@@ -1368,8 +1368,8 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   table.brief-table th, table.brief-table td {
     border: 0.5px solid #000 !important;
     padding: 0px 2px !important; /* Zéro padding vertical */
-    height: 10px !important; /* Hauteur de ligne réduite de 17px à 15px */
-    line-height: 10px !important;
+    height: 5px !important; /* Hauteur de ligne réduite de 17px à 15px */
+    line-height: 5px !important;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1389,7 +1389,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 
   .print-obs-box {
     border: 1px solid #1f4e78;
-    height: 60px; /* Réduit de 90px à 60px pour remonter le tout */
+    height: 50px; /* Réduit de 90px à 60px pour remonter le tout */
     position: relative;
     padding: 5px;
   }
