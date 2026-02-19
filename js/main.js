@@ -1,5 +1,55 @@
 // js/main.js
 // Point d'entrée principal de l'application Demat-BT
+// === PATCH RAPIDE UI STATUS (Recette) ===
+
+window.setZonesStatus = function (msg) {
+  const el = document.getElementById("zonesStatus");
+  const badge = document.getElementById("zonesBadge");
+  if (el) el.textContent = msg;
+
+  if (badge) {
+    if (msg === "OK") {
+      badge.classList.add("status--ok");
+    } else {
+      badge.classList.remove("status--ok");
+    }
+  }
+};
+
+window.setPdfStatus = function (msg) {
+  const el = document.getElementById("pdfStatus");
+  const badge = document.getElementById("pdfBadge");
+  if (el) el.textContent = msg;
+
+  if (badge) {
+    if (msg && msg.includes(".pdf")) {
+      badge.classList.add("status--loaded");
+    } else {
+      badge.classList.remove("status--loaded");
+    }
+  }
+};
+
+window.setProgress = function (pct, msg) {
+  const bar = document.getElementById("progBar");
+  const m = document.getElementById("progMsg");
+  const badge = document.getElementById("progressBadge");
+
+  if (bar) bar.style.width = Math.max(0, Math.min(100, pct)) + "%";
+  if (m && msg != null) m.textContent = msg;
+
+  if (badge) {
+    if (msg && (msg.includes("Analyse") || msg.includes("Extraction"))) {
+      badge.classList.add("status--active");
+      badge.classList.remove("status--complete");
+    } else if (msg && (msg.includes("Terminé") || msg.includes("détectés"))) {
+      badge.classList.add("status--complete");
+      badge.classList.remove("status--active");
+    } else {
+      badge.classList.remove("status--active", "status--complete");
+    }
+  }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 DEMAT-BT v11.0 démarré.");
