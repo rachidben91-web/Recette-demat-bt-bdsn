@@ -1,11 +1,12 @@
-// js/main.js
-// Point d'entrée principal de l'application Demat-BT
+// js/main.js — DEMAT-BT v11.2.0 — 19/02/2026
+// Point d'entrée principal — CORRIGÉ : renderAll, Weather init, refreshAllViews
+// FIX: renderAll is not defined, weather is not defined, grid vide, techniciens vide
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 DEMAT-BT v11.0 démarré.");
+    console.log("🚀 DEMAT-BT v11.2.0 démarré.");
 
     // ============================================================
-    // PATCH RECETTE v11.1.2 — helpers UI attendus par pdf-extractor.js
+    // PATCH RECETTE v11.2.0 — helpers UI attendus par pdf-extractor.js
     // ============================================================
     window.setZonesStatus = function (msg) {
         const el = document.getElementById('zonesStatus');
@@ -47,24 +48,81 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialiser l'état global (State) si nécessaire
     if (window.State && window.State.init) window.State.init();
 
-    // Initialiser les modules UI (s'ils sont chargés)
-    if (window.Weather && window.Weather.init) window.Weather.init();
+    // ── FIX MÉTÉO ──────────────────────────────────────────────
+    // weather.js expose updateWeather() et updateDateTime() en global,
+    // PAS un objet window.Weather. On appelle directement ces fonctions.
+    if (typeof updateDateTime === 'function') {
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+        console.log("[MAIN] ✅ DateTime initialisé");
+    } else {
+        console.warn("[MAIN] ⚠️ updateDateTime non trouvé (weather.js chargé ?)");
+    }
+    if (typeof updateWeather === 'function') {
+        updateWeather();
+        setInterval(updateWeather, 10 * 60 * 1000); // Rafraîchir toutes les 10 min
+        console.log("[MAIN] ✅ Météo initialisée");
+    } else {
+        console.warn("[MAIN] ⚠️ updateWeather non trouvé (weather.js chargé ?)");
+    }
+
+    // Initialiser Sidebar si disponible
     if (window.Sidebar && window.Sidebar.init) window.Sidebar.init();
+
+    // Initialiser Cache si disponible
     if (window.Cache && window.Cache.init) window.Cache.init();
 
     // Charger zones.json automatiquement (si dispo)
-    if (window.loadZones) window.loadZones().catch(err => console.error(err));
+    if (window.loadZones) window.loadZones().catch(err => console.error("[MAIN] Erreur zones:", err));
 
-    // Support Module s'auto-initialise, mais on peut forcer un check
-    if (window.SupportModule && window.SupportModule.init) {
-        // Déjà géré par le timeout dans support.js, mais ça ne fait pas de mal
+    // Support Module s'auto-initialise via son DOMContentLoaded
+
+    // ============================================================
+    // 2. FONCTIONS DE RENDU GLOBAL
+    // ============================================================
+
+    /**
+     * refreshAllViews() — Rafraîchit toutes les vues (Grid, Timeline, Brief, Sidebar)
+     * C'est la fonction centrale appelée après chaque changement de données.
+     */
+    function refreshAllViews() {
+        console.log("[MAIN] refreshAllViews() — rendu de toutes les vues");
+
+        // 1. Filtrer les BT selon les filtres actifs
+        const filtered = (typeof filterBTs === 'function') ? filterBTs() : (state.bts || []);
+
+        // 2. Sidebar : KPIs + chips type + liste techniciens
+        if (typeof renderKpis === 'function') renderKpis(filtered);
+        if (typeof buildTypeChips === 'function') buildTypeChips();
+        if (typeof renderTechList === 'function') renderTechList();
+
+        // 3. Grille de vignettes
+        const gridEl = document.getElementById('btGrid');
+        if (gridEl && typeof renderGrid === 'function') {
+            renderGrid(filtered, gridEl);
+        }
+
+        // 4. Timeline
+        const timelineEl = document.getElementById('btTimeline');
+        if (timelineEl && typeof renderTimeline === 'function') {
+            renderTimeline(filtered, timelineEl);
+        }
+
+        // 5. Brief
+        if (typeof renderBrief === 'function') {
+            renderBrief(filtered);
+        }
     }
 
+    // ── FIX CRITIQUE : renderAll alias global ──────────────────
+    // pdf-extractor.js et sidebar.js appellent renderAll() — on crée l'alias
+    window.renderAll = refreshAllViews;
+    window.refreshAllViews = refreshAllViews;
+
     // ============================================================
-    // 2. NAVIGATION (C'est ici que le bouton Support est géré)
+    // 3. NAVIGATION (Référent / Brief / Support)
     // ============================================================
 
-    // Fonction Globale pour changer de vue (accessible depuis le HTML)
     window.switchView = function(viewName) {
         console.log("Navigation vers :", viewName);
 
@@ -74,11 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
             el.classList.remove('view--active');
         });
 
-        // B. Désactiver tous les boutons de navigation (Haut et Gauche)
+        // B. Désactiver tous les boutons de navigation
         document.querySelectorAll('.seg__btn').forEach(btn => btn.classList.remove('seg__btn--active'));
-        
-        // Note : Le bouton de la sidebar n'a pas la classe seg__btn, on le gère à part si besoin
-        // ou on le laisse tel quel (il est stylisé différemment).
 
         // C. Afficher la vue demandée
         let targetId = '';
@@ -101,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Mode Flip (Samsung) uniquement pour le brief
             document.body.classList.toggle('flip', viewName === 'brief');
             
-            // Rafraîchir les grilles si nécessaire
+            // Rafraîchir les grilles
             refreshAllViews();
         } else {
             // Pour le Support Journée
@@ -131,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const timelineEl = document.getElementById('btTimeline');
 
             if (gridEl && timelineEl) {
-                if(layout === 'grid') {
+                if (layout === 'grid') {
                     gridEl.style.display = 'grid';
                     timelineEl.style.display = 'none';
                 } else {
@@ -143,17 +198,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ============================================================
-    // 3. FONCTIONS GLOBALES (Recherche, Filtres, PDF)
+    // 4. FONCTIONS GLOBALES (Recherche, Filtres, PDF)
     // ============================================================
 
     // Barre de Recherche
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
-            if (window.State) {
-                window.State.setFilter('search', e.target.value);
-                refreshAllViews();
-            }
+            state.filters.q = e.target.value;
+            refreshAllViews();
         });
     }
 
@@ -161,10 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const techSelect = document.getElementById('techSelect');
     if (techSelect) {
         techSelect.addEventListener('change', (e) => {
-            if (window.State) {
-                window.State.setFilter('tech', e.target.value);
-                refreshAllViews();
-            }
+            state.filters.techId = e.target.value || "";
+            refreshAllViews();
         });
     }
 
@@ -199,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnClearCache = document.getElementById('btnClearCache');
     if (btnClearCache) {
         btnClearCache.addEventListener('click', () => {
-            if(confirm("Attention : Cela effacera toutes les données importées (PDF, Zones). Continuer ?")) {
+            if (confirm("Attention : Cela effacera toutes les données importées (PDF, Zones). Continuer ?")) {
                 localStorage.clear();
                 location.reload();
             }
@@ -219,17 +270,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // 4. BOUCLE DE RAFRAÎCHISSEMENT (The Loop)
+    // 5. RESTAURATION DU CACHE AU DÉMARRAGE
     // ============================================================
-    
-    function refreshAllViews() {
-        // Met à jour les vues existantes (Référent, Brief)
-        if (window.Grid && window.Grid.render) window.Grid.render();
-        if (window.Timeline && window.Timeline.render) window.Timeline.render();
-        if (window.Brief && window.Brief.render) window.Brief.render();
-        if (window.Sidebar && window.Sidebar.updateStats) window.Sidebar.updateStats();
+
+    // Si le cache contient des BT, on les affiche immédiatement
+    if (typeof loadFromCache === 'function') {
+        loadFromCache().then(restored => {
+            if (restored) {
+                console.log("[MAIN] ✅ Cache restauré, lancement du rendu");
+                refreshAllViews();
+            }
+        }).catch(err => console.warn("[MAIN] Cache non restauré:", err));
     }
 
     // Lancer la vue par défaut au démarrage
     switchView('referent');
+
+    console.log("[MAIN] ✅ Initialisation terminée");
 });
