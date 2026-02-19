@@ -1401,7 +1401,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     border: 0.5px solid #000 !important;
     padding: 0 2px !important;
     font-size: 7px !important;
-    line-height: 14px !important;
+    line-height: 16px !important;
     vertical-align: middle !important;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1410,7 +1410,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 
   /* Forcer une hauteur compacte réelle */
   table.brief-table tr {
-    height: 16px !important;
+    height: 18px !important;
   }
 
   /* ============================= */
