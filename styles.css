@@ -1386,64 +1386,62 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     display: none !important;
   }
 
-  /* ========= AJUSTEMENT COLONNES ========= */
+  /* ========= COLONNES ÉQUILIBRÉES ========= */
 
-  /* # */
-  table.brief-table th:nth-child(1),
-  table.brief-table td:nth-child(1) {
-    width: 22px !important;
-    text-align: center !important;
-  }
+/* # */
+table.brief-table th:nth-child(1),
+table.brief-table td:nth-child(1) {
+  width: 22px !important;
+}
 
-  /* Agent */
-  table.brief-table th:nth-child(2),
-  table.brief-table td:nth-child(2) {
-    width: 260px !important;
-    font-weight: 800 !important;
-    font-size: 9px !important;
-    letter-spacing: 0.2px !important;
-  }
+/* Agent */
+table.brief-table th:nth-child(2),
+table.brief-table td:nth-child(2) {
+  width: 280px !important;
+  font-weight: 800 !important;
+  font-size: 9px !important;
+}
 
-  /* PTC */
-  table.brief-table th:nth-child(3),
-  table.brief-table td:nth-child(3) {
-    width: 65px !important;
-    text-align: center !important;
-  }
+/* PTC */
+table.brief-table th:nth-child(3),
+table.brief-table td:nth-child(3) {
+  width: 70px !important;
+  text-align: center !important;
+}
 
-  /* Activité */
-  table.brief-table th:nth-child(5),
-  table.brief-table td:nth-child(5) {
-    width: 110px !important;
-  }
+/* Activité */
+table.brief-table th:nth-child(4),
+table.brief-table td:nth-child(4) {
+  width: 150px !important;
+}
 
-  /* Observations (dominante) */
-  table.brief-table th:nth-child(6),
-  table.brief-table td:nth-child(6) {
-    width: auto !important;
-    white-space: normal !important;
-    line-height: 13px !important;
-  }
+/* Observations (dominante mais contrôlée) */
+table.brief-table th:nth-child(5),
+table.brief-table td:nth-child(5) {
+  width: 300px !important;
+  white-space: normal !important;
+  line-height: 13px !important;
+}
 
-  /* Brief & Débrief compressés */
-  table.brief-table th:nth-child(7),
-  table.brief-table td:nth-child(7),
-  table.brief-table th:nth-child(8),
-  table.brief-table td:nth-child(8),
-  table.brief-table th:nth-child(9),
-  table.brief-table td:nth-child(9),
-  table.brief-table th:nth-child(10),
-  table.brief-table td:nth-child(10) {
-    width: 40px !important;
-    text-align: center !important;
-  }
+/* Brief & Débrief */
+table.brief-table th:nth-child(6),
+table.brief-table td:nth-child(6),
+table.brief-table th:nth-child(7),
+table.brief-table td:nth-child(7),
+table.brief-table th:nth-child(8),
+table.brief-table td:nth-child(8),
+table.brief-table th:nth-child(9),
+table.brief-table td:nth-child(9) {
+  width: 40px !important;
+  text-align: center !important;
+}
 
-  /* NTP */
-  table.brief-table th:nth-child(11),
-  table.brief-table td:nth-child(11) {
-    width: 40px !important;
-    text-align: center !important;
-  }
+/* NTP */
+table.brief-table th:nth-child(10),
+table.brief-table td:nth-child(10) {
+  width: 45px !important;
+  text-align: center !important;
+}
 
   /* ========= SUPPRESSION FLECHES SELECT ========= */
 
