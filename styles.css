@@ -1303,7 +1303,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 .row-absent .cell-name { color: #e11d48; }
 
 /* ==========================================================================
-   IMPRESSION "STYLE EXCEL" (A3 PORTRAIT) — PRO / TABLE FULL / OBS BAS / NO ARROWS
+   IMPRESSION A3 OFFICIELLE — VERSION PRO
    ========================================================================== */
 @media print {
 
@@ -1317,33 +1317,28 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     print-color-adjust: exact;
   }
 
-  /* Masquer le reste du site */
-  .topbar, .sidebar, .support-tabs, .day-nav, .support-toolbar, .toast, .screen-only, .row--space {
+  /* Masquer interface */
+  .topbar, .sidebar, .support-tabs, .day-nav,
+  .support-toolbar, .toast, .screen-only, .row--space {
     display: none !important;
   }
 
-  /* =========================
-     CONTENEUR A3 (header / table / footer)
-     ========================= */
+  /* CONTENEUR GLOBAL */
   #tabBrief {
     display: flex !important;
     flex-direction: column !important;
-    height: auto !important;
-    min-height: 100% !important;
     border: 1.5px solid #1f4e78 !important;
-    padding: 5px !important;
+    padding: 6px !important;
     box-sizing: border-box !important;
-    background: #fff !important;
   }
 
-  /* HEADER (titre + date + semaine) */
+  /* HEADER */
   .print-header {
     display: flex !important;
     justify-content: space-between !important;
-    align-items: flex-start !important;
     border-bottom: 1.5px solid #1f4e78 !important;
-    padding-bottom: 4px !important;
-    margin-bottom: 4px !important;
+    padding-bottom: 5px !important;
+    margin-bottom: 5px !important;
   }
 
   .print-title-box {
@@ -1352,19 +1347,13 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     color: #1f4e78 !important;
   }
 
-  .print-date-section { text-align: right !important; }
-  .print-label { font-weight: 700 !important; font-size: 9px !important; }
-  .print-value { font-weight: 900 !important; font-size: 11px !important; color: #1f4e78 !important; }
+  .print-label { font-size: 9px !important; font-weight: 700 !important; }
+  .print-value { font-size: 11px !important; font-weight: 900 !important; }
 
-  /* =========================
-     ZONE TABLE : prend toute la place dispo
-     ========================= */
+  /* TABLE */
   .brief-table-container {
-    flex: 1 1 auto !important;
+    flex: 1 !important;
     margin: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-    overflow: hidden !important;
   }
 
   table.brief-table {
@@ -1374,58 +1363,67 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     border: 0.5px solid #000 !important;
   }
 
-  /* Base cellules */
+  table.brief-table tr { height: 17px !important; }
+
   table.brief-table th,
   table.brief-table td {
     border: 0.5px solid #000 !important;
     padding: 0 2px !important;
-    font-size: 7.6px !important;      /* + lisible */
-    line-height: 14px !important;     /* hauteur visuelle */
+    font-size: 8px !important;         /* 👈 Agent lisible */
+    line-height: 15px !important;
     vertical-align: middle !important;
-    white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+    white-space: nowrap !important;
   }
 
-  /* Hauteur de ligne (ajuste ici si tu veux +/−) */
-  table.brief-table tr { height: 16px !important; }
+  /* ========= SUPPRESSION CP (4) ET GREVE (12) ========= */
 
-  /* =========================
-     COLONNES : Brief/Débrief plus étroits, Observations plus large
-     On cible par index de colonne (nth-child) selon l’ordre de ton tableau :
-     1:# 2:Agent 3:PTC-PTD 4:CP 5:Activité 6:Observations 7:Brief A 8:Brief D
-     9:Débrief A 10:Débrief D 11:NTP 12:Grève
-     ========================= */
+  table.brief-table th:nth-child(4),
+  table.brief-table td:nth-child(4),
+  table.brief-table th:nth-child(12),
+  table.brief-table td:nth-child(12) {
+    display: none !important;
+  }
+
+  /* ========= AJUSTEMENT COLONNES ========= */
 
   /* # */
   table.brief-table th:nth-child(1),
-  table.brief-table td:nth-child(1) { width: 22px !important; text-align: center !important; }
+  table.brief-table td:nth-child(1) {
+    width: 22px !important;
+    text-align: center !important;
+  }
 
-  /* Agent (plus lisible) */
+  /* Agent */
   table.brief-table th:nth-child(2),
-  table.brief-table td:nth-child(2) { width: 230px !important; font-weight: 800 !important; }
+  table.brief-table td:nth-child(2) {
+    width: 260px !important;
+    font-weight: 800 !important;
+  }
 
-  /* PTC-PTD */
+  /* PTC */
   table.brief-table th:nth-child(3),
-  table.brief-table td:nth-child(3) { width: 70px !important; text-align: center !important; }
-
-  /* CP */
-  table.brief-table th:nth-child(4),
-  table.brief-table td:nth-child(4) { width: 32px !important; text-align: center !important; }
+  table.brief-table td:nth-child(3) {
+    width: 65px !important;
+    text-align: center !important;
+  }
 
   /* Activité */
   table.brief-table th:nth-child(5),
-  table.brief-table td:nth-child(5) { width: 95px !important; }
-
-  /* Observations = on lui rend la place + retour ligne autorisé */
-  table.brief-table th:nth-child(6),
-  table.brief-table td:nth-child(6) {
-    width: auto !important;              /* prend le reste */
-    white-space: normal !important;      /* autorise retour ligne */
-    line-height: 12px !important;        /* compact quand ça wrap */
+  table.brief-table td:nth-child(5) {
+    width: 110px !important;
   }
 
-  /* Brief A / D (moins large) */
+  /* Observations (dominante) */
+  table.brief-table th:nth-child(6),
+  table.brief-table td:nth-child(6) {
+    width: auto !important;
+    white-space: normal !important;
+    line-height: 13px !important;
+  }
+
+  /* Brief & Débrief compressés */
   table.brief-table th:nth-child(7),
   table.brief-table td:nth-child(7),
   table.brief-table th:nth-child(8),
@@ -1434,81 +1432,74 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   table.brief-table td:nth-child(9),
   table.brief-table th:nth-child(10),
   table.brief-table td:nth-child(10) {
-    width: 34px !important;
+    width: 32px !important;
     text-align: center !important;
   }
 
-  /* NTP / Grève */
+  /* NTP */
   table.brief-table th:nth-child(11),
-  table.brief-table td:nth-child(11),
-  table.brief-table th:nth-child(12),
-  table.brief-table td:nth-child(12) {
-    width: 38px !important;
+  table.brief-table td:nth-child(11) {
+    width: 40px !important;
     text-align: center !important;
   }
 
-  /* =========================
-     SELECTS / INPUTS : compact + suppression des flèches en impression
-     ========================= */
+  /* ========= SUPPRESSION FLECHES SELECT ========= */
+
   table.brief-table select,
-  table.brief-table input,
-  .editable-select,
-  .editable-input {
+  table.brief-table input {
     height: 14px !important;
     min-height: 14px !important;
     line-height: 14px !important;
+    font-size: 8px !important;
     padding: 0 2px !important;
     margin: 0 !important;
-    font-size: 7.6px !important;
     border-radius: 0 !important;
 
-    /* Supprime l’UI native (flèches) */
     appearance: none !important;
     -webkit-appearance: none !important;
     background: transparent !important;
     background-image: none !important;
   }
-  /* Ancien Edge/IE (si jamais) */
-  table.brief-table select::-ms-expand { display: none !important; }
 
-  /* =========================
-     FOOTER : Observation + logo en bas de page
-     ========================= */
+  table.brief-table select::-ms-expand {
+    display: none !important;
+  }
+
+  /* FOOTER */
   .print-footer {
     display: flex !important;
     flex-direction: column !important;
-    gap: 4px !important;
     margin-top: 6px !important;
   }
 
   .print-obs-box {
     border: 1px solid #1f4e78 !important;
-    height: 55px !important;
+    height: 65px !important;
     padding: 6px !important;
     position: relative !important;
-    box-sizing: border-box !important;
   }
 
   .print-obs-label {
     position: absolute !important;
-    top: 2px !important;
+    top: 3px !important;
     left: 6px !important;
     font-weight: 900 !important;
     font-size: 10px !important;
     color: #1f4e78 !important;
-    text-decoration: underline !important;
   }
 
   .print-bottom-row {
     display: flex !important;
     justify-content: space-between !important;
-    align-items: center !important;
     font-size: 7px !important;
   }
 
-  .print-logo-img { max-height: 42px !important; }
+  .print-logo-img {
+    max-height: 45px !important;
+  }
 }
 
-/* Masquer header/footer impression à l'écran */
+/* cacher header/footer en mode écran */
 .print-header, .print-footer { display: none; }
+
 
