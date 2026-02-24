@@ -1,15 +1,13 @@
 // js/supabase.js
 // DEMAT-BT — Connexion Supabase
 
-// ⚠️ Remplace par TES valeurs
-const SUPABASE_URL = "https://tqeemwcnvafqvjnnrdpb.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_Z5fcSQtKwqktx_dbsO9nPQ_03HMnden";
+const SUPABASE_URL = "https://TON_PROJECT_ID.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_TA_CLE_ICI";
 
-// Création du client
-window.supabaseClient = supabase.createClient(
+// En v2 CDN, il faut passer par window.supabase
+window.supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
 
-// Petit log de confirmation
 console.log("✅ Supabase client initialisé");
