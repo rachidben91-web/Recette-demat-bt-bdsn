@@ -26,6 +26,7 @@
         <input id="pdfFile" type="file" accept="application/pdf" hidden />
       </label>
 
+      
       <button id="btnExtract" class="btn">
         <span>⚡</span> Extraire
       </button>
@@ -38,6 +39,11 @@
       <button id="btnFullscreen" class="btn btn--secondary" title="Plein écran">
         <span>⛶</span> Plein écran
       </button>
+      <!-- Auth Supabase -->
+<div class="auth" style="display:flex; gap:8px; align-items:center; margin-left:12px;">
+  <button id="btnAuth" class="btn btn--secondary" type="button">Se connecter</button>
+  <span id="authStatus" class="hint" style="margin:0;">Non connecté</span>
+</div>
     </div>
   </header>
 
