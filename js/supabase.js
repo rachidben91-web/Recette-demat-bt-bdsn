@@ -72,5 +72,110 @@ console.log("✅ Supabase client initialisé");
     } else {
       alert("✅ Lien envoyé par email. Clique dessus pour te connecter.");
     }
-  });
+    // -------------------------
+// Support Journée (VLG) — TEST DB
+// -------------------------
+(function setupSupportStore() {
+  const SITE = "VLG";
+
+  function todayISO() {
+    // Format YYYY-MM-DD (UTC) — ok pour une clé "jour"
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  async function requireUser() {
+    const { data, error } = await window.supabaseClient.auth.getUser();
+    if (error) throw error;
+    if (!data?.user) throw new Error("Utilisateur non connecté");
+    return data.user;
+  }
+
+  async function loadSupport({ jour = todayISO(), site = SITE } = {}) {
+    // 1) Tenter de lire
+    const { data, error } = await window.supabaseClient
+      .from("support_journee")
+      .select("id, jour, site, payload, locked, updated_at, updated_by")
+      .eq("jour", jour)
+      .eq("site", site)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    // 2) Si pas trouvé -> créer une ligne vide
+    if (!data) {
+      const user = await requireUser();
+      const emptyPayload = { _meta: { createdAt: new Date().toISOString(), createdBy: user.email } };
+
+      const { data: created, error: err2 } = await window.supabaseClient
+        .from("support_journee")
+        .upsert(
+          {
+            jour,
+            site,
+            payload: emptyPayload,
+            updated_at: new Date().toISOString(),
+            updated_by: user.id,
+          },
+          { onConflict: "jour,site" }
+        )
+        .select("id, jour, site, payload, locked, updated_at, updated_by")
+        .single();
+
+      if (err2) throw err2;
+      console.log("🆕 Support créé en base :", created);
+      return created;
+    }
+
+    console.log("📥 Support chargé depuis la base :", data);
+    return data;
+  }
+
+  async function saveSupport(payload, { jour = todayISO(), site = SITE } = {}) {
+    const user = await requireUser();
+
+    const { data, error } = await window.supabaseClient
+      .from("support_journee")
+      .upsert(
+        {
+          jour,
+          site,
+          payload,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id,
+        },
+        { onConflict: "jour,site" }
+      )
+      .select("id, jour, site, payload, locked, updated_at, updated_by")
+      .single();
+
+    if (error) throw error;
+
+    console.log("💾 Support sauvegardé en base :", data);
+    return data;
+  }
+
+  // Expose des helpers pour test console
+  window.SupportStore = {
+    SITE,
+    todayISO,
+    loadToday: () => loadSupport({ jour: todayISO(), site: SITE }),
+    saveToday: (payload) => saveSupport(payload, { jour: todayISO(), site: SITE }),
+
+    // Petit test prêt à l’emploi
+    saveTest: () =>
+      saveSupport(
+        {
+          test: true,
+          message: "Hello Supabase ✅",
+          at: new Date().toISOString(),
+        },
+        { jour: todayISO(), site: SITE }
+      ),
+  };
+
+  console.log("✅ SupportStore prêt (console: SupportStore.loadToday(), SupportStore.saveTest())");
 })();
