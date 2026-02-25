@@ -91,7 +91,7 @@ console.log("✅ Supabase client initialisé");
   function todayISO() {
     // FIX v1.1 : utilise l'heure locale pour éviter décalage UTC en fin de journée
     // fr-CA retourne le format YYYY-MM-DD nativement
-    return new Date().toLocaleDateString("fr-CA");
+    return new Date().toLocaleDateString("fr-FR");
   }
 
   async function requireUser() {
