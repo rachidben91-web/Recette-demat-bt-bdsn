@@ -170,12 +170,12 @@ console.log("✅ Supabase client initialisé");
       saveSupport(
         {
           test: true,
-          message: "Hello Supabase ✅",
+          message: "Hello Supabase ",
           at: new Date().toISOString(),
         },
         { jour: todayISO(), site: SITE }
       ),
   };
 
-  console.log("✅ SupportStore prêt (console: SupportStore.loadToday(), SupportStore.saveTest())");
+  console.log(" SupportStore prêt (console: SupportStore.loadToday(), SupportStore.saveTest())");
 })();
