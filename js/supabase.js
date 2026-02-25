@@ -71,7 +71,7 @@ console.log("✅ Supabase client initialisé");
       alert("Erreur connexion : " + error.message);
     } else {
       alert("✅ Lien envoyé par email. Clique dessus pour te connecter.");
-    }
+    })();
     // -------------------------
 // Support Journée (VLG) — TEST DB
 // -------------------------
