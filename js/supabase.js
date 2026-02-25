@@ -1,8 +1,14 @@
 // js/supabase.js
 // DEMAT-BT — Connexion Supabase
+// v1.1 — 2026-02-25
+// FIX: accolade manquante → setupSupportStore était imbriquée dans setupAuthUI
+// FIX: todayISO() utilise maintenant l'heure locale (fr-CA) pour éviter décalage UTC
+// FIX: saveSupport vérifie le verrou (locked) avant toute écriture
 
 const SUPABASE_URL = "https://tqeemwcnvafqvjnnrdpb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Z5fcSQtKwqktx_dbsO9nPQ_03HMnden";
+// ⚠️ ATTENTION : vérifier que cette clé est bien la clé "anon/public" JWT (commence par eyJ...)
+// dans Dashboard Supabase → Settings → API → Project API keys
 
 // En v2 CDN, il faut passer par window.supabase
 window.supabaseClient = window.supabase.createClient(
@@ -72,19 +78,20 @@ console.log("✅ Supabase client initialisé");
     } else {
       alert("✅ Lien envoyé par email. Clique dessus pour te connecter.");
     }
-    // -------------------------
+  }); // ← FIX v1.1 : fermeture du addEventListener (manquait)
+
+})(); // ← FIX v1.1 : fermeture de setupAuthUI (manquait)
+
+// -------------------------
 // Support Journée (VLG) — TEST DB
 // -------------------------
 (function setupSupportStore() {
   const SITE = "VLG";
 
   function todayISO() {
-    // Format YYYY-MM-DD (UTC) — ok pour une clé "jour"
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
+    // FIX v1.1 : utilise l'heure locale pour éviter décalage UTC en fin de journée
+    // fr-CA retourne le format YYYY-MM-DD nativement
+    return new Date().toLocaleDateString("fr-CA");
   }
 
   async function requireUser() {
@@ -137,6 +144,22 @@ console.log("✅ Supabase client initialisé");
   async function saveSupport(payload, { jour = todayISO(), site = SITE } = {}) {
     const user = await requireUser();
 
+    // FIX v1.1 : vérifier le verrou avant d'écrire
+    const { data: current, error: errCheck } = await window.supabaseClient
+      .from("support_journee")
+      .select("locked")
+      .eq("jour", jour)
+      .eq("site", site)
+      .maybeSingle();
+
+    if (errCheck) throw errCheck;
+
+    if (current?.locked) {
+      const msg = `⛔ La fiche du ${jour} est verrouillée. Sauvegarde annulée.`;
+      console.warn(msg);
+      throw new Error(msg);
+    }
+
     const { data, error } = await window.supabaseClient
       .from("support_journee")
       .upsert(
@@ -165,17 +188,17 @@ console.log("✅ Supabase client initialisé");
     loadToday: () => loadSupport({ jour: todayISO(), site: SITE }),
     saveToday: (payload) => saveSupport(payload, { jour: todayISO(), site: SITE }),
 
-    // Petit test prêt à l’emploi
+    // Petit test prêt à l'emploi
     saveTest: () =>
       saveSupport(
         {
           test: true,
-          message: "Hello Supabase ",
+          message: "Hello Supabase ✅",
           at: new Date().toISOString(),
         },
         { jour: todayISO(), site: SITE }
       ),
   };
 
-  console.log(" SupportStore prêt (console: SupportStore.loadToday(), SupportStore.saveTest())");
+  console.log("✅ SupportStore prêt (console: SupportStore.loadToday(), SupportStore.saveTest())");
 })();
