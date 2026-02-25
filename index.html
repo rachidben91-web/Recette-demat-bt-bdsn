@@ -21,16 +21,6 @@
     </div>
 
     <div class="topbar__actions">
-      <label class="btn btn--secondary">
-        <span>📁</span> Importer PDF du jour
-        <input id="pdfFile" type="file" accept="application/pdf" hidden />
-      </label>
-
-      
-      <button id="btnExtract" class="btn">
-        <span>⚡</span> Extraire
-      </button>
-
       <div class="seg">
         <button class="seg__btn seg__btn--active" onclick="switchView('referent')" data-view="referent">Référent</button>
         <button class="seg__btn" onclick="switchView('brief')" data-view="brief">Brief (Flip)</button>
@@ -49,6 +39,16 @@
 
   <main class="layout">
     <aside class="sidebar card">
+      <div class="sidebar-import-block">
+        <label class="btn btn--secondary" style="width:100%; justify-content:center;">
+          <span>📁</span> Importer PDF du jour
+          <input id="pdfFile" type="file" accept="application/pdf" hidden />
+        </label>
+        <button id="btnExtract" class="btn" style="width:100%; justify-content:center;">
+          <span>⚡</span> Extraire
+        </button>
+      </div>
+      <div class="divider" style="margin: 8px 0;"></div>
       <div class="card__title">Contrôle</div>
 
       <div class="field">
