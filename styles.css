@@ -1418,52 +1418,37 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     text-overflow: ellipsis !important;
   }
 
-  /* LARGEURS COLONNES — VERSION ÉQUILIBRÉE 100% */
+  /* LARGEURS SYNCHRONISÉES TH + TD */
 
-table.brief-table tbody td:nth-child(1) { width: 3% !important; text-align: center !important; }
+table.brief-table th:nth-child(1),
+table.brief-table td:nth-child(1) { width: 3% !important; }
 
-table.brief-table tbody td:nth-child(2) { 
-  width: 22% !important; 
-  font-weight: 900 !important; 
-  font-size: 10.5px !important; 
-}
+table.brief-table th:nth-child(2),
+table.brief-table td:nth-child(2) { width: 22% !important; }
 
-table.brief-table tbody td:nth-child(3) { 
-  width: 6% !important; 
-  text-align: center !important; 
-  font-weight: 800 !important; 
-}
+table.brief-table th:nth-child(3),
+table.brief-table td:nth-child(3) { width: 6% !important; }
 
-table.brief-table tbody td:nth-child(4) { 
-  width: 11% !important; 
-  text-align: center !important; 
-}
+table.brief-table th:nth-child(4),
+table.brief-table td:nth-child(4) { width: 11% !important; }
 
-table.brief-table tbody td:nth-child(5) { 
-  width: 34% !important; 
-  text-align: left !important; 
-}
+table.brief-table th:nth-child(5),
+table.brief-table td:nth-child(5) { width: 34% !important; }
 
-table.brief-table thead tr:first-child th:nth-child(6),
-table.brief-table tbody td:nth-child(6),
-table.brief-table thead tr:first-child th:nth-child(7),
-table.brief-table tbody td:nth-child(7),
-table.brief-table thead tr:first-child th:nth-child(8),
-table.brief-table tbody td:nth-child(8),
-table.brief-table thead tr:first-child th:nth-child(9),
-table.brief-table tbody td:nth-child(9) {
+table.brief-table th:nth-child(6),
+table.brief-table td:nth-child(6),
+table.brief-table th:nth-child(7),
+table.brief-table td:nth-child(7),
+table.brief-table th:nth-child(8),
+table.brief-table td:nth-child(8),
+table.brief-table th:nth-child(9),
+table.brief-table td:nth-child(9) {
   width: 4% !important;
-  text-align: center !important;
-  font-weight: 800 !important;
-  font-size: 8.5px !important;
 }
 
-table.brief-table thead tr:first-child th:nth-child(10),
-table.brief-table tbody td:nth-child(10) {
+table.brief-table th:nth-child(10),
+table.brief-table td:nth-child(10) {
   width: 6% !important;
-  text-align: center !important;
-  font-weight: 800 !important;
-  font-size: 8.5px !important;
 }
   /* CENTRAGE RÉEL DU CONTENU */
 
