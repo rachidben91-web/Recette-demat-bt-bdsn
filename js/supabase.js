@@ -1,10 +1,12 @@
 // js/supabase.js
 // DEMAT-BT — Connexion Supabase
-// v1.2 — 2026-02-27
+// v1.3 — 2026-02-27
 // FIX: accolade manquante → setupSupportStore était imbriquée dans setupAuthUI
 // FIX: todayISO() utilise maintenant l'heure locale (fr-CA) pour éviter décalage UTC
 // FIX: saveSupport vérifie le verrou (locked) avant toute écriture
 // NEW v1.2: SupportStore expose loadSupport/saveSupport génériques (multi-jour)
+// NEW v1.3: Remplacement des prompt() par un vrai modal HTML avec autocomplete
+//           → Chrome/Edge propose automatiquement l'email et le mot de passe enregistrés
 
 const SUPABASE_URL = "https://tqeemwcnvafqvjnnrdpb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Z5fcSQtKwqktx_dbsO9nPQ_03HMnden";
@@ -18,6 +20,59 @@ window.supabaseClient = window.supabase.createClient(
 );
 
 console.log("✅ Supabase client initialisé");
+
+// -------------------------
+// Modal de connexion (remplace prompt() pour activer autocomplete Chrome/Edge)
+// -------------------------
+function openLoginModal(supabaseClient) {
+  const modal = document.getElementById("loginModal");
+  const form  = document.getElementById("loginForm");
+  const errEl = document.getElementById("loginError");
+  const submitBtn = document.getElementById("loginSubmit");
+  const cancelBtn = document.getElementById("loginCancel");
+  if (!modal || !form) return;
+
+  // Afficher le modal (flex pour centrage)
+  errEl.style.display = "none";
+  errEl.textContent = "";
+  modal.style.display = "flex";
+
+  // Focus automatique sur l'email (déclenche la suggestion du gestionnaire de mots de passe)
+  setTimeout(() => document.getElementById("loginEmail")?.focus(), 80);
+
+  // Fermer
+  function closeModal() {
+    modal.style.display = "none";
+    form.reset();
+  }
+
+  cancelBtn.onclick = closeModal;
+  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+  // Soumettre
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const email    = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Connexion…";
+    errEl.style.display = "none";
+
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Se connecter";
+
+    if (error) {
+      errEl.textContent = "❌ " + error.message;
+      errEl.style.display = "block";
+    } else {
+      closeModal();
+      // Le gestionnaire onAuthStateChange mettra à jour le bouton automatiquement
+    }
+  };
+}
 
 // -------------------------
 // Auth UI (Magic link email)
@@ -62,24 +117,8 @@ console.log("✅ Supabase client initialisé");
       return;
     }
 
-    // Connexion (email + mot de passe)
-const email = prompt("Email :");
-if (!email) return;
-
-const password = prompt("Mot de passe :");
-if (!password) return;
-
-const { error } = await client.auth.signInWithPassword({
-  email,
-  password
-});
-
-if (error) {
-  console.error("Auth error:", error);
-  alert("Erreur connexion : " + error.message);
-} else {
-  alert("✅ Connecté !");
-}
+    // Connexion → ouvrir le modal HTML (supporte autocomplete Chrome/Edge)
+    openLoginModal(client);
   }); // ← FIX v1.1 : fermeture du addEventListener (manquait)
 
 })(); // ← FIX v1.1 : fermeture de setupAuthUI (manquait)
