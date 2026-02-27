@@ -1448,7 +1448,15 @@ table.brief-table tbody td:nth-child(10) {
   font-weight: 700 !important;
   font-size: 8px !important;
 }
-
+  
+/* Étape 1 — centrer Activité + Observations (print) */
+table.brief-table thead tr:first-child th:nth-child(4),
+table.brief-table tbody td:nth-child(4),
+table.brief-table thead tr:first-child th:nth-child(5),
+table.brief-table tbody td:nth-child(5) {
+  text-align: center !important;
+}
+  
   /* ── SELECTS / INPUTS ────────────────────────────── */
   table.brief-table select,
   table.brief-table input {
