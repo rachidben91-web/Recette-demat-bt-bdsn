@@ -1422,9 +1422,9 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 
   table.brief-table tbody td:nth-child(1) { width: 3% !important; text-align: center !important; }
   table.brief-table tbody td:nth-child(2) { width: 20% !important; font-weight: 900 !important; font-size: 10.5px !important; }
-  table.brief-table tbody td:nth-child(3) { width: 8% !important; text-align: center !important; font-weight: 800 !important; }
-  table.brief-table tbody td:nth-child(4) { width: 14% !important; text-align: center !important; }
-  table.brief-table tbody td:nth-child(5) { width: 30% !important; text-align: center !important; }
+  table.brief-table tbody td:nth-child(3) { width: 6.5% !important; text-align: center !important; font-weight: 800 !important; }
+  table.brief-table tbody td:nth-child(4) { width: 12% !important; text-align: center !important; }
+  table.brief-table tbody td:nth-child(5) { width: 32% !important; text-align: center !important; }
   table.brief-table thead tr:first-child th:nth-child(6),
   table.brief-table tbody td:nth-child(6),
   table.brief-table thead tr:first-child th:nth-child(7),
@@ -1433,7 +1433,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   table.brief-table tbody td:nth-child(8),
   table.brief-table thead tr:first-child th:nth-child(9),
   table.brief-table tbody td:nth-child(9) {
-    width: 4% !important;
+    width: 4.5% !important;
     text-align: center !important;
     font-weight: 800 !important;
     font-size: 8.5px !important;
