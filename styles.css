@@ -1388,7 +1388,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 table.brief-table thead tr:nth-child(2) th{
   background:#c9daf1 !important;
   color:#1f4e78 !important;
-  font-size:6.2px !important;      /* ↓ pour éviter la coupe */
+  font-size:6.5px !important;      /* ↓ pour éviter la coupe */
   font-weight:900 !important;
   padding:1px 0 !important;        /* ↓ padding */
   line-height:1.05 !important;     /* ↓ hauteur de ligne */
@@ -1396,12 +1396,13 @@ table.brief-table thead tr:nth-child(2) th{
   text-align:center !important;
   white-space:nowrap !important;
   overflow:visible !important;
+  letter-spacing:0.2px !important;
 }
 
   /* TBODY */
   table.brief-table tbody tr{ height:20px !important; }
   table.brief-table td{
-    border:0.4px solid #aab4c0 !important;
+    border:0.35px solid #aab4c0 !important;
     padding:1px 3px !important;
     font-size:9px !important;
     line-height:15px !important;
