@@ -1303,23 +1303,40 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 .row-absent .cell-name { color: #e11d48; }
 
 /* ==========================================================================
-   IMPRESSION A3 — v5.0 — 19/02/2026
-   FIX: Couleurs activité (PAS de background:transparent sur select)
-        Agent élargi (210px), Brief/Débrief compactés (22px)
-        CP/Grève en width:0 (preserve colspan), thead tout blanc
+/* ==========================================================================
+   IMPRESSION A3 — v6.0 — 27/02/2026
+   REFACTORISÉ : un seul bloc @media print, sans conflit de colonnes.
+   Colonnes en % (thead + tbody synchronisés), Activité réduite, Obs élargie.
+   Colonnes CP (td4) et Grève (td12) masquées (width:0, font-size:0).
+   body zoom appliqué uniquement à l'impression.
    ========================================================================== */
+
+/* Cacher header/footer en mode écran */
+.print-header, .print-footer { display: none; }
+
 @media print {
 
-  @page { size: A3 portrait; margin: 4mm; }
+  @page { size: A3 portrait; margin: 5mm; }
 
+  /* ── Reset global ────────────────────────────────── */
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-  body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
-
-  .topbar, .sidebar, .support-tabs, .day-nav,
-  .support-toolbar, .toast, .screen-only, .row--space {
-    display: none !important;
+  html, body {
+    background: #fff !important; margin: 0 !important; padding: 0 !important;
+    height: auto !important;
+    /* Zoom global print — ajuste entre 0.88 et 0.96 si le tableau déborde */
+    zoom: 0.91;
   }
+
+  /* ── Masquer tout sauf le module Support ────────── */
+  .topbar, .sidebar, .support-tabs, .day-nav,
+  .support-toolbar, .toast, .screen-only, .row--space,
+  #tabParams, #tabHistory,
+  button, .seg, .kpi-group { display: none !important; }
+
+  /* ── Conteneur principal ────────────────────────── */
+  .layout { display: block !important; padding: 0 !important; }
+  .content { min-height: auto !important; }
 
   #tabBrief {
     display: flex !important; flex-direction: column !important;
@@ -1332,112 +1349,147 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     display: flex !important; justify-content: space-between !important;
     align-items: flex-end !important;
     border-bottom: 2px solid #1f4e78 !important;
-    padding-bottom: 6px !important; margin-bottom: 4px !important;
+    padding-bottom: 5px !important; margin-bottom: 4px !important;
   }
-  .print-title-box { font-size: 17px !important; font-weight: 900 !important; color: #1f4e78 !important; }
-  .print-label { font-size: 9px !important; font-weight: 700 !important; color: #333 !important; }
-  .print-value { font-size: 12px !important; font-weight: 900 !important; color: #1f4e78 !important; }
+  .print-title-box { font-size: 16px !important; font-weight: 900 !important; color: #1f4e78 !important; }
+  .print-label    { font-size: 9px !important; font-weight: 700 !important; color: #333 !important; }
+  .print-value    { font-size: 12px !important; font-weight: 900 !important; color: #1f4e78 !important; }
 
-  /* ── TABLE ──────────────────────────────────────── */
-  .brief-table-container { flex: 1 !important; margin: 0 !important; overflow: visible !important; }
+  /* ── TABLEAU ─────────────────────────────────────── */
+  .brief-table-container {
+    flex: 1 !important; margin: 0 !important; overflow: visible !important;
+    box-shadow: none !important; border: none !important;
+  }
 
   table.brief-table {
     width: 100% !important; border-collapse: collapse !important;
-    table-layout: fixed !important; border: 0.5px solid #333 !important;
+    table-layout: fixed !important; border: 0.5px solid #888 !important;
+    page-break-inside: avoid !important;
   }
 
-  /* THEAD — blanc sur bleu, TOUS les th */
-  table.brief-table thead th {
-    background: #1f4e78 !important; color: #ffffff !important;
-    font-size: 9px !important; font-weight: 700 !important;
+  /* THEAD ligne 1 — bleu foncé */
+  table.brief-table thead tr:first-child th {
+    background: #1f4e78 !important; color: #fff !important;
+    font-size: 8.5px !important; font-weight: 800 !important;
     padding: 4px 2px !important; border: 0.5px solid #16384f !important;
     text-align: center !important; vertical-align: middle !important;
     white-space: nowrap !important;
   }
+
+  /* THEAD ligne 2 — bleu clair (sous-colonnes Brief / Débrief) */
   table.brief-table thead tr:nth-child(2) th {
     background: #c9daf1 !important; color: #1f4e78 !important;
-    font-size: 8px !important; font-weight: 800 !important; padding: 1px 2px !important;
+    font-size: 7.5px !important; font-weight: 800 !important;
+    padding: 2px !important; border: 0.5px solid #a8c4e8 !important;
+    text-align: center !important;
   }
 
-  /* TBODY */
-  table.brief-table tbody tr { height: 19px !important; }
-  table.brief-table tbody tr:nth-child(even) { background: #f5f8fc !important; }
-  table.brief-table tbody tr:nth-child(odd) { background: #fff !important; }
+  /* TBODY — lignes alternées */
+  table.brief-table tbody tr { height: 18px !important; }
+  table.brief-table tbody tr:nth-child(even) { background: #f4f7fc !important; }
+  table.brief-table tbody tr:nth-child(odd)  { background: #ffffff !important; }
+
+  /* TD générique */
   table.brief-table td {
-    border: 0.5px solid #aaa !important; padding: 1px 3px !important;
-    font-size: 9px !important; line-height: 16px !important;
+    border: 0.5px solid #bbb !important; padding: 1px 3px !important;
+    font-size: 9px !important; line-height: 15px !important;
     vertical-align: middle !important; overflow: hidden !important;
     text-overflow: ellipsis !important; white-space: nowrap !important;
   }
 
-  /* ── CP (col 4) et GRÈVE (col 12) → width:0 ──── */
-  /* thead row 1 : CP=th4, Grève=th10 */
+  /* ── MASQUAGE colonnes CP (td4) et Grève (td12) ── */
   table.brief-table thead tr:first-child th:nth-child(4),
   table.brief-table thead tr:first-child th:nth-child(10) {
     width: 0 !important; max-width: 0 !important; padding: 0 !important;
-    border-left: none !important; border-right: none !important;
-    font-size: 0 !important; overflow: hidden !important;
+    border: none !important; font-size: 0 !important; overflow: hidden !important;
   }
-  /* tbody : CP=td4, Grève=td12 */
   table.brief-table tbody td:nth-child(4),
   table.brief-table tbody td:nth-child(12) {
     width: 0 !important; max-width: 0 !important; padding: 0 !important;
-    border-left: none !important; border-right: none !important;
-    font-size: 0 !important; overflow: hidden !important;
+    border: none !important; font-size: 0 !important; overflow: hidden !important;
   }
 
-  /* ── LARGEURS COLONNES ─────────────────────────── */
+  /* ══════════════════════════════════════════════════
+     LARGEURS COLONNES — en % — A3 portrait
+     10 colonnes visibles (CP et Grève masquées)
+     Col 1  — #           :  2.5%
+     Col 2  — Agent        : 17%
+     Col 3  — PTC-PTD      :  7%
+     Col 4  — CP           :  0%  (masqué)
+     Col 5  — Activité     : 13%  ← réduit
+     Col 6  — Observations : 30%  ← élargi
+     Col 7  — Brief A      :  5%
+     Col 8  — Brief D      :  5%
+     Col 9  — Débrief A    :  5%
+     Col 10 — Débrief D    :  5%
+     Col 11 — NTP          :  5.5%
+     Col 12 — Grève        :  0%  (masqué)
+     ══════════════════════════════════════════════════ */
 
-  /* # (col 1) */
+  table.brief-table thead tr:first-child th:nth-child(1),
   table.brief-table tbody td:nth-child(1) {
-    width: 18px !important; text-align: center !important;
-    font-size: 7px !important; color: #666 !important;
+    width: 2.5% !important; text-align: center !important;
+    font-size: 7.5px !important; color: #666 !important;
   }
 
-  /* Agent (col 2) — ÉLARGI pour noms longs */
+  table.brief-table thead tr:first-child th:nth-child(2),
   table.brief-table tbody td:nth-child(2) {
-    width: 220px !important; font-weight: 800 !important;
-    font-size: 10px !important; color: #111 !important; padding-left: 4px !important;
+    width: 17% !important; font-weight: 800 !important;
+    font-size: 9.5px !important; color: #111 !important; padding-left: 5px !important;
   }
 
-  /* PTC-PTD (col 3) */
+  table.brief-table thead tr:first-child th:nth-child(3),
   table.brief-table tbody td:nth-child(3) {
-    width: 42px !important; text-align: center !important;
+    width: 7% !important; text-align: center !important;
     font-size: 8px !important; font-weight: 800 !important; color: #1a3a5c !important;
   }
 
-  /* Activité (col 5) — couleur préservée via TD parent */
+  /* Col 5 — Activité */
+  table.brief-table thead tr:first-child th:nth-child(5),
   table.brief-table tbody td:nth-child(5) {
-    width: 300px !important; font-size: 8px !important; font-weight: 700 !important;
+    width: 13% !important; font-size: 8.5px !important; font-weight: 700 !important;
   }
 
-  /* Observations (col 6) — tout l'espace restant */
+  /* Col 6 — Observations */
+  table.brief-table thead tr:first-child th:nth-child(6),
   table.brief-table tbody td:nth-child(6) {
-    width: 110px !important; white-space: normal !important;
+    width: 30% !important; white-space: normal !important;
     word-wrap: break-word !important; overflow-wrap: break-word !important;
-    line-height: 12px !important; font-size: 8px !important; padding: 2px 4px !important;
+    line-height: 13px !important; font-size: 8.5px !important;
+    padding: 2px 5px !important; vertical-align: top !important;
   }
 
-  /* Brief A,D (cols 7-8) — COMPACTÉ */
-  table.brief-table tbody td:nth-child(7),
+  table.brief-table thead tr:first-child th:nth-child(7),
+  table.brief-table tbody td:nth-child(7) {
+    width: 5% !important; text-align: center !important;
+    font-size: 8px !important; font-weight: 700 !important;
+  }
+
+  table.brief-table thead tr:first-child th:nth-child(8),
   table.brief-table tbody td:nth-child(8) {
-    width: 22px !important; text-align: center !important;
-    font-size: 7px !important; font-weight: 700 !important;
+    width: 5% !important; text-align: center !important;
+    font-size: 8px !important; font-weight: 700 !important;
   }
 
-  /* Débrief A,D (cols 9-10) — COMPACTÉ */
-  table.brief-table tbody td:nth-child(9),
+  table.brief-table thead tr:first-child th:nth-child(9),
+  table.brief-table tbody td:nth-child(9) {
+    width: 5% !important; text-align: center !important;
+    font-size: 8px !important; font-weight: 700 !important;
+  }
+
+  table.brief-table thead tr:first-child th:nth-child(10),
   table.brief-table tbody td:nth-child(10) {
-    width: 22px !important; text-align: center !important;
-    font-size: 7px !important; font-weight: 700 !important;
+    width: 5% !important; text-align: center !important;
+    font-size: 8px !important; font-weight: 700 !important;
   }
 
-  /* NTP (col 11) */
+  table.brief-table thead tr:first-child th:nth-child(11),
   table.brief-table tbody td:nth-child(11) {
-    width: 22px !important; text-align: center !important; font-size: 7px !important;
+    width: 5.5% !important; text-align: center !important;
+    font-size: 8px !important; font-weight: 700 !important;
   }
 
-  /* ── SELECTS / INPUTS — PAS de background:transparent ── */
+  /* ── SELECTS / INPUTS ────────────────────────────── */
   table.brief-table select,
   table.brief-table input {
     height: 15px !important; min-height: 15px !important;
@@ -1446,21 +1498,21 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     margin: 0 !important; border: none !important; border-radius: 0 !important;
     appearance: none !important; -webkit-appearance: none !important;
     background-image: none !important;
-    /* ⚠️ PAS de background:transparent ici ! Sinon ça écrase les couleurs inline */
   }
   table.brief-table select::-ms-expand { display: none !important; }
 
-  /* OUI/NON */
   table.brief-table .val-oui { background-color: #d4edda !important; color: #155724 !important; font-weight: 800 !important; }
   table.brief-table .val-non { background-color: #f8d7da !important; color: #721c24 !important; font-weight: 800 !important; }
 
-  .row-absent { background-color: #fff0f0 !important; }
-  .row-absent td:nth-child(2) { color: #c0392b !important; }
+  .row-absent                { background-color: #fff0f0 !important; }
+  .row-absent td:nth-child(2){ color: #c0392b !important; }
 
-  /* ── FOOTER ─────────────────────────────────────── */
-  .print-footer { display: flex !important; flex-direction: column !important; margin-top: 4px !important; }
+  /* ── FOOTER ──────────────────────────────────────── */
+  .print-footer {
+    display: flex !important; flex-direction: column !important; margin-top: 5px !important;
+  }
   .print-obs-box {
-    border: 2.5px solid #1f4e78 !important; min-height: 180px !important;
+    border: 2px solid #1f4e78 !important; min-height: 160px !important;
     padding: 10px !important; position: relative !important;
   }
   .print-obs-label {
@@ -1472,54 +1524,6 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     align-items: center !important; font-size: 7px !important;
     margin-top: 4px !important; color: #555 !important;
   }
-  .print-logo-img { max-height: 70px !important; }
+  .print-logo-img { max-height: 65px !important; }
+
 }
-
-/* cacher header/footer en mode écran */
-.print-header, .print-footer { display: none; }
-
-/* ===== A3 PORTRAIT + 1 PAGE ===== */
-@page { size: A3 portrait; margin: 4mm; }
-
-@media print {
-  /* 1) Forcer le tableau à rentrer (Chrome/Edge) */
-  html, body { height: auto !important; }
-  .page, .sheet, .print-root { page-break-after: avoid !important; page-break-inside: avoid !important; }
-
-  /* Si ça déborde encore : léger “zoom out” print (très efficace) */
-  body { zoom: 0.92; } /* ajuste 0.90 ↔ 0.96 si besoin */
-
-  /* 2) Table bien “fixe” */
-  table.brief-table { table-layout: fixed !important; width: 100% !important; }
-
-  /* 3) Largeurs COHÉRENTES THEAD + TBODY (sinon colspan te trahit) */
-  /* # */
-  table.brief-table thead th:nth-child(1),
-  table.brief-table tbody td:nth-child(1) { width: 3% !important; }
-
-  /* Agent */
-  table.brief-table thead th:nth-child(2),
-  table.brief-table tbody td:nth-child(2) { width: 18% !important; }
-
-  /* PTC-PTD */
-  table.brief-table thead th:nth-child(3),
-  table.brief-table tbody td:nth-child(3) { width: 8% !important; }
-
-  /* Activité (on RÉDUIT pour libérer Observations) */
-  table.brief-table thead th:nth-child(4),
-  table.brief-table tbody td:nth-child(4) { width: 12% !important; }
-
-  /* ✅ Observations (on AUGMENTE) */
-  table.brief-table thead th:nth-child(5),
-  table.brief-table tbody td:nth-child(5) { width: 28% !important; }
-
-  /* Brief (colspan=2 => largeur globale) */
-  table.brief-table thead th:nth-child(6) { width: 12% !important; } /* 2 sous-colonnes */
-  /* Débrief (colspan=2 => largeur globale) */
-  table.brief-table thead th:nth-child(7) { width: 12% !important; }
-
-  /* NTP */
-  table.brief-table thead th:nth-child(8),
-  table.brief-table tbody td:last-child { width: 7% !important; }
-}
-
