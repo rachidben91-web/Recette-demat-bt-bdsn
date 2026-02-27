@@ -205,7 +205,7 @@ window.SupportModule = (function() {
         // Utilisation de la liste globale window.TECHNICIANS (chargée par technicians.js)
         const techs = window.TECHNICIANS || [];
 
-        let cptPres = 0, cptAbs = 0, cptGreve = 0;
+        let cptPres = 0, cptAbs = 0, cptGrv = 0;
 
         techs.forEach((tech, idx) => {
             const rowData = savedDay[tech.name] || {};
@@ -223,7 +223,7 @@ window.SupportModule = (function() {
             if(ABSENCE_CODES.has(actName)) cptAbs++;
             else if (actName && actName !== '') cptPres++;
             
-            if(rowData.greve === 'OUI') cptGreve++;
+            if(rowData.Grv === 'OUI') cptGrv++;
 
             // Création de la ligne
             const tr = document.createElement('tr');
@@ -232,9 +232,6 @@ window.SupportModule = (function() {
             if(ABSENCE_CODES.has(actName)) {
                 tr.classList.add('row-absent');
             }
-
-            // Colonne CP : Affiche le nom de l'absence si c'en est une (ex: RTT), sinon vide
-            const cpVal = ABSENCE_CODES.has(actName) ? actName : '';
 
             // Formatage Qualification (PTC/PTD)
             let qualif = '';
@@ -246,8 +243,7 @@ window.SupportModule = (function() {
                 <td style="text-align:center; color:#94a3b8; font-size:10px;">${idx + 1}</td>
                 <td class="cell-name">${tech.name}</td>
                 <td class="cell-ptc">${qualif}</td>
-                <td style="text-align:center; font-weight:bold; color:#ef4444; font-size:11px;">${cpVal}</td>
-                
+                                
                 <td>
                     <select class="editable-select input-act" data-tech="${tech.name}" 
                             style="background-color:${bgColor}; color:${fgColor}; border-color:${borderColor};">
@@ -267,8 +263,7 @@ window.SupportModule = (function() {
                 <td>${renderSelect('debriefA', rowData.debriefA, tech.name)}</td>
                 <td>${renderSelect('debriefD', rowData.debriefD, tech.name)}</td>
                 
-                <td>${renderYesNo('ntp', rowData.ntp, tech.name)}</td>
-                <td>${renderYesNo('greve', rowData.greve, tech.name)}</td>
+                <td>${renderYesNo('Grv', rowData.Grv, tech.name)}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -280,11 +275,11 @@ window.SupportModule = (function() {
         // Mise à jour des compteurs (KPI)
         const elPres = document.getElementById('kpiPres');
         const elAbs = document.getElementById('kpiAbs');
-        const elGreve = document.getElementById('kpiGreve');
+        const elGRV = document.getElementById('kpiGrv');
         
         if(elPres) elPres.textContent = cptPres;
         if(elAbs) elAbs.textContent = cptAbs;
-        if(elGreve) elGreve.textContent = cptGreve;
+        if(elGrv) elGrv.textContent = cptGrv;
     }
 
     // Helper pour générer les selects OUI/NON avec couleur
@@ -373,8 +368,7 @@ window.SupportModule = (function() {
                 briefD: getFieldVal('briefD'),
                 debriefA: getFieldVal('debriefA'),
                 debriefD: getFieldVal('debriefD'),
-                ntp: getFieldVal('ntp'),
-                greve: getFieldVal('greve')
+                Grv: getFieldVal('Grv')
             };
         });
 
@@ -414,7 +408,7 @@ window.SupportModule = (function() {
             
             const d = data[agentName];
             // On ne garde en historique que si il y a une activité ou une obs
-            if(d.act || d.obs || d.briefA === 'OUI' || d.greve === 'OUI') {
+            if(d.act || d.obs || d.briefA === 'OUI' || d.Grv === 'OUI') {
                 history.push({
                     date: dateKey,
                     agent: agentName,
@@ -591,7 +585,7 @@ window.SupportModule = (function() {
         const dayData = JSON.parse(localStorage.getItem('demat_day_' + key) || '{}');
         
         // En-tête CSV
-        let csv = "Date;Agent;Activite;Observation;Brief_Agence;Brief_Dist;Debrief_Agence;Debrief_Dist;NTP;Greve\n";
+        let csv = "Date;Agent;Activite;Observation;Brief_Agence;Brief_Dist;Debrief_Agence;Debrief_Dist;Grv\n";
         
         Object.keys(dayData).forEach(agentName => {
             if(agentName === '__GLOBAL_OBS') return;
@@ -600,7 +594,7 @@ window.SupportModule = (function() {
             // On nettoie les observations pour éviter les erreurs CSV (points virgules, sauts de ligne)
             const obsClean = (d.obs || '').replace(/;/g, ',').replace(/\n/g, ' ');
             
-            csv += `${key};${agentName};${d.act};${obsClean};${d.briefA};${d.briefD};${d.debriefA};${d.debriefD};${d.ntp};${d.greve}\n`;
+            csv += `${key};${agentName};${d.act};${obsClean};${d.briefA};${d.briefD};${d.debriefA};${d.debriefD};${d.Grv}\n`;
         });
         
         // Création du lien de téléchargement
