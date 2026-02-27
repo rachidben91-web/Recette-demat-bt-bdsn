@@ -1425,23 +1425,28 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   table.brief-table tbody td:nth-child(3) { width: 8% !important; text-align: center !important; font-weight: 800 !important; }
   table.brief-table tbody td:nth-child(4) { width: 14% !important; text-align: center !important; }
   table.brief-table tbody td:nth-child(5) { width: 30% !important; text-align: center !important; }
+  table.brief-table thead tr:first-child th:nth-child(6),
   table.brief-table tbody td:nth-child(6),
+  table.brief-table thead tr:first-child th:nth-child(7),
   table.brief-table tbody td:nth-child(7),
+  table.brief-table thead tr:first-child th:nth-child(8),
   table.brief-table tbody td:nth-child(8),
+  table.brief-table thead tr:first-child th:nth-child(9),
   table.brief-table tbody td:nth-child(9) {
-  width: 5% !important;            /* ← réduit */
-  text-align: center !important;
-  font-weight: 800 !important;
-  font-size: 8.5px !important;
-}
+    width: 4% !important;
+    text-align: center !important;
+    font-weight: 800 !important;
+    font-size: 8.5px !important;
+  }
 
-/* Grv un poil plus confortable */
-table.brief-table tbody td:nth-child(10) {
-  width: 6% !important;
-  text-align: center !important;
-  font-weight: 800 !important;
-  font-size: 8.5px !important;
-}
+  /* Grv un poil plus large */
+  table.brief-table thead tr:first-child th:nth-child(10),
+  table.brief-table tbody td:nth-child(10) {
+    width: 6% !important;
+    text-align: center !important;
+    font-weight: 800 !important;
+    font-size: 8.5px !important;
+  }
 
   /* CENTRAGE RÉEL DU CONTENU */
 
