@@ -1421,7 +1421,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   /* LARGEURS SYNCHRONISÉES TH + TD */
 
 table.brief-table th:nth-child(1),
-table.brief-table td:nth-child(1) { width: 3% !important; }
+table.brief-table td:nth-child(1) { width: 2.5% !important; }
 
 table.brief-table th:nth-child(2),
 table.brief-table td:nth-child(2) { width: 22% !important; }
@@ -1430,10 +1430,10 @@ table.brief-table th:nth-child(3),
 table.brief-table td:nth-child(3) { width: 6% !important; }
 
 table.brief-table th:nth-child(4),
-table.brief-table td:nth-child(4) { width: 11.5% !important; }
+table.brief-table td:nth-child(4) { width: 12% !important; }
 
 table.brief-table th:nth-child(5),
-table.brief-table td:nth-child(5) { width: 34% !important; }
+table.brief-table td:nth-child(5) { width: 31.5% !important; }
 
 table.brief-table th:nth-child(6),
 table.brief-table td:nth-child(6),
@@ -1443,12 +1443,12 @@ table.brief-table th:nth-child(8),
 table.brief-table td:nth-child(8),
 table.brief-table th:nth-child(9),
 table.brief-table td:nth-child(9) {
-  width: 4.5% !important;
+  width: 5.5% !important;
 }
 
 table.brief-table th:nth-child(10),
 table.brief-table td:nth-child(10) {
-  width: 5.5% !important;
+  width: 4% !important;
 }
   /* CENTRAGE RÉEL DU CONTENU */
 
