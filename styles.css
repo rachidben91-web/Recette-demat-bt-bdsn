@@ -1515,5 +1515,7 @@ table.brief-table tbody td:nth-child(10) {
   .print-logo-img {
     max-height: 90px !important;
   }
-
+  /* ⬇️ AJOUTE ICI ⬇️ */
+  table.brief-table { 
+    outline: 4px solid red !important; 
 }
