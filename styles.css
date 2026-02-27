@@ -1471,10 +1471,20 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     border: 2px solid #1f4e78 !important;
     min-height: 160px !important;
     padding: 10px !important;
+    position: relative !important; 
   }
-
+  
+  .print-obs-label {
+    position: absolute !important;
+    top: 3px !important;
+    left: 6px !important;
+    font-weight: 900 !important;
+    font-size: 10px !important;
+    color: #1f4e78 !important;
+}
+  
   .print-logo-img {
-    max-height: 65px !important;
+    max-height: 90px !important;
   }
 
 }
