@@ -1,12 +1,14 @@
 // js/supabase.js
 // DEMAT-BT — Connexion Supabase
-// v1.3 — 2026-02-27
+// v1.4 — 2026-02-27
 // FIX: accolade manquante → setupSupportStore était imbriquée dans setupAuthUI
-// FIX: todayISO() utilise maintenant l'heure locale (fr-CA) pour éviter décalage UTC
+// FIX: todayISO() utilise l'heure locale (fr-CA) pour éviter décalage UTC
 // FIX: saveSupport vérifie le verrou (locked) avant toute écriture
 // NEW v1.2: SupportStore expose loadSupport/saveSupport génériques (multi-jour)
-// NEW v1.3: Remplacement des prompt() par un vrai modal HTML avec autocomplete
-//           → Chrome/Edge propose automatiquement l'email et le mot de passe enregistrés
+// NEW v1.3: Modal HTML avec autocomplete (Chrome/Edge gère les mots de passe)
+// NEW v1.4: Forçage changement de mot de passe à la 1ère connexion
+//           → flag user_metadata.must_change_password détecté après signIn
+//           → modal dédié bloque l'interface jusqu'au changement effectif
 
 const SUPABASE_URL = "https://tqeemwcnvafqvjnnrdpb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Z5fcSQtKwqktx_dbsO9nPQ_03HMnden";
@@ -22,25 +24,21 @@ window.supabaseClient = window.supabase.createClient(
 console.log("✅ Supabase client initialisé");
 
 // -------------------------
-// Modal de connexion (remplace prompt() pour activer autocomplete Chrome/Edge)
+// Modal de connexion (autocomplete Chrome/Edge)
 // -------------------------
 function openLoginModal(supabaseClient) {
-  const modal = document.getElementById("loginModal");
-  const form  = document.getElementById("loginForm");
-  const errEl = document.getElementById("loginError");
+  const modal     = document.getElementById("loginModal");
+  const form      = document.getElementById("loginForm");
+  const errEl     = document.getElementById("loginError");
   const submitBtn = document.getElementById("loginSubmit");
   const cancelBtn = document.getElementById("loginCancel");
   if (!modal || !form) return;
 
-  // Afficher le modal (flex pour centrage)
   errEl.style.display = "none";
-  errEl.textContent = "";
+  errEl.textContent   = "";
   modal.style.display = "flex";
-
-  // Focus automatique sur l'email (déclenche la suggestion du gestionnaire de mots de passe)
   setTimeout(() => document.getElementById("loginEmail")?.focus(), 80);
 
-  // Fermer
   function closeModal() {
     modal.style.display = "none";
     form.reset();
@@ -49,36 +47,136 @@ function openLoginModal(supabaseClient) {
   cancelBtn.onclick = closeModal;
   modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 
-  // Soumettre
   form.onsubmit = async (e) => {
     e.preventDefault();
     const email    = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value;
 
-    submitBtn.disabled = true;
+    submitBtn.disabled    = true;
     submitBtn.textContent = "Connexion…";
-    errEl.style.display = "none";
+    errEl.style.display   = "none";
 
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-    submitBtn.disabled = false;
+    submitBtn.disabled    = false;
     submitBtn.textContent = "Se connecter";
 
     if (error) {
-      errEl.textContent = "❌ " + error.message;
+      errEl.textContent   = "❌ " + error.message;
       errEl.style.display = "block";
-    } else {
-      closeModal();
-      // Le gestionnaire onAuthStateChange mettra à jour le bouton automatiquement
+      return;
+    }
+
+    closeModal();
+
+    // ── Vérifier si l'utilisateur doit changer son mot de passe ──
+    const meta = data?.user?.user_metadata || {};
+    if (meta.must_change_password === true) {
+      console.warn("🔑 Première connexion — forçage changement de mot de passe.");
+      openChangePasswordModal(supabaseClient);
     }
   };
 }
 
 // -------------------------
-// Auth UI (Magic link email)
+// Modal changement de mot de passe (première connexion)
+// -------------------------
+function openChangePasswordModal(supabaseClient) {
+  const modal     = document.getElementById("changePasswordModal");
+  const form      = document.getElementById("changePasswordForm");
+  const errEl     = document.getElementById("changePasswordError");
+  const submitBtn = document.getElementById("changePasswordSubmit");
+  const newPwEl   = document.getElementById("newPassword");
+  const confPwEl  = document.getElementById("confirmPassword");
+  const fillEl    = document.getElementById("pwStrengthFill");
+  const labelEl   = document.getElementById("pwStrengthLabel");
+  if (!modal || !form) return;
+
+  modal.style.display = "flex";
+  setTimeout(() => newPwEl?.focus(), 80);
+
+  // Indicateur de force du mot de passe
+  function passwordStrength(pw) {
+    let score = 0;
+    if (pw.length >= 8)           score++;
+    if (pw.length >= 12)          score++;
+    if (/[A-Z]/.test(pw))        score++;
+    if (/[0-9]/.test(pw))        score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    return score; // 0-5
+  }
+
+  newPwEl.addEventListener("input", () => {
+    const pw    = newPwEl.value;
+    const score = passwordStrength(pw);
+    const colors = ["#ef4444","#f97316","#eab308","#3b82f6","#10b981"];
+    const labels = ["Très faible","Faible","Moyen","Bon","Excellent"];
+    fillEl.style.width      = Math.min(100, score * 20) + "%";
+    fillEl.style.background = colors[Math.max(0, score - 1)] || "#e5e7eb";
+    labelEl.textContent     = pw.length ? labels[Math.max(0, score - 1)] : "";
+    labelEl.style.color     = colors[Math.max(0, score - 1)] || "#9ca3af";
+  });
+
+  // Non fermable — l'utilisateur DOIT changer son mot de passe
+  modal.onclick = (e) => e.stopPropagation();
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const newPw  = newPwEl.value;
+    const confPw = confPwEl.value;
+    errEl.style.display = "none";
+
+    if (newPw !== confPw) {
+      errEl.textContent   = "❌ Les mots de passe ne correspondent pas.";
+      errEl.style.display = "block";
+      return;
+    }
+    if (newPw.length < 8) {
+      errEl.textContent   = "❌ Le mot de passe doit contenir au moins 8 caractères.";
+      errEl.style.display = "block";
+      return;
+    }
+
+    submitBtn.disabled    = true;
+    submitBtn.textContent = "Enregistrement…";
+
+    // 1) Changer le mot de passe
+    const { error: pwError } = await supabaseClient.auth.updateUser({ password: newPw });
+    if (pwError) {
+      errEl.textContent   = "❌ " + pwError.message;
+      errEl.style.display = "block";
+      submitBtn.disabled    = false;
+      submitBtn.textContent = "✅ Enregistrer mon mot de passe";
+      return;
+    }
+
+    // 2) Retirer le flag must_change_password
+    await supabaseClient.auth.updateUser({ data: { must_change_password: false } });
+
+    // 3) Fermer et afficher toast
+    modal.style.display = "none";
+    form.reset();
+
+    const toast = document.createElement("div");
+    toast.textContent = "✅ Mot de passe mis à jour avec succès !";
+    Object.assign(toast.style, {
+      position:"fixed", bottom:"24px", right:"24px", zIndex:"99999",
+      background:"#10b981", color:"#fff", padding:"12px 20px",
+      borderRadius:"8px", fontWeight:"700", fontSize:".9rem",
+      boxShadow:"0 4px 16px rgba(0,0,0,.2)"
+    });
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity="0"; setTimeout(() => toast.remove(), 400); }, 3500);
+
+    console.log("✅ Mot de passe changé et flag must_change_password retiré.");
+  };
+}
+
+// -------------------------
+// Auth UI
 // -------------------------
 (function setupAuthUI() {
-  const btn = document.getElementById("btnAuth");
+  const btn    = document.getElementById("btnAuth");
   const status = document.getElementById("authStatus");
   const client = window.supabaseClient;
 
@@ -90,38 +188,40 @@ function openLoginModal(supabaseClient) {
   function setUI(user) {
     if (user?.email) {
       status.textContent = `Connecté : ${user.email}`;
-      btn.textContent = "Se déconnecter";
-      btn.dataset.state = "out";
+      btn.textContent    = "Se déconnecter";
+      btn.dataset.state  = "out";
     } else {
       status.textContent = "Non connecté";
-      btn.textContent = "Se connecter";
-      btn.dataset.state = "in";
+      btn.textContent    = "Se connecter";
+      btn.dataset.state  = "in";
     }
   }
 
-  // État initial
-  client.auth.getUser().then(({ data }) => setUI(data?.user)).catch(() => setUI(null));
+  // État initial — vérifier aussi le flag si session déjà active
+  client.auth.getUser().then(({ data }) => {
+    setUI(data?.user);
+    const meta = data?.user?.user_metadata || {};
+    if (meta.must_change_password === true) {
+      console.warn("🔑 Session active avec must_change_password — forçage.");
+      openChangePasswordModal(client);
+    }
+  }).catch(() => setUI(null));
 
-  // Suivre les changements de session
+  // Changements de session
   client.auth.onAuthStateChange((_event, session) => {
     setUI(session?.user || null);
   });
 
-  // Click bouton
+  // Bouton connexion / déconnexion
   btn.addEventListener("click", async () => {
-    const state = btn.dataset.state;
-
-    // Déconnexion
-    if (state === "out") {
+    if (btn.dataset.state === "out") {
       await client.auth.signOut();
       return;
     }
-
-    // Connexion → ouvrir le modal HTML (supporte autocomplete Chrome/Edge)
     openLoginModal(client);
-  }); // ← FIX v1.1 : fermeture du addEventListener (manquait)
+  });
 
-})(); // ← FIX v1.1 : fermeture de setupAuthUI (manquait)
+})();
 
 // -------------------------
 // Support Journée (VLG) — TEST DB
