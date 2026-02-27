@@ -1,9 +1,10 @@
 // js/supabase.js
 // DEMAT-BT — Connexion Supabase
-// v1.1 — 2026-02-25
+// v1.2 — 2026-02-27
 // FIX: accolade manquante → setupSupportStore était imbriquée dans setupAuthUI
 // FIX: todayISO() utilise maintenant l'heure locale (fr-CA) pour éviter décalage UTC
 // FIX: saveSupport vérifie le verrou (locked) avant toute écriture
+// NEW v1.2: SupportStore expose loadSupport/saveSupport génériques (multi-jour)
 
 const SUPABASE_URL = "https://tqeemwcnvafqvjnnrdpb.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_Z5fcSQtKwqktx_dbsO9nPQ_03HMnden";
@@ -188,6 +189,9 @@ if (error) {
     todayISO,
     loadToday: () => loadSupport({ jour: todayISO(), site: SITE }),
     saveToday: (payload) => saveSupport(payload, { jour: todayISO(), site: SITE }),
+    // FIX v1.2 : méthodes génériques pour navigation multi-jour (support.js)
+    loadSupport: ({ jour = todayISO(), site = SITE } = {}) => loadSupport({ jour, site }),
+    saveSupport: (payload, { jour = todayISO(), site = SITE } = {}) => saveSupport(payload, { jour, site }),
 
     // Petit test prêt à l'emploi
     saveTest: () =>
