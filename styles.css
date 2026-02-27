@@ -1443,12 +1443,12 @@ table.brief-table th:nth-child(8),
 table.brief-table td:nth-child(8),
 table.brief-table th:nth-child(9),
 table.brief-table td:nth-child(9) {
-  width: 4% !important;
+  width: 4.5% !important;
 }
 
 table.brief-table th:nth-child(10),
 table.brief-table td:nth-child(10) {
-  width: 6% !important;
+  width: 5.5% !important;
 }
   /* CENTRAGE RÉEL DU CONTENU */
 
