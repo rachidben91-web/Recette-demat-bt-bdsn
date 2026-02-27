@@ -1363,14 +1363,14 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 
   table.brief-table {
     width: 100% !important; border-collapse: collapse !important;
-    table-layout: fixed !important; border: 0.5px solid #888 !important;
+    table-layout: fixed !important; border: 1px solid #888 !important;
     page-break-inside: avoid !important;
   }
 
   /* THEAD ligne 1 — bleu foncé */
   table.brief-table thead tr:first-child th {
     background: #1f4e78 !important; color: #fff !important;
-    font-size: 8.5px !important; font-weight: 800 !important;
+    font-size: 10.5px !important; font-weight: 900 !important;
     padding: 4px 2px !important; border: 0.5px solid #16384f !important;
     text-align: center !important; vertical-align: middle !important;
     white-space: nowrap !important;
@@ -1379,20 +1379,20 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   /* THEAD ligne 2 — bleu clair (sous-colonnes Brief / Débrief) */
   table.brief-table thead tr:nth-child(2) th {
     background: #c9daf1 !important; color: #1f4e78 !important;
-    font-size: 7.5px !important; font-weight: 800 !important;
+    font-size: 10.5px !important; font-weight: 900 !important;
     padding: 2px !important; border: 0.5px solid #a8c4e8 !important;
     text-align: center !important;
   }
 
   /* TBODY — lignes alternées */
-  table.brief-table tbody tr { height: 18px !important; }
+  table.brief-table tbody tr { height: 19px !important; }
   table.brief-table tbody tr:nth-child(even) { background: #f4f7fc !important; }
   table.brief-table tbody tr:nth-child(odd)  { background: #ffffff !important; }
 
   /* TD générique */
   table.brief-table td {
     border: 0.5px solid #bbb !important; padding: 1px 3px !important;
-    font-size: 9px !important; line-height: 15px !important;
+    font-size: 10px !important; line-height: 15px !important;
     vertical-align: middle !important; overflow: hidden !important;
     text-overflow: ellipsis !important; white-space: nowrap !important;
   }
