@@ -1408,12 +1408,12 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 
   /* Activité (col 5) — couleur préservée via TD parent */
   table.brief-table tbody td:nth-child(5) {
-    width: 110px !important; font-size: 8px !important; font-weight: 700 !important;
+    width: 300px !important; font-size: 8px !important; font-weight: 700 !important;
   }
 
   /* Observations (col 6) — tout l'espace restant */
   table.brief-table tbody td:nth-child(6) {
-    width: 300px !important; white-space: normal !important;
+    width: 110px !important; white-space: normal !important;
     word-wrap: break-word !important; overflow-wrap: break-word !important;
     line-height: 12px !important; font-size: 8px !important; padding: 2px 4px !important;
   }
