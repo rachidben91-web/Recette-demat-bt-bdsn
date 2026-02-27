@@ -61,23 +61,24 @@ console.log("✅ Supabase client initialisé");
       return;
     }
 
-    // Connexion (magic link)
-    const email = prompt("Email pour connexion (lien magique) :");
-    if (!email) return;
+    // Connexion (email + mot de passe)
+const email = prompt("Email :");
+if (!email) return;
 
-    const { error } = await client.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: window.location.href
-      }
-    });
+const password = prompt("Mot de passe :");
+if (!password) return;
 
-    if (error) {
-      console.error("Auth error:", error);
-      alert("Erreur connexion : " + error.message);
-    } else {
-      alert("✅ Lien envoyé par email. Clique dessus pour te connecter.");
-    }
+const { error } = await client.auth.signInWithPassword({
+  email,
+  password
+});
+
+if (error) {
+  console.error("Auth error:", error);
+  alert("Erreur connexion : " + error.message);
+} else {
+  alert("✅ Connecté !");
+}
   }); // ← FIX v1.1 : fermeture du addEventListener (manquait)
 
 })(); // ← FIX v1.1 : fermeture de setupAuthUI (manquait)
