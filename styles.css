@@ -1430,7 +1430,7 @@ table.brief-table th:nth-child(3),
 table.brief-table td:nth-child(3) { width: 6% !important; }
 
 table.brief-table th:nth-child(4),
-table.brief-table td:nth-child(4) { width: 11% !important; }
+table.brief-table td:nth-child(4) { width: 11.5% !important; }
 
 table.brief-table th:nth-child(5),
 table.brief-table td:nth-child(5) { width: 34% !important; }
