@@ -1325,7 +1325,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     background: #fff !important; margin: 0 !important; padding: 0 !important;
     height: auto !important;
     /* Zoom global print — ajuste entre 0.88 et 0.96 si le tableau déborde */
-    zoom: 0.91;
+    zoom: 1;
   }
 
   /* ── Masquer tout sauf le module Support ────────── */
