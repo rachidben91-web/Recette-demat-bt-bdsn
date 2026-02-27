@@ -1417,7 +1417,16 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     overflow: hidden !important;
     text-overflow: ellipsis !important;
   }
-
+  
+  /* PRINT — Observations : autoriser vraie coupure */
+  table.brief-table tbody td:nth-child(5) {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important; /* coupe même sans espaces */
+    word-break: break-word !important;
+    line-height: 12px !important;
+    padding: 2px 4px !important;
+}
+  
   /* LARGEURS SYNCHRONISÉES TH + TD */
 
 table.brief-table th:nth-child(1),
