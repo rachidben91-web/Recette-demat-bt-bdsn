@@ -418,6 +418,49 @@
   </div>
   <!-- ===== Fin Modal Connexion ===== -->
 
+  <!-- ===== Modal Changement de mot de passe (première connexion) ===== -->
+  <div id="changePasswordModal" style="display:none; position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,.70); align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:12px; padding:32px 36px; width:400px; box-shadow:0 8px 40px rgba(0,0,0,.35); font-family:inherit;">
+      <!-- Bannière alerte -->
+      <div style="background:#fef3c7; border:1px solid #f59e0b; border-radius:8px; padding:10px 14px; margin-bottom:20px; display:flex; align-items:center; gap:10px;">
+        <span style="font-size:1.4rem;">🔑</span>
+        <div>
+          <div style="font-size:.82rem; font-weight:800; color:#92400e;">Première connexion</div>
+          <div style="font-size:.78rem; color:#78350f; margin-top:2px;">Vous devez définir un nouveau mot de passe avant de continuer.</div>
+        </div>
+      </div>
+      <h2 style="margin:0 0 18px; font-size:1.05rem; color:#1e293b;">Choisissez votre mot de passe</h2>
+      <form id="changePasswordForm" autocomplete="off" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label for="newPassword" style="font-size:.8rem; font-weight:600; color:#374151;">Nouveau mot de passe</label>
+          <input id="newPassword" name="new-password" type="password" autocomplete="new-password"
+            placeholder="Au moins 8 caractères" required minlength="8"
+            style="border:1px solid #d1d5db; border-radius:6px; padding:9px 12px; font-size:.9rem; outline:none; transition:border .15s;"
+            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#d1d5db'" />
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label for="confirmPassword" style="font-size:.8rem; font-weight:600; color:#374151;">Confirmer le mot de passe</label>
+          <input id="confirmPassword" name="confirm-password" type="password" autocomplete="new-password"
+            placeholder="Répétez le mot de passe" required minlength="8"
+            style="border:1px solid #d1d5db; border-radius:6px; padding:9px 12px; font-size:.9rem; outline:none; transition:border .15s;"
+            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#d1d5db'" />
+        </div>
+        <!-- Indicateur de force -->
+        <div id="pwStrengthBar" style="height:4px; border-radius:4px; background:#e5e7eb; overflow:hidden; margin-top:-6px;">
+          <div id="pwStrengthFill" style="height:100%; width:0%; transition:width .3s, background .3s;"></div>
+        </div>
+        <div id="pwStrengthLabel" style="font-size:.75rem; color:#9ca3af; margin-top:-8px;"></div>
+        <div id="changePasswordError" style="display:none; background:#fef2f2; border:1px solid #fca5a5; color:#b91c1c; border-radius:6px; padding:8px 12px; font-size:.82rem;"></div>
+        <button type="submit" id="changePasswordSubmit"
+          style="background:#10b981; color:#fff; border:none; border-radius:6px; padding:11px; font-size:.9rem; font-weight:700; cursor:pointer; margin-top:4px; transition:background .15s;"
+          onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+          ✅ Enregistrer mon mot de passe
+        </button>
+      </form>
+    </div>
+  </div>
+  <!-- ===== Fin Modal Changement mot de passe ===== -->
+
   <script src="./libs/pdf-lib/pdf-lib.min.js"></script>
 
   <script src="./data/technicians.js"></script>
