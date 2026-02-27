@@ -363,6 +363,62 @@
     </section>
   </main>
 
+  <!-- ===== Modal Connexion Supabase ===== -->
+  <div id="loginModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.55); align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:12px; padding:32px 36px; width:360px; box-shadow:0 8px 32px rgba(0,0,0,.25); font-family:inherit;">
+      <h2 style="margin:0 0 6px; font-size:1.1rem; color:#1e293b;">🔐 Connexion DEMAT-BT</h2>
+      <p style="margin:0 0 20px; font-size:.82rem; color:#64748b;">Entrez vos identifiants pour synchroniser vos données.</p>
+
+      <!-- Le formulaire avec autocomplete pour que Chrome/Edge propose les identifiants enregistrés -->
+      <form id="loginForm" autocomplete="on" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label for="loginEmail" style="font-size:.8rem; font-weight:600; color:#374151;">Email</label>
+          <input
+            id="loginEmail"
+            name="email"
+            type="email"
+            autocomplete="username email"
+            placeholder="prenom.nom@grdf.fr"
+            required
+            style="border:1px solid #d1d5db; border-radius:6px; padding:9px 12px; font-size:.9rem; outline:none; transition:border .15s;"
+            onfocus="this.style.borderColor='#6366f1'"
+            onblur="this.style.borderColor='#d1d5db'"
+          />
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label for="loginPassword" style="font-size:.8rem; font-weight:600; color:#374151;">Mot de passe</label>
+          <input
+            id="loginPassword"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            placeholder="••••••••"
+            required
+            style="border:1px solid #d1d5db; border-radius:6px; padding:9px 12px; font-size:.9rem; outline:none; transition:border .15s;"
+            onfocus="this.style.borderColor='#6366f1'"
+            onblur="this.style.borderColor='#d1d5db'"
+          />
+        </div>
+        <div id="loginError" style="display:none; background:#fef2f2; border:1px solid #fca5a5; color:#b91c1c; border-radius:6px; padding:8px 12px; font-size:.82rem;"></div>
+        <div style="display:flex; gap:10px; margin-top:4px;">
+          <button
+            type="submit"
+            id="loginSubmit"
+            style="flex:1; background:#6366f1; color:#fff; border:none; border-radius:6px; padding:10px; font-size:.9rem; font-weight:600; cursor:pointer; transition:background .15s;"
+            onmouseover="this.style.background='#4f46e5'"
+            onmouseout="this.style.background='#6366f1'"
+          >Se connecter</button>
+          <button
+            type="button"
+            id="loginCancel"
+            style="padding:10px 16px; border:1px solid #d1d5db; border-radius:6px; background:#fff; font-size:.9rem; cursor:pointer; color:#374151;"
+          >Annuler</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- ===== Fin Modal Connexion ===== -->
+
   <script src="./libs/pdf-lib/pdf-lib.min.js"></script>
 
   <script src="./data/technicians.js"></script>
