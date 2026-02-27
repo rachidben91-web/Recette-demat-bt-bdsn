@@ -1266,8 +1266,8 @@ table.brief-table tr:hover { background-color: #f8fafc; }
 
 /* Selects éditables */
 .editable-select {
-  width: 100%; padding: 6px; border: 1px solid var(--line);
-  border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer;
+  width: 100%; padding: 3px 4px; border: 1px solid var(--line);
+  border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer;box-sizing: border-box;
 }
 .editable-input {
   width: 100%; border: 1px solid transparent; padding: 6px;
