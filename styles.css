@@ -1384,17 +1384,19 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     white-space:nowrap !important;
   }
 
-  /* THEAD ligne 2 (Agence/Distance) */
-  table.brief-table thead tr:nth-child(2) th{
-    background:#c9daf1 !important;
-    color:#1f4e78 !important;
-    font-size:7.2px !important;
-    font-weight:900 !important;
-    padding:2px 1px !important;
-    border:0.5px solid #a8c4e8 !important;
-    text-align:center !important;
-    white-space:nowrap !important;
-  }
+  /* THEAD ligne 2 — sous-colonnes Brief / Débrief */
+table.brief-table thead tr:nth-child(2) th{
+  background:#c9daf1 !important;
+  color:#1f4e78 !important;
+  font-size:6.2px !important;      /* ↓ pour éviter la coupe */
+  font-weight:900 !important;
+  padding:1px 0 !important;        /* ↓ padding */
+  line-height:1.05 !important;     /* ↓ hauteur de ligne */
+  border:0.5px solid #a8c4e8 !important;
+  text-align:center !important;
+  white-space:nowrap !important;
+  overflow:visible !important;
+}
 
   /* TBODY */
   table.brief-table tbody tr{ height:20px !important; }
