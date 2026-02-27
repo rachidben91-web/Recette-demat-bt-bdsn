@@ -1,6 +1,9 @@
 // js/ui/support.js
-// Module intégré Support Journée (Demat-BT v11)
-// Gère le tableau de bord, les paramètres d'activités, l'historique et l'impression.
+// Module intégré Support Journée (Demat-BT v11.1)
+// v11.1 — 2026-02-27
+// FIX: formatDateKey utilise l'heure locale (fr-CA) pour éviter décalage UTC
+// FIX: saveDay() synchronise sur Supabase (SupportStore.saveSupport) en plus du localStorage
+// FIX: loadAndRenderTable() charge depuis Supabase si connecté, fallback localStorage
 
 window.SupportModule = (function() {
     
@@ -58,7 +61,8 @@ window.SupportModule = (function() {
     // 2. UTILITAIRES
     // ============================================================
 
-    const formatDateKey = d => d.toISOString().split('T')[0];
+    // FIX v11.1 : utilise l'heure locale (fr-CA) pour éviter décalage UTC en fin de journée
+    const formatDateKey = d => d.toLocaleDateString("fr-CA");
     
     const getWeekNum = d => {
         const date = new Date(d.getTime());
@@ -99,7 +103,7 @@ window.SupportModule = (function() {
 
         // 3. Premier Rendu
         updateDateDisplay();
-        renderTable();
+        loadAndRenderTable();
         renderParams();
         renderStats(); 
         
@@ -149,26 +153,46 @@ window.SupportModule = (function() {
     function changeDay(delta) {
         currentDate.setDate(currentDate.getDate() + delta);
         updateDateDisplay();
-        renderTable();
+        loadAndRenderTable();
     }
     
     function goToDate(val) {
         if(val) {
             currentDate = new Date(val);
             updateDateDisplay();
-            renderTable();
+            loadAndRenderTable();
         }
     }
     
     function goToday() {
         currentDate = new Date();
         updateDateDisplay();
-        renderTable();
+        loadAndRenderTable();
     }
 
     // ============================================================
     // 4. RENDU DU TABLEAU (BRIEF)
     // ============================================================
+
+    async function loadAndRenderTable() {
+        const key = formatDateKey(currentDate);
+        
+        // Tenter de charger depuis Supabase (si connecté)
+        if(window.SupportStore && window.supabaseClient) {
+            try {
+                const row = await window.SupportStore.loadSupport({ jour: key });
+                if(row?.payload && Object.keys(row.payload).length > 1) {
+                    // Supabase a des données → on met à jour le localStorage local aussi
+                    localStorage.setItem('demat_day_' + key, JSON.stringify(row.payload));
+                    console.log("☁️ Données chargées depuis Supabase pour", key);
+                }
+            } catch(e) {
+                console.warn("⚠️ Chargement Supabase échoué, fallback localStorage :", e.message);
+            }
+        }
+        
+        renderTable();
+    }
 
     function renderTable() {
         const tbody = document.getElementById('briefTableBody');
@@ -356,6 +380,25 @@ window.SupportModule = (function() {
 
         const key = formatDateKey(currentDate);
         localStorage.setItem('demat_day_' + key, JSON.stringify(dayData));
+        
+        // FIX v11.1 : Synchronisation Supabase (si connecté)
+        if(window.SupportStore && window.supabaseClient) {
+            window.SupportStore.saveSupport(dayData, { jour: key })
+                .then(() => {
+                    // Feedback visuel discret
+                    const btn = document.querySelector('button[onclick*="saveDay"], button[onclick*="SupportModule.saveDay"]');
+                    if(btn) {
+                        const orig = btn.textContent;
+                        btn.textContent = "✅ Enregistré";
+                        setTimeout(() => btn.textContent = orig, 2000);
+                    }
+                    console.log("☁️ Support sauvegardé sur Supabase pour", key);
+                })
+                .catch(e => {
+                    console.error("❌ Erreur sauvegarde Supabase :", e.message);
+                    alert("⚠️ Sauvegarde locale OK, mais Supabase a échoué :\n" + e.message);
+                });
+        }
         
         // Mise à jour de l'historique pour la recherche
         updateHistoryLog(key, dayData);
