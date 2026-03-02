@@ -1304,10 +1304,10 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 
 /* ==========================================================================
 /* ==========================================================================
-   IMPRESSION A3 — v8.0 — 02/03/2026
+   IMPRESSION A3 — v8.1 — 02/03/2026
    Généré via Print Lab
-   ⚠️  ATTENTION : font-size corps = 17.5px — risque débordement page 2 si
-       beaucoup d'observations longues. Réduire à 10-11px si nécessaire.
+   v8.1 FIX : min-height obs réduit 160px→60px, max-height ligne 28px
+       font-size corps = 17.5px OK avec row-height 28px sur A3
    Colonnes : #3% | Agent15.5% | PTC7% | Act17% | Obs26.5% | Brief×2 8% | Débrief×2 3.5% | Grv2%
    Total = 94%
    ========================================================================== */
@@ -1368,7 +1368,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   }
 
   /* TBODY — font:17.5px / height:28px */
-  table.brief-table tbody tr { height: 28px !important; }
+  table.brief-table tbody tr { height: 28px !important; max-height: 28px !important; }
   table.brief-table td {
     border: 0.35px solid #aab4c0 !important;
     padding: 0 3px !important;
@@ -1434,7 +1434,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   table.brief-table select::-ms-expand { display: none !important; }
 
   .print-footer { display:flex !important; flex-direction:column !important; margin-top:5px !important; }
-  .print-obs-box { border:2px solid #1f4e78 !important; min-height:160px !important; padding:10px !important; position:relative !important; }
+  .print-obs-box { border:2px solid #1f4e78 !important; min-height:60px !important; padding:10px !important; position:relative !important; }
   .print-obs-label { position:absolute !important; top:3px !important; left:6px !important; font-weight:900 !important; font-size:10px !important; color:#1f4e78 !important; }
   .print-logo-img { max-height:90px !important; }
 }
