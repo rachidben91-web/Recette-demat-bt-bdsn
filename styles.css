@@ -1304,11 +1304,12 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 
 /* ==========================================================================
 /* ==========================================================================
-   IMPRESSION A3 — v7.0 — 02/03/2026
-   REFACTORISÉ : un seul bloc @media print, sans conflit de colonnes.
-   Colonnes en % (thead + tbody synchronisés), Activité réduite, Obs élargie.
-   Colonnes CP (td4) et Grève (td12) masquées (width:0, font-size:0).
-   body zoom appliqué uniquement à l'impression.
+   IMPRESSION A3 — v8.0 — 02/03/2026
+   Généré via Print Lab
+   ⚠️  ATTENTION : font-size corps = 17.5px — risque débordement page 2 si
+       beaucoup d'observations longues. Réduire à 10-11px si nécessaire.
+   Colonnes : #3% | Agent15.5% | PTC7% | Act17% | Obs26.5% | Brief×2 8% | Débrief×2 3.5% | Grv2%
+   Total = 94%
    ========================================================================== */
 
 /* Cacher header/footer en mode écran */
@@ -1317,18 +1318,10 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 @media print {
 
   @page { size: A3 portrait; margin: 5mm; }
-
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-  html, body {
-    background: #fff !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    height: auto !important;
-    zoom: 1 !important;
-  }
+  html, body { background:#fff !important; margin:0 !important; padding:0 !important; height:auto !important; zoom:1 !important; }
 
-  /* Masquer tout sauf le module Support */
   .topbar, .sidebar, .support-tabs, .day-nav,
   .support-toolbar, .toast, .screen-only, .row--space,
   #tabParams, #tabHistory,
@@ -1337,193 +1330,111 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   .layout { display: block !important; padding: 0 !important; }
   .content { min-height: auto !important; }
 
-  #tabBrief{
-    display:flex !important;
-    flex-direction:column !important;
-    border:1.5px solid #1f4e78 !important;
-    padding:6px !important;
-    box-sizing:border-box !important;
+  #tabBrief { display:flex !important; flex-direction:column !important; border:1.5px solid #1f4e78 !important; padding:6px !important; box-sizing:border-box !important; }
+
+  .print-header { display:flex !important; justify-content:space-between !important; align-items:flex-end !important; border-bottom:2px solid #1f4e78 !important; padding-bottom:5px !important; margin-bottom:4px !important; }
+
+  .brief-table-container { flex:1 !important; margin:0 !important; overflow:visible !important; box-shadow:none !important; border:none !important; }
+
+  table.brief-table { width:100% !important; border-collapse:collapse !important; table-layout:fixed !important; border:0.5px solid #888 !important; page-break-inside:avoid !important; }
+
+  /* THEAD ligne 1 — font:14px / height:40px */
+  table.brief-table thead tr:first-child th {
+    background: #1f4e78 !important;
+    color: #fff !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    padding: 6px 2px !important;
+    height: 40px !important;
+    border: 0.5px solid #16384f !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
   }
 
-  /* Header (si tu l’utilises) */
-  .print-header{
-    display:flex !important;
-    justify-content:space-between !important;
-    align-items:flex-end !important;
-    border-bottom:2px solid #1f4e78 !important;
-    padding-bottom:5px !important;
-    margin-bottom:4px !important;
+  /* THEAD ligne 2 — font:12px / height:30px */
+  table.brief-table thead tr:nth-child(2) th {
+    background: #c9daf1 !important;
+    color: #1f4e78 !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    padding: 2px 1px !important;
+    height: 30px !important;
+    line-height: 1.2 !important;
+    border: 0.5px solid #a8c4e8 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
   }
 
-  /* Table */
-  .brief-table-container{
-    flex:1 !important;
-    margin:0 !important;
-    overflow:visible !important;
-    box-shadow:none !important;
-    border:none !important;
+  /* TBODY — font:17.5px / height:28px */
+  table.brief-table tbody tr { height: 28px !important; }
+  table.brief-table td {
+    border: 0.35px solid #aab4c0 !important;
+    padding: 0 3px !important;
+    font-size: 17.5px !important;
+    line-height: 26px !important;
+    vertical-align: middle !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
   }
 
-  table.brief-table{
-    width:100% !important;
-    border-collapse:collapse !important;
-    table-layout:fixed !important;
-    border:0.5px solid #888 !important;
-    page-break-inside:avoid !important;
-  }
-
-  /* THEAD ligne 1 */
-  table.brief-table thead tr:first-child th{
-    background:#1f4e78 !important;
-    color:#fff !important;
-    font-size:10px !important;
-    font-weight:800 !important;
-    padding:6px 2px !important;
-    height:28px !important;
-    border:0.5px solid #16384f !important;
-    text-align:center !important;
-    white-space:nowrap !important;
-    vertical-align:middle !important;
-  }
-
-  /* THEAD ligne 2 — sous-colonnes Brief / Débrief */
-  table.brief-table thead tr:nth-child(2) th{
-    background:#c9daf1 !important;
-    color:#1f4e78 !important;
-    font-size:8.5px !important;
-    font-weight:900 !important;
-    padding:3px 1px !important;
-    height:18px !important;
-    line-height:1.2 !important;
-    border:0.5px solid #a8c4e8 !important;
-    text-align:center !important;
-    white-space:nowrap !important;
-    overflow:visible !important;
-    letter-spacing:0.2px !important;
-    vertical-align:middle !important;
-  }
-
-  /* TBODY */
-  table.brief-table tbody tr{ height:20px !important; }
-  table.brief-table td{
-    border:0.35px solid #aab4c0 !important;
-    padding:1px 3px !important;
-    font-size:9px !important;
-    line-height:15px !important;
-    vertical-align:middle !important;
-    overflow:hidden !important;
-    text-overflow:ellipsis !important;
-    white-space:nowrap !important;
-  }
-
-  /* =========================
-     LARGEURS (thead + tbody)
-     Colonnes :
-     1 # | 2 Agent | 3 PTC-PTD | 4 Activité | 5 Observations
-     6 Brief Agence | 7 Brief Distance | 8 Débrief Agence | 9 Débrief Distance | 10 Grv
-     Total = 100%
-  ========================== */
-
+  /* LARGEURS */
   /* 1 # : 3% */
   table.brief-table thead tr:first-child th:nth-child(1),
-  table.brief-table tbody td:nth-child(1){ width:3% !important; text-align:center !important; }
+  table.brief-table tbody td:nth-child(1) { width: 3% !important; text-align: center !important; }
 
-  /* 2 Agent : 21% (évite les noms sur 2 lignes) */
+  /* 2 Agent : 15.5% */
   table.brief-table thead tr:first-child th:nth-child(2),
-  table.brief-table tbody td:nth-child(2){ width:17% !important; font-weight:900 !important; font-size:9.5px !important; }
+  table.brief-table tbody td:nth-child(2) { width: 15.5% !important; font-weight: 900 !important; font-size: 17.5px !important; }
 
-  /* 3 PTC-PTD : 6% (réduit) */
+  /* 3 PTC-PTD : 7% */
   table.brief-table thead tr:first-child th:nth-child(3),
-  table.brief-table tbody td:nth-child(3){ width:6% !important; text-align:center !important; font-weight:800 !important; }
+  table.brief-table tbody td:nth-child(3) { width: 7% !important; text-align: center !important; font-weight: 800 !important; }
 
   /* 4 Activité : 17% */
   table.brief-table thead tr:first-child th:nth-child(4),
-  table.brief-table tbody td:nth-child(4){ width:17% !important; text-align:center !important; font-weight:800 !important; }
+  table.brief-table tbody td:nth-child(4) { width: 17% !important; text-align: center !important; font-weight: 800 !important; }
 
-  /* 5 Observations : 31% + WRAP */
+  /* 5 Observations : 26.5% */
   table.brief-table thead tr:first-child th:nth-child(5),
-  table.brief-table tbody td:nth-child(5){
-    width:28% !important;
-    white-space:normal !important;
-    overflow:visible !important;
-    text-overflow:clip !important;
-    line-height:12.5px !important;
-    padding:2px 4px !important;
-    vertical-align:top !important;
-  }
+  table.brief-table tbody td:nth-child(5) { width: 26.5% !important; white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 12.5px !important; padding: 2px 4px !important; vertical-align: top !important; }
 
-  /* 6-9 : 4.5% chacun (Agence/Distance un peu plus large) */
+  /* 6-7 Brief (Agence+Distance) : 8% chacun */
   table.brief-table thead tr:first-child th:nth-child(6),
   table.brief-table tbody td:nth-child(6),
   table.brief-table thead tr:first-child th:nth-child(7),
-  table.brief-table tbody td:nth-child(7),
+  table.brief-table tbody td:nth-child(7) { width: 8% !important; text-align: center !important; font-weight: 900 !important; font-size: 12px !important; padding: 1px 2px !important; }
+
+  /* 8-9 Débrief (Agence+Distance) : 3.5% chacun */
   table.brief-table thead tr:first-child th:nth-child(8),
   table.brief-table tbody td:nth-child(8),
   table.brief-table thead tr:first-child th:nth-child(9),
-  table.brief-table tbody td:nth-child(9){
-    width:5.5% !important;
-    text-align:center !important;
-    font-weight:900 !important;
-    font-size:9px !important;
-    padding:1px 2px !important;
-  }
+  table.brief-table tbody td:nth-child(9) { width: 3.5% !important; text-align: center !important; font-weight: 900 !important; font-size: 12px !important; padding: 1px 2px !important; }
 
-  /* Ligne 2 entête : Agence / Distance */
+  /* Ligne 2 entête Agence/Distance */
   table.brief-table thead tr:nth-child(2) th:nth-last-child(5),
   table.brief-table thead tr:nth-child(2) th:nth-last-child(4),
   table.brief-table thead tr:nth-child(2) th:nth-last-child(3),
-  table.brief-table thead tr:nth-child(2) th:nth-last-child(2){
-    width:5.5% !important;
-  }
+  table.brief-table thead tr:nth-child(2) th:nth-last-child(2) { width: 8% !important; }
 
-  /* 10 Grv : 4% */
+  /* 10 Grv : 2% */
   table.brief-table thead tr:first-child th:nth-child(10),
-  table.brief-table tbody td:nth-child(10){
-    width:4.5% !important;
-    text-align:center !important;
-    font-weight:900 !important;
-    font-size:9px !important;
-  }
+  table.brief-table tbody td:nth-child(10) { width: 2% !important; text-align: center !important; font-weight: 900 !important; font-size: 17.5px !important; }
 
   /* Selects / inputs */
-  table.brief-table select,
-  table.brief-table input{
-    height:15px !important;
-    min-height:15px !important;
-    line-height:15px !important;
-    font-size:8.5px !important;
-    font-weight:900 !important;
-    padding:0 1px !important;
-    margin:0 !important;
-    border:none !important;
-    border-radius:0 !important;
-    text-align:center !important;
-    text-align-last:center !important;
-    appearance:none !important;
-    -webkit-appearance:none !important;
-    background-image:none !important;
+  table.brief-table select, table.brief-table input {
+    height: 26px !important; min-height: 26px !important; line-height: 26px !important;
+    font-size: 17.5px !important; font-weight: 900 !important; padding: 0 1px !important;
+    margin: 0 !important; border: none !important; border-radius: 0 !important;
+    text-align: center !important; text-align-last: center !important;
+    appearance: none !important; -webkit-appearance: none !important; background-image: none !important;
   }
-  table.brief-table select::-ms-expand{ display:none !important; }
+  table.brief-table select::-ms-expand { display: none !important; }
 
-  /* Footer */
-  .print-footer{
-    display:flex !important;
-    flex-direction:column !important;
-    margin-top:5px !important;
-  }
-  .print-obs-box{
-    border:2px solid #1f4e78 !important;
-    min-height:160px !important;
-    padding:10px !important;
-    position:relative !important;
-  }
-  .print-obs-label{
-    position:absolute !important;
-    top:3px !important;
-    left:6px !important;
-    font-weight:900 !important;
-    font-size:10px !important;
-    color:#1f4e78 !important;
-  }
-  .print-logo-img{ max-height:90px !important; }
+  .print-footer { display:flex !important; flex-direction:column !important; margin-top:5px !important; }
+  .print-obs-box { border:2px solid #1f4e78 !important; min-height:160px !important; padding:10px !important; position:relative !important; }
+  .print-obs-label { position:absolute !important; top:3px !important; left:6px !important; font-weight:900 !important; font-size:10px !important; color:#1f4e78 !important; }
+  .print-logo-img { max-height:90px !important; }
 }
