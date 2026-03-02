@@ -1302,25 +1302,24 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 .row-absent { background-color: #fff1f2 !important; }
 .row-absent .cell-name { color: #e11d48; }
 
-/* =============================================
-   IMPRESSION A3 — Support Journée (corrigé)
-   Colonnes cohérentes thead/tbody + wrap observations
-   ============================================= */
+/* ==========================================================================
+/* ==========================================================================
+   IMPRESSION A3 — v10.0 — 02/03/2026
+   Valeurs Print Lab v2.1 — Total colonnes 95%
+   Colonnes: #3% | Agent14% | PTC6% | Act20% | Obs28% | Brief×2 5% | Débrief×2 5% | Grv4%
+   Hauteur: thead 33+26=59px | tbody 50×25=1250px | total ≈ 1469px / 1550px dispo
+   ========================================================================== */
+
+/* Cacher header/footer en mode écran */
+.print-header, .print-footer { display: none; }
 
 @media print {
 
   @page { size: A3 portrait; margin: 5mm; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-  html, body {
-    background:#fff !important;
-    margin:0 !important;
-    padding:0 !important;
-    height:auto !important;
-    zoom: 0.96; /* ajuste 0.94 → 0.98 si besoin */
-  }
+  html, body { background:#fff !important; margin:0 !important; padding:0 !important; height:auto !important; zoom:1 !important; }
 
-  /* Masquer tout sauf le support */
   .topbar, .sidebar, .support-tabs, .day-nav,
   .support-toolbar, .toast, .screen-only, .row--space,
   #tabParams, #tabHistory,
@@ -1329,235 +1328,111 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   .layout { display: block !important; padding: 0 !important; }
   .content { min-height: auto !important; }
 
-  #tabBrief{
-    display:flex !important;
-    flex-direction:column !important;
-    border:1.5px solid #1f4e78 !important;
-    padding:6px !important;
-    box-sizing:border-box !important;
+  #tabBrief { display:flex !important; flex-direction:column !important; border:1.5px solid #1f4e78 !important; padding:6px !important; box-sizing:border-box !important; }
+
+  .print-header { display:flex !important; justify-content:space-between !important; align-items:flex-end !important; border-bottom:2px solid #1f4e78 !important; padding-bottom:5px !important; margin-bottom:4px !important; }
+
+  .brief-table-container { flex:1 !important; margin:0 !important; overflow:visible !important; box-shadow:none !important; border:none !important; }
+
+  table.brief-table { width:100% !important; border-collapse:collapse !important; table-layout:fixed !important; border:0.5px solid #888 !important; page-break-inside:avoid !important; }
+
+  /* THEAD ligne 1 — font:12px / height:33px */
+  table.brief-table thead tr:first-child th {
+    background: #1f4e78 !important;
+    color: #fff !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    padding: 5px 2px !important;
+    height: 33px !important;
+    border: 0.5px solid #16384f !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
   }
 
-  .print-header{
-    display:flex !important;
-    justify-content:space-between !important;
-    align-items:flex-end !important;
-    border-bottom:2px solid #1f4e78 !important;
-    padding-bottom:5px !important;
-    margin-bottom:4px !important;
+  /* THEAD ligne 2 — font:10.5px / height:26px */
+  table.brief-table thead tr:nth-child(2) th {
+    background: #c9daf1 !important;
+    color: #1f4e78 !important;
+    font-size: 10.5px !important;
+    font-weight: 900 !important;
+    padding: 2px 1px !important;
+    height: 26px !important;
+    line-height: 1.2 !important;
+    border: 0.5px solid #a8c4e8 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
   }
 
-  .brief-table-container{
-    flex:1 !important;
-    margin:0 !important;
-    overflow:visible !important;
-    box-shadow:none !important;
-    border:none !important;
+  /* TBODY — font:11.5px / height:25px */
+  table.brief-table tbody tr { height: 25px !important; max-height: 25px !important; }
+  table.brief-table td {
+    border: 0.35px solid #aab4c0 !important;
+    padding: 0 3px !important;
+    font-size: 11.5px !important;
+    line-height: 23px !important;
+    vertical-align: middle !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
   }
 
-  table.brief-table{
-    width:100% !important;
-    border-collapse:collapse !important;
-    table-layout:fixed !important;
-    border:0.5px solid #888 !important;
-    page-break-inside:avoid !important;
-  }
-
-  /* THEAD ligne 1 */
-  table.brief-table thead tr:first-child th{
-    background:#1f4e78 !important;
-    color:#fff !important;
-    font-size:9px !important;
-    font-weight:800 !important;
-    padding:4px 2px !important;
-    border:0.5px solid #16384f !important;
-    text-align:center !important;
-    vertical-align:middle !important;
-    white-space:nowrap !important;
-  }
-
-  /* THEAD ligne 2 (sous-colonnes) */
-  table.brief-table thead tr:nth-child(2) th{
-    background:#c9daf1 !important;
-    color:#1f4e78 !important;
-    font-size:7.2px !important;
-    font-weight:900 !important;
-    padding:2px 1px !important;
-    border:0.5px solid #a8c4e8 !important;
-    text-align:center !important;
-    vertical-align:middle !important;
-    white-space:nowrap !important;
-    overflow:hidden !important;
-    text-overflow:clip !important;
-  }
-
-  /* TBODY */
-  table.brief-table tbody tr { height: 18px !important; }
-  table.brief-table tbody tr:nth-child(even) { background:#f4f7fc !important; }
-  table.brief-table tbody tr:nth-child(odd)  { background:#ffffff !important; }
-
-  table.brief-table td{
-    border:0.5px solid #b8c0cc !important;
-    padding:1px 3px !important;
-    font-size:9px !important;
-    line-height:14px !important;
-    vertical-align:middle !important;
-    overflow:hidden !important;
-    text-overflow:ellipsis !important;
-    white-space:nowrap !important;
-  }
-
-  /* =====================================================
-     LARGEURS (10 colonnes) — total = 100%
-     1  #            3%
-     2  Agent       19%
-     3  PTC-PTD      6%   (réduit)
-     4  Activité    16%
-     5  Observations 30%  (wrap)
-     6  Brief Ag     5%
-     7  Brief Dist   5%
-     8  Débrief Ag   5%
-     9  Débrief Dist 5%
-     10 Grv          6%
-     ===================================================== */
-
-  /* 1 # */
+  /* LARGEURS — Total 95% */
+  /* 1 # : 3% */
   table.brief-table thead tr:first-child th:nth-child(1),
-  table.brief-table thead tr:nth-child(2) th:nth-child(1),
-  table.brief-table tbody td:nth-child(1){
-    width:3% !important;
-    text-align:center !important;
-    font-size:7.5px !important;
-    color:#666 !important;
-  }
+  table.brief-table tbody td:nth-child(1) { width: 3% !important; text-align: center !important; }
 
-  /* 2 Agent (élargi) */
+  /* 2 Agent : 14% */
   table.brief-table thead tr:first-child th:nth-child(2),
-  table.brief-table thead tr:nth-child(2) th:nth-child(2),
-  table.brief-table tbody td:nth-child(2){
-    width:19% !important;
-    font-weight:900 !important;
-    font-size:9.6px !important;
-    white-space:nowrap !important; /* évite le retour à la ligne */
-    padding-left:5px !important;
-  }
+  table.brief-table tbody td:nth-child(2) { width: 14% !important; font-weight: 900 !important; font-size: 11.5px !important; }
 
-  /* 3 PTC-PTD (réduit) */
+  /* 3 PTC-PTD : 6% */
   table.brief-table thead tr:first-child th:nth-child(3),
-  table.brief-table thead tr:nth-child(2) th:nth-child(3),
-  table.brief-table tbody td:nth-child(3){
-    width:6% !important;
-    text-align:center !important;
-    font-weight:800 !important;
-    font-size:8.4px !important;
-    color:#1a3a5c !important;
-  }
+  table.brief-table tbody td:nth-child(3) { width: 6% !important; text-align: center !important; font-weight: 800 !important; }
 
-  /* 4 Activité */
+  /* 4 Activité : 20% */
   table.brief-table thead tr:first-child th:nth-child(4),
-  table.brief-table thead tr:nth-child(2) th:nth-child(4),
-  table.brief-table tbody td:nth-child(4){
-    width:16% !important;
-    text-align:center !important;
-    font-weight:800 !important;
-    font-size:8.6px !important;
-  }
+  table.brief-table tbody td:nth-child(4) { width: 20% !important; text-align: center !important; font-weight: 800 !important; }
 
-  /* 5 Observations (wrap propre) */
+  /* 5 Observations : 28% */
   table.brief-table thead tr:first-child th:nth-child(5),
-  table.brief-table thead tr:nth-child(2) th:nth-child(5),
-  table.brief-table tbody td:nth-child(5){
-    width:30% !important;
-    white-space:normal !important;
-    overflow:visible !important;
-    text-overflow:clip !important;
-    word-break:break-word !important;
-    overflow-wrap:anywhere !important;
-    line-height:12px !important;
-    font-size:8.4px !important;
-    padding:2px 5px !important;
-    vertical-align:top !important;
-  }
+  table.brief-table tbody td:nth-child(5) { width: 28% !important; white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 12.5px !important; padding: 2px 4px !important; vertical-align: top !important; }
 
-  /* 6 Brief Agence */
+  /* 6-7 Brief (Agence+Distance) : 5% chacun */
   table.brief-table thead tr:first-child th:nth-child(6),
-  table.brief-table thead tr:nth-child(2) th:nth-child(6),
-  table.brief-table tbody td:nth-child(6){
-    width:5% !important;
-    text-align:center !important;
-    font-weight:900 !important;
-    font-size:8.0px !important;
-    padding:1px 1px !important;
-  }
-
-  /* 7 Brief Distance */
+  table.brief-table tbody td:nth-child(6),
   table.brief-table thead tr:first-child th:nth-child(7),
-  table.brief-table thead tr:nth-child(2) th:nth-child(7),
-  table.brief-table tbody td:nth-child(7){
-    width:5% !important;
-    text-align:center !important;
-    font-weight:900 !important;
-    font-size:8.0px !important;
-    padding:1px 1px !important;
-  }
+  table.brief-table tbody td:nth-child(7) { width: 5% !important; text-align: center !important; font-weight: 900 !important; font-size: 10.5px !important; padding: 1px 2px !important; }
 
-  /* 8 Débrief Agence */
+  /* 8-9 Débrief (Agence+Distance) : 5% chacun */
   table.brief-table thead tr:first-child th:nth-child(8),
-  table.brief-table thead tr:nth-child(2) th:nth-child(8),
-  table.brief-table tbody td:nth-child(8){
-    width:5% !important;
-    text-align:center !important;
-    font-weight:900 !important;
-    font-size:8.0px !important;
-    padding:1px 1px !important;
-  }
-
-  /* 9 Débrief Distance */
+  table.brief-table tbody td:nth-child(8),
   table.brief-table thead tr:first-child th:nth-child(9),
-  table.brief-table thead tr:nth-child(2) th:nth-child(9),
-  table.brief-table tbody td:nth-child(9){
-    width:5% !important;
-    text-align:center !important;
-    font-weight:900 !important;
-    font-size:8.0px !important;
-    padding:1px 1px !important;
-  }
+  table.brief-table tbody td:nth-child(9) { width: 5% !important; text-align: center !important; font-weight: 900 !important; font-size: 10.5px !important; padding: 1px 2px !important; }
 
-  /* 10 Grv (un poil plus large) */
+  /* Ligne 2 entête Agence/Distance */
+  table.brief-table thead tr:nth-child(2) th:nth-last-child(5),
+  table.brief-table thead tr:nth-child(2) th:nth-last-child(4),
+  table.brief-table thead tr:nth-child(2) th:nth-last-child(3),
+  table.brief-table thead tr:nth-child(2) th:nth-last-child(2) { width: 5% !important; }
+
+  /* 10 Grv : 4% */
   table.brief-table thead tr:first-child th:nth-child(10),
-  table.brief-table thead tr:nth-child(2) th:nth-child(10),
-  table.brief-table tbody td:nth-child(10){
-    width:6% !important;
-    text-align:center !important;
-    font-weight:900 !important;
-    font-size:9px !important;
+  table.brief-table tbody td:nth-child(10) { width: 4% !important; text-align: center !important; font-weight: 900 !important; font-size: 11.5px !important; }
+
+  /* Selects / inputs */
+  table.brief-table select, table.brief-table input {
+    height: 23px !important; min-height: 23px !important; line-height: 23px !important;
+    font-size: 11.5px !important; font-weight: 900 !important; padding: 0 1px !important;
+    margin: 0 !important; border: none !important; border-radius: 0 !important;
+    text-align: center !important; text-align-last: center !important;
+    appearance: none !important; -webkit-appearance: none !important; background-image: none !important;
   }
+  table.brief-table select::-ms-expand { display: none !important; }
 
-  /* Select / input (si jamais il en reste) */
-  table.brief-table select,
-  table.brief-table input{
-    height:14px !important;
-    min-height:14px !important;
-    line-height:14px !important;
-    font-size:8.2px !important;
-    font-weight:900 !important;
-    padding:0 1px !important;
-    margin:0 !important;
-    border:none !important;
-    border-radius:0 !important;
-    text-align:center !important;
-    text-align-last:center !important;
-    appearance:none !important;
-    -webkit-appearance:none !important;
-    background-image:none !important;
-  }
-  table.brief-table select::-ms-expand { display:none !important; }
-
-  .val-oui { background:#d4edda !important; color:#155724 !important; font-weight:900 !important; }
-  .val-non { background:#f8d7da !important; color:#721c24 !important; font-weight:900 !important; }
-
-  /* Footer / zone observation */
   .print-footer { display:flex !important; flex-direction:column !important; margin-top:5px !important; }
-  .print-obs-box { border:2px solid #1f4e78 !important; min-height:160px !important; padding:10px !important; position:relative !important; }
+  .print-obs-box { border:2px solid #1f4e78 !important; min-height:60px !important; max-height:60px !important; padding:6px !important; position:relative !important; overflow:hidden !important; }
   .print-obs-label { position:absolute !important; top:3px !important; left:6px !important; font-weight:900 !important; font-size:10px !important; color:#1f4e78 !important; }
-  .print-logo-img { max-height:65px !important; }
+  .print-logo-img { max-height:90px !important; }
 }
