@@ -1,9 +1,12 @@
 // js/ui/support.js
-// Module intégré Support Journée (Demat-BT v11.1)
-// v11.1 — 2026-02-27
+// Module intégré Support Journée (Demat-BT v11)
+// v1.2 — 2026-02-28
 // FIX: formatDateKey utilise l'heure locale (fr-CA) pour éviter décalage UTC
 // FIX: saveDay() synchronise sur Supabase (SupportStore.saveSupport) en plus du localStorage
 // FIX: loadAndRenderTable() charge depuis Supabase si connecté, fallback localStorage
+// NEW v1.2: loadHistoryFromSupabase() reconstruit history[] depuis TOUTES les lignes Supabase
+//           → L'onglet Données & Historique affiche maintenant les données cross-session
+//           → switchTab('tabHistory') déclenche un rechargement Supabase automatique
 
 window.SupportModule = (function() {
     
@@ -128,7 +131,10 @@ window.SupportModule = (function() {
         if(panel) panel.classList.add('active');
         
         // Si on va sur l'historique, on rafraîchit les données
-        if(tabId === 'tabHistory') renderHistory();
+        if(tabId === 'tabHistory') {
+            // Recharger depuis Supabase à chaque ouverture de l'onglet historique
+            loadHistoryFromSupabase().then(() => renderHistory());
+        }
     }
 
     // --- Gestion de la Date ---
@@ -500,6 +506,77 @@ window.SupportModule = (function() {
     // ============================================================
     // 7. HISTORIQUE & STATS
     // ============================================================
+
+    // ============================================================
+    // 7b. CHARGEMENT HISTORIQUE DEPUIS SUPABASE
+    // ============================================================
+
+    /**
+     * Requête TOUTES les lignes support_journee du site dans Supabase
+     * et reconstruit le tableau history[] en mémoire + localStorage.
+     * Appelé à chaque ouverture de l'onglet "Données & Historique".
+     */
+    async function loadHistoryFromSupabase() {
+        if (!window.SupportStore || !window.supabaseClient) {
+            console.warn("[SUPPORT] Supabase non disponible — historique depuis localStorage uniquement.");
+            return;
+        }
+
+        // Vérifier que l'utilisateur est connecté
+        const { data: authData } = await window.supabaseClient.auth.getUser();
+        if (!authData?.user) {
+            console.warn("[SUPPORT] Non connecté — historique depuis localStorage uniquement.");
+            return;
+        }
+
+        try {
+            const { data: rows, error } = await window.supabaseClient
+                .from("support_journee")
+                .select("jour, payload")
+                .eq("site", "VLG")
+                .order("jour", { ascending: false })
+                .limit(90); // 3 derniers mois max
+
+            if (error) throw error;
+            if (!rows || rows.length === 0) {
+                console.log("[SUPPORT] Aucune donnée Supabase pour l'historique.");
+                return;
+            }
+
+            // Reconstruire history[] depuis les payloads Supabase
+            const newHistory = [];
+            for (const row of rows) {
+                const data = row.payload || {};
+                const jour = row.jour;
+                Object.keys(data).forEach(agentName => {
+                    if (agentName === '__GLOBAL_OBS') return;
+                    const d = data[agentName];
+                    if (d && (d.act || d.obs || d.briefA === 'OUI' || d.greve === 'OUI')) {
+                        newHistory.push({
+                            date:    jour,
+                            agent:   agentName,
+                            act:     d.act    || '',
+                            obs:     d.obs    || '',
+                            brief:   (d.briefA === 'OUI' || d.briefD === 'OUI')   ? 'OK' : '',
+                            debrief: (d.debriefA === 'OUI' || d.debriefD === 'OUI') ? 'OK' : ''
+                        });
+                    }
+                });
+                // Mettre à jour le localStorage local pour chaque jour
+                localStorage.setItem('demat_day_' + jour, JSON.stringify(data));
+            }
+
+            history = newHistory;
+            // Sauvegarder l'historique reconstruit en localStorage (pour usage hors ligne)
+            localStorage.setItem('demat_history', JSON.stringify(history));
+
+            console.log(`[SUPPORT] ☁️ Historique reconstruit depuis Supabase : ${rows.length} jours, ${history.length} lignes.`);
+
+        } catch(e) {
+            console.error("[SUPPORT] ❌ Erreur chargement historique Supabase :", e.message);
+            // Fallback : garder l'historique localStorage existant
+        }
+    }
 
     function renderStats() {
         // Nombre de jours uniques
