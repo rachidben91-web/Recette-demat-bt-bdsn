@@ -1304,7 +1304,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 
 /* ==========================================================================
 /* ==========================================================================
-   IMPRESSION A3 — v6.0 — 27/02/2026
+   IMPRESSION A3 — v7.0 — 02/03/2026
    REFACTORISÉ : un seul bloc @media print, sans conflit de colonnes.
    Colonnes en % (thead + tbody synchronisés), Activité réduite, Obs élargie.
    Colonnes CP (td4) et Grève (td12) masquées (width:0, font-size:0).
@@ -1376,28 +1376,32 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   table.brief-table thead tr:first-child th{
     background:#1f4e78 !important;
     color:#fff !important;
-    font-size:8.5px !important;
+    font-size:10px !important;
     font-weight:800 !important;
-    padding:4px 2px !important;
+    padding:6px 2px !important;
+    height:28px !important;
     border:0.5px solid #16384f !important;
     text-align:center !important;
     white-space:nowrap !important;
+    vertical-align:middle !important;
   }
 
   /* THEAD ligne 2 — sous-colonnes Brief / Débrief */
-table.brief-table thead tr:nth-child(2) th{
-  background:#c9daf1 !important;
-  color:#1f4e78 !important;
-  font-size:6.5px !important;      /* ↓ pour éviter la coupe */
-  font-weight:900 !important;
-  padding:1px 0 !important;        /* ↓ padding */
-  line-height:1.05 !important;     /* ↓ hauteur de ligne */
-  border:0.5px solid #a8c4e8 !important;
-  text-align:center !important;
-  white-space:nowrap !important;
-  overflow:visible !important;
-  letter-spacing:0.2px !important;
-}
+  table.brief-table thead tr:nth-child(2) th{
+    background:#c9daf1 !important;
+    color:#1f4e78 !important;
+    font-size:8.5px !important;
+    font-weight:900 !important;
+    padding:3px 1px !important;
+    height:18px !important;
+    line-height:1.2 !important;
+    border:0.5px solid #a8c4e8 !important;
+    text-align:center !important;
+    white-space:nowrap !important;
+    overflow:visible !important;
+    letter-spacing:0.2px !important;
+    vertical-align:middle !important;
+  }
 
   /* TBODY */
   table.brief-table tbody tr{ height:20px !important; }
@@ -1426,7 +1430,7 @@ table.brief-table thead tr:nth-child(2) th{
 
   /* 2 Agent : 21% (évite les noms sur 2 lignes) */
   table.brief-table thead tr:first-child th:nth-child(2),
-  table.brief-table tbody td:nth-child(2){ width:21% !important; font-weight:900 !important; font-size:10px !important; }
+  table.brief-table tbody td:nth-child(2){ width:17% !important; font-weight:900 !important; font-size:9.5px !important; }
 
   /* 3 PTC-PTD : 6% (réduit) */
   table.brief-table thead tr:first-child th:nth-child(3),
@@ -1439,7 +1443,7 @@ table.brief-table thead tr:nth-child(2) th{
   /* 5 Observations : 31% + WRAP */
   table.brief-table thead tr:first-child th:nth-child(5),
   table.brief-table tbody td:nth-child(5){
-    width:31% !important;
+    width:28% !important;
     white-space:normal !important;
     overflow:visible !important;
     text-overflow:clip !important;
@@ -1457,28 +1461,28 @@ table.brief-table thead tr:nth-child(2) th{
   table.brief-table tbody td:nth-child(8),
   table.brief-table thead tr:first-child th:nth-child(9),
   table.brief-table tbody td:nth-child(9){
-    width:4.5% !important;
+    width:5.5% !important;
     text-align:center !important;
     font-weight:900 !important;
-    font-size:8.2px !important;
-    padding:1px 1px !important;
+    font-size:9px !important;
+    padding:1px 2px !important;
   }
 
-  /* Assure aussi la largeur sur la 2e ligne d'entête (Agence/Distance) */
+  /* Ligne 2 entête : Agence / Distance */
   table.brief-table thead tr:nth-child(2) th:nth-last-child(5),
   table.brief-table thead tr:nth-child(2) th:nth-last-child(4),
   table.brief-table thead tr:nth-child(2) th:nth-last-child(3),
   table.brief-table thead tr:nth-child(2) th:nth-last-child(2){
-    width:4.5% !important;
+    width:5.5% !important;
   }
 
   /* 10 Grv : 4% */
   table.brief-table thead tr:first-child th:nth-child(10),
   table.brief-table tbody td:nth-child(10){
-    width:4% !important;
+    width:4.5% !important;
     text-align:center !important;
     font-weight:900 !important;
-    font-size:8.5px !important;
+    font-size:9px !important;
   }
 
   /* Selects / inputs */
@@ -1487,7 +1491,7 @@ table.brief-table thead tr:nth-child(2) th{
     height:15px !important;
     min-height:15px !important;
     line-height:15px !important;
-    font-size:8.2px !important;
+    font-size:8.5px !important;
     font-weight:900 !important;
     padding:0 1px !important;
     margin:0 !important;
