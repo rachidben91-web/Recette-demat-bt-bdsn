@@ -1304,7 +1304,7 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
 
 /* ==========================================================================
 /* ==========================================================================
-   IMPRESSION A3 — v10.1 — 02/03/2026
+   IMPRESSION A3 — v10.2 — 03/03/2026
    FIX: obs nowrap pour éviter wrap de lignes → débordement page 2
    FIX: thead ligne 2 sans nth-last-child (unreliable) → ciblage direct
    Colonnes: #3% | Agent14% | PTC6% | Act20% | Obs28% | Brief×2 5% | Débrief×2 5% | Grv4%
@@ -1545,8 +1545,8 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   }
   .print-obs-box {
     border: 2px solid #1f4e78 !important;
-    min-height: 55px !important;
-    max-height: 55px !important;
+    min-height: 45px !important;
+    max-height: 45px !important;
     padding: 6px !important;
     position: relative !important;
     overflow: hidden !important;
@@ -1559,5 +1559,23 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     font-size: 10px !important;
     color: #1f4e78 !important;
   }
-  .print-logo-img { max-height: 90px !important; }
+  .print-logo-img { max-height: 45px !important; }
+
+  /* Footer bas — ligne logo+date+page contrainte en hauteur */
+  .print-bottom-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    height: 50px !important;
+    max-height: 50px !important;
+    overflow: hidden !important;
+    margin-top: 2px !important;
+  }
+  .print-info-left, .print-info-right {
+    font-size: 9px !important;
+    color: #444 !important;
+  }
+  .print-logo {
+    text-align: center !important;
+  }
 }
