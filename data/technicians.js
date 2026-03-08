@@ -52,7 +52,6 @@
     ["ROBICHON", "Jordan", "A14356", "Rachid Ben Daoud", false, false],
     ["SALEP", "Alexandre", "G82872", "Karim Deboussi", false, false],
     ["SEGUY", "Alexis", "C35074", "Zied Zeramdini", false, false],
-    ["SHEIKH", "Arslan", "F80482", "Laetitia Romao", false, false],
     ["SISSOKO", "Seran", "F86682", "Mustapha Arbib", true, true],
     ["SISSOKO", "Tiémoko", "E06180", "Zied Zeramdini", true, true],
     ["STEHELYN", "Hakim", "E10173", "Rachid Ben Daoud", false, false],
