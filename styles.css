@@ -1578,4 +1578,23 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   .print-logo {
     text-align: center !important;
   }
+  
+}
+.env-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-left:8px;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:800;
+  line-height:1;
+  white-space:nowrap;
+  vertical-align:middle;
+  color:#ffffff !important;
+}
+
+.env-badge--recette{
+  background:#ff9800;
 }
