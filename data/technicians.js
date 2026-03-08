@@ -30,7 +30,6 @@
     ["CORREIA", "Christopher", "A37272", "Laetitia Romao", false, false],
     ["DADSI", "Amine", "E23680", "Mustapha Arbib", true, true],
     ["DEBY", "Medhi", "J19576", "Laetitia Romao", true, true],
-    ["DESFONTAINES", "Richard", "E51772", "Narith Nhiv", false, false],
     ["DIALLO", "Amadou", "A73777", "Sabrina Salemkour", true, true],
     ["DUBOIS", "Guillaume", "E34879", "Laetitia Romao", true, true],
     ["DUCOLLET", "Jérémy", "J04081", "Zied Zeramdini", true, true],
