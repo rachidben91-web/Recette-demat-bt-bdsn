@@ -1580,18 +1580,3 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   }
   
 }
-.env-badge__text{
-  all:unset;
-  display:block;
-  font-size:12px;
-  font-weight:900;
-  line-height:1;
-  color:#111111 !important;
-  -webkit-text-fill-color:#111111 !important;
-  text-transform:uppercase;
-  font-family:Arial, sans-serif;
-}
-
-.env-badge--recette{
-  background:#f57c00;
-}
