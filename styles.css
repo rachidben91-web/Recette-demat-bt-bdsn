@@ -1580,22 +1580,16 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
   }
   
 }
-.env-badge{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  margin-left:10px;
-  padding:5px 12px;
-  min-width:78px;
-  border-radius:999px;
+.env-badge__text{
+  all:unset;
+  display:block;
   font-size:12px;
   font-weight:900;
   line-height:1;
-  white-space:nowrap;
-  vertical-align:middle;
-  color:#ffffff !important;
-  border:2px solid #ffffff;
-  box-sizing:border-box;
+  color:#111111 !important;
+  -webkit-text-fill-color:#111111 !important;
+  text-transform:uppercase;
+  font-family:Arial, sans-serif;
 }
 
 .env-badge--recette{
