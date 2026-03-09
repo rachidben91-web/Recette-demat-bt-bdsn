@@ -272,6 +272,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Bouton Export Journée (Brief)
+    const btnExportDay = document.getElementById('btnExportDay');
+    if (btnExportDay) {
+        btnExportDay.addEventListener('click', async () => {
+            if (typeof exportDayPdfAndPrepareMail === 'function') {
+                await exportDayPdfAndPrepareMail();
+            } else if (typeof exportDayPDF === 'function') {
+                await exportDayPDF();
+            }
+        });
+    }
+
     // Bouton Fermer + Backdrop (tous les éléments data-close)
     document.querySelectorAll('[data-close]').forEach(el => {
         el.addEventListener('click', () => {

@@ -128,11 +128,16 @@ async function exportDayPDF() {
 
   if (!btList || btList.length === 0) {
     alert("Aucun BT à exporter dans la vue actuelle.");
-    return;
+    return false;
   }
-  if (!state.pdf) return;
+  if (!state.pdf) {
+    alert("Aucun PDF source chargé.");
+    return false;
+  }
 
-  if (!confirm(`Confirmez-vous l'export de ${btList.length} BT et de leurs pièces jointes ?`)) return;
+  if (!confirm(`Confirmez-vous l'export de ${btList.length} BT et de leurs pièces jointes ?`)) {
+    return false;
+  }
 
   try {
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -168,11 +173,133 @@ async function exportDayPDF() {
 
     setProgress(100, `Terminé : ${btList.length} BT exportés.`);
     setTimeout(() => setProgress(0, "Prêt"), 3000);
+    return true;
   } catch (e) {
     console.error("Erreur export Journée:", e);
     setProgress(0, "Erreur export global.");
     alert("Erreur lors de l'export groupé : " + e.message);
+    return false;
   }
+}
+
+let TECH_EMAILS_CACHE = null;
+
+function normalizeForMatch(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\s\-']/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+async function loadTechnicianEmailsVlg() {
+  if (Array.isArray(TECH_EMAILS_CACHE)) return TECH_EMAILS_CACHE;
+
+  const res = await fetch("./data/agents-mails-techniciens-vlg.json", { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`Impossible de charger la source emails (HTTP ${res.status}).`);
+  }
+
+  const data = await res.json();
+  if (!Array.isArray(data)) {
+    throw new Error("Format invalide pour la source emails techniciens.");
+  }
+
+  TECH_EMAILS_CACHE = data;
+  return TECH_EMAILS_CACHE;
+}
+
+function findTechnicianEmail(tech, emailRows) {
+  if (!tech || !Array.isArray(emailRows)) return null;
+
+  const techNni = String(tech.nni || tech.id || "").trim().toUpperCase();
+  if (techNni) {
+    const byNni = emailRows.find(row => {
+      const nniSimple = String(row?.nni_simplifie || "").trim().toUpperCase();
+      const nniFull = String(row?.nni || "").trim().toUpperCase().replace(/[A-Z]+$/, "");
+      return nniSimple === techNni || nniFull === techNni;
+    });
+    if (byNni && byNni.mail) return byNni.mail;
+  }
+
+  const techLast = normalizeForMatch(tech.lastName);
+  const techFirst = normalizeForMatch(tech.firstName);
+  if (techLast && techFirst) {
+    const byName = emailRows.find(row => {
+      const rowLast = normalizeForMatch(row?.nom);
+      const rowFirst = normalizeForMatch(row?.prenom);
+      return rowLast === techLast && rowFirst === techFirst;
+    });
+    if (byName && byName.mail) return byName.mail;
+  }
+
+  const techFull = normalizeForMatch(tech.name);
+  if (techFull) {
+    const byFullName = emailRows.find(row => normalizeForMatch(row?.search_salarie || row?.salarie) === techFull);
+    if (byFullName && byFullName.mail) return byFullName.mail;
+  }
+
+  return null;
+}
+
+function getDisplayedBriefDate() {
+  const topDatetime = document.getElementById("topDatetime");
+  const displayed = String(topDatetime?.textContent || "");
+  if (displayed.includes("—")) {
+    return displayed.split("—")[0].trim();
+  }
+  return new Date().toLocaleDateString("fr-FR");
+}
+
+function buildMailtoUrl({ to, subject, body }) {
+  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+async function exportDayPdfAndPrepareMail() {
+  const techId = state?.filters?.techId || "";
+  if (!techId) {
+    alert("Sélectionnez un technicien dans le filtre avant de générer le PDF et préparer le mail.");
+    return;
+  }
+
+  const techs = window.TECHNICIANS || [];
+  const tech = techs.find(t => techKey(t) === techId);
+  if (!tech) {
+    alert("Technicien sélectionné introuvable.");
+    return;
+  }
+
+  let emailRows;
+  try {
+    emailRows = await loadTechnicianEmailsVlg();
+  } catch (err) {
+    console.error("Erreur chargement emails techniciens:", err);
+    alert("Impossible de charger la liste des emails techniciens (RECETTE).");
+    return;
+  }
+
+  const technicianEmail = findTechnicianEmail(tech, emailRows);
+  if (!technicianEmail) {
+    alert("Aucun email trouvé pour ce technicien dans data/agents-mails-techniciens-vlg.json.");
+    return;
+  }
+
+  const pdfGenerated = await exportDayPDF();
+  if (!pdfGenerated) return;
+
+  const displayedDate = getDisplayedBriefDate();
+  const techDisplayName = `${tech.lastName || ""} ${tech.firstName || ""}`.trim() || tech.name || techId;
+  const subject = `BT du ${displayedDate} - ${techDisplayName}`;
+  const body = `Bonjour,\n\nVeuillez trouver ci-joint votre BT du jour.\n\nCordialement.`;
+  const mailtoUrl = buildMailtoUrl({
+    to: technicianEmail,
+    subject,
+    body
+  });
+
+  window.location.href = mailtoUrl;
 }
 
 /**
