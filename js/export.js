@@ -291,8 +291,25 @@ async function exportDayPdfAndPrepareMail() {
 
   const displayedDate = getDisplayedBriefDate();
   const techDisplayName = `${tech.lastName || ""} ${tech.firstName || ""}`.trim() || tech.name || techId;
+  const technicianBtCount = (state.bts || []).filter(bt =>
+    (bt.team || []).some(member => techKey(mapTechByNni(member.nni)) === techId)
+  ).length;
   const subject = `BT du ${displayedDate} - ${techDisplayName}`;
-  const body = `Bonjour,\n\nVeuillez trouver ci-joint votre BT du jour.\n\nCordialement.`;
+  const btLine = technicianBtCount <= 1
+    ? "📎 Veuillez trouver ci-joint votre BT du jour."
+    : `📎 Veuillez trouver ci-joint vos ${technicianBtCount} BT du jour.`;
+  const body = `Bonjour,
+
+${btLine}
+
+🗓️ Merci de prendre connaissance des éléments transmis avant votre intervention.
+
+📞 Si le briefing avec votre RE a déjà eu lieu, merci de tenir compte des consignes échangées.
+Dans le cas contraire, merci de vous rapprocher de votre RE pour réaliser le briefing avant intervention.
+
+❓ Pour toute question ou besoin de précision, veuillez contacter votre RE ou votre ME.
+
+Cordialement,`;
   const mailtoUrl = buildMailtoUrl({
     to: technicianEmail,
     subject,
