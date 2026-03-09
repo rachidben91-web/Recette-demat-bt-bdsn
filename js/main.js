@@ -1,10 +1,10 @@
-// js/main.js — DEMAT-BT v11.2.1 — 19/02/2026
+// js/main.js — DEMAT-BT v11.3.0 — 19/02/2026
 // Point d'entrée principal
 // FIX v11.2.0: renderAll alias, weather init, refreshAllViews
-// FIX v11.2.1: Modal event listeners + loadBadgeRules() + loadBadgeRules avant cache
+// FIX v11.3.0: Modal event listeners + loadBadgeRules() + loadBadgeRules avant cache
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 DEMAT-BT v11.2.1 démarré.");
+    console.log("🚀 DEMAT-BT v11.3.0 démarré.");
 
     // ============================================================
     // HELPERS UI attendus par pdf-extractor.js
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Charger zones.json
     if (window.loadZones) window.loadZones().catch(err => console.error("[MAIN] Erreur zones:", err));
 
-    // ── FIX v11.2.1 : Charger les règles badges AVANT la restauration du cache ──
+    // ── FIX v11.3.0 : Charger les règles badges AVANT la restauration du cache ──
     // Sans ça, BADGE_RULES reste null → timeline affiche tout en "AUTRES"
     const badgeRulesReady = (typeof loadBadgeRules === 'function')
         ? loadBadgeRules().then(() => console.log("[MAIN] ✅ Badge rules chargées"))
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Désactiver tous les boutons
-        document.querySelectorAll('.seg__btn').forEach(btn => btn.classList.remove('seg__btn--active'));
+        document.querySelectorAll('.seg__btn[data-view]').forEach(btn => btn.classList.remove('seg__btn--active'));
 
         // Afficher la vue demandée
         let targetId = '';
@@ -159,14 +159,17 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Sous-vues (Vignettes / Catégories)
-    document.querySelectorAll('.seg__btn[data-layout]').forEach(btn => {
+    document.querySelectorAll('#referentLayoutSwitch .seg__btn[data-layout]').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            e.target.parentElement.querySelectorAll('.seg__btn').forEach(b => b.classList.remove('seg__btn--active'));
-            e.target.classList.add('seg__btn--active');
+            const currentBtn = e.currentTarget;
+            const parent = currentBtn.parentElement;
+            if (parent) parent.querySelectorAll('.seg__btn').forEach(b => b.classList.remove('seg__btn--active'));
+            currentBtn.classList.add('seg__btn--active');
 
-            const layout = e.currentTarget.dataset.layout;
+            const layout = currentBtn.dataset.layout;
             const gridEl = document.getElementById('btGrid');
             const timelineEl = document.getElementById('btTimeline');
+            state.layout = layout || 'grid';
 
             if (gridEl && timelineEl) {
                 if (layout === 'grid') {
@@ -177,6 +180,37 @@ document.addEventListener('DOMContentLoaded', () => {
                     timelineEl.style.display = 'block';
                 }
             }
+        });
+    });
+
+    // Modes d'affichage BT en vue Référent (grandes/petites/listes)
+    const DISPLAY_MODE_KEY = 'dematbt_referent_display_mode';
+    const allowedDisplayModes = new Set(['large', 'small', 'list']);
+
+    function applyReferentDisplayMode(mode) {
+        const safeMode = allowedDisplayModes.has(mode) ? mode : 'large';
+        state.referentDisplayMode = safeMode;
+
+        document.querySelectorAll('#referentDisplayModeSwitch .seg__btn[data-display-mode]').forEach(btn => {
+            btn.classList.toggle('seg__btn--active', btn.dataset.displayMode === safeMode);
+        });
+
+        const gridEl = document.getElementById('btGrid');
+        if (gridEl) {
+            gridEl.classList.remove('grid--large', 'grid--small', 'grid--list');
+            gridEl.classList.add(`grid--${safeMode}`);
+        }
+
+        localStorage.setItem(DISPLAY_MODE_KEY, safeMode);
+        refreshAllViews();
+    }
+
+    const savedDisplayMode = localStorage.getItem(DISPLAY_MODE_KEY);
+    applyReferentDisplayMode(savedDisplayMode || state.referentDisplayMode || 'large');
+
+    document.querySelectorAll('#referentDisplayModeSwitch .seg__btn[data-display-mode]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            applyReferentDisplayMode(e.currentTarget.dataset.displayMode || 'large');
         });
     });
 
@@ -253,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // 5. MODAL — Événements des boutons (FIX v11.2.1)
+    // 5. MODAL — Événements des boutons (FIX v11.3.0)
     // ============================================================
 
     // Bouton Page Précédente

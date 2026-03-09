@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Recette DEMAT-BT v11.0 — Référent & Brief</title>
+  <title>Recette DEMAT-BT v11.3 — Référent & Brief</title>
   <link rel="icon" type="image/png" href="./favicon.png" />
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./css/components.css" />
@@ -15,7 +15,7 @@
       <img class="brand__logo" src="./assets/grdf-logo.png" alt="GRDF" />
       <div class="brand__text">
         <div class="brand__title">DEMAT-BT <span style="color:#ff1100;">RECETTE</span></div>
-        <div class="brand__sub">Dématérialisation BT — Référent d'équipe</div>
+        <div class="brand__sub">Dématérialisation BT — Référent d'équipe <strong style="color:#17499c;">v11.3.0</strong></div>
       </div>
     </div>
 
@@ -132,7 +132,22 @@
           <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
             <div class="kpis" id="kpis"></div>
             
-            <div class="seg">
+            <div class="display-modes" aria-label="Mode d'affichage Référent">
+              <span class="display-modes__label">Affichage BT</span>
+              <div class="seg" id="referentDisplayModeSwitch">
+                <button class="seg__btn" data-display-mode="large" title="Grandes vignettes">
+                  <span>▦</span> Grandes vignettes
+                </button>
+                <button class="seg__btn" data-display-mode="small" title="Petites vignettes">
+                  <span>▤</span> Petites vignettes
+                </button>
+                <button class="seg__btn" data-display-mode="list" title="Vue liste">
+                  <span>☰</span> Liste
+                </button>
+              </div>
+            </div>
+
+            <div class="seg" id="referentLayoutSwitch">
               <button class="seg__btn seg__btn--active" data-layout="grid">
                 <span>◼</span> Vignettes
               </button>

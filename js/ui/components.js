@@ -102,10 +102,11 @@ function createDocButtons(bt, opts = {}) {
   const container = document.createElement("div");
   container.className = opts.className || "btActions";
 
-  for (const doc of bt.docs || []) {
+  const docs = opts.compact ? (bt.docs || []).slice(0, 3) : (bt.docs || []);
+  for (const doc of docs) {
     const config = DOC_TYPES_CONFIG[doc.type];
     const btn = document.createElement("button");
-    btn.className = `doc-btn doc-btn--${doc.type.toLowerCase()}`;
+    btn.className = `doc-btn doc-btn--${doc.type.toLowerCase()}${opts.compact ? " doc-btn--compact" : ""}`;
     btn.innerHTML = `
       <span>${config.icon}</span>
       <span class="doc-btn__label">${doc.type}</span>
@@ -121,10 +122,20 @@ function createDocButtons(bt, opts = {}) {
 // -------------------------
 // Métadonnées BT (date, durée, objet, client, adresse, AT)
 // -------------------------
-function createBTMeta(bt) {
+function createBTMeta(bt, opts = {}) {
   const div = document.createElement("div");
-  div.className = "bt-meta";
+  div.className = `bt-meta${opts.compact ? " bt-meta--compact" : ""}`;
   const duree = formatDuree(bt.duree);
+
+  if (opts.compact) {
+    div.innerHTML = `
+      <div>📅 ${bt.datePrevue || "—"}${duree ? ` · ⏱️ ${duree}` : ""}</div>
+      <div>📋 ${bt.objet || "—"}</div>
+      <div>👤 ${bt.client || "—"}</div>
+    `;
+    return div;
+  }
+
   div.innerHTML = `
     <div>📅 ${bt.datePrevue || "—"}</div>
     ${duree ? `<div>⏱️ ${duree}</div>` : ""}

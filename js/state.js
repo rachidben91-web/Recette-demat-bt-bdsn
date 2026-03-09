@@ -3,7 +3,7 @@
    Mis à jour : Intégration FOR-113 et nouveaux types de pièces jointes
 */
 
-const APP_VERSION = "V11.0.0";
+const APP_VERSION = "V11.3.0";
 
 /**
  * Configuration des types de documents détectables.
@@ -40,6 +40,7 @@ const state = {
   // Interface et navigation
   view: "referent",    // Vue actuelle : "referent" (globale) ou "brief" (technicien)
   layout: "grid",      // Layout en vue référent : "grid" (vignettes) ou "timeline" (activités)
+  referentDisplayMode: "large", // Mode d'affichage référent : "large", "small" ou "list"
   
   // Filtres de recherche et d'affichage
   filters: {
