@@ -605,7 +605,10 @@ body{
 .referent-group__grid{ margin-top:0; }
 
 .referent-group--small .referent-group__grid{
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-auto-flow: row dense;
+  align-items:stretch;
   gap:8px;
 }
 
