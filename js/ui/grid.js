@@ -1,4 +1,4 @@
-/* js/ui/grid.js — DEMAT-BT v11.4.0 — 09/03/2026
+/* js/ui/grid.js — DEMAT-BT v11.5.0 — 09/03/2026
    Vue Référent : grandes vignettes, petites vignettes, liste
 */
 
@@ -150,6 +150,31 @@ function renderGrid(filtered, grid) {
     return tableWrap;
   }
 
+  function createGroupSection(group, sectionMode = "large") {
+    const section = document.createElement("div");
+    section.className = `referent-group referent-group--${sectionMode}`;
+
+    const title = document.createElement("div");
+    title.className = "card__title referent-group__title";
+    title.textContent = `${group.label} — ${group.items.length} BT`;
+    section.appendChild(title);
+
+    if (sectionMode === "list") {
+      section.appendChild(createListView(group.items));
+      return section;
+    }
+
+    const groupGrid = document.createElement("div");
+    groupGrid.className = `grid ${sectionMode === "small" ? "grid--small" : "grid--large"} referent-group__grid`;
+
+    for (const bt of group.items) {
+      groupGrid.appendChild(createBtCard(bt, sectionMode === "small" ? "small" : "large"));
+    }
+
+    section.appendChild(groupGrid);
+    return section;
+  }
+
   const groups = new Map();
   for (const bt of filtered) {
     const info = buildTeamGroupInfo(bt);
@@ -161,26 +186,6 @@ function renderGrid(filtered, grid) {
     a.label.localeCompare(b.label, "fr", { sensitivity: "base" })
   );
 
-  if (mode === "small" || mode === "list") {
-    const allItems = sortedGroups.flatMap(group => group.items);
-    allItems.sort((a, b) => {
-      const sa = getBtSortTuple(a);
-      const sb = getBtSortTuple(b);
-      if (sa.start !== sb.start) return sa.start - sb.start;
-      return sa.id.localeCompare(sb.id, "fr", { numeric: true, sensitivity: "base" });
-    });
-
-    if (mode === "list") {
-      grid.appendChild(createListView(allItems));
-      return;
-    }
-
-    for (const bt of allItems) {
-      grid.appendChild(createBtCard(bt, "small"));
-    }
-    return;
-  }
-
   for (const group of sortedGroups) {
     group.items.sort((a, b) => {
       const sa = getBtSortTuple(a);
@@ -188,27 +193,6 @@ function renderGrid(filtered, grid) {
       if (sa.start !== sb.start) return sa.start - sb.start;
       return sa.id.localeCompare(sb.id, "fr", { numeric: true, sensitivity: "base" });
     });
-
-    const section = document.createElement("div");
-    section.style.gridColumn = "1 / -1";
-    section.style.display = "flex";
-    section.style.flexDirection = "column";
-    section.style.gap = "10px";
-
-    const title = document.createElement("div");
-    title.className = "card__title";
-    title.textContent = `${group.label} — ${group.items.length} BT`;
-    section.appendChild(title);
-
-    const groupGrid = document.createElement("div");
-    groupGrid.className = "grid grid--large";
-    groupGrid.style.marginTop = "0";
-
-    for (const bt of group.items) {
-      groupGrid.appendChild(createBtCard(bt, "large"));
-    }
-    section.appendChild(groupGrid);
-
-    grid.appendChild(section);
+    grid.appendChild(createGroupSection(group, mode));
   }
 }

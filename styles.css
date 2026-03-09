@@ -595,6 +595,25 @@ body{
   gap:14px;
 }
 
+.referent-group{
+  grid-column:1 / -1;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.referent-group__grid{ margin-top:0; }
+
+.referent-group--small .referent-group__grid{
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap:8px;
+}
+
+.referent-group--list .referent-group__title{
+  font-size:13px;
+  margin-bottom:-2px;
+}
+
 /* =====================
    TIMELINE VIEW (Planning journalier)
    ===================== */
