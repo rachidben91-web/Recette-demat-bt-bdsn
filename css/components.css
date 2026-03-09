@@ -1,139 +1,44 @@
-/* css/components.css — DEMAT-BT v11.0.0 — 16/02/2026
-   Classes CSS pour les composants partagés et nouveaux types de docs
+/* css/components.css — DEMAT-BT v11.3.0 — 09/03/2026
+   Classes CSS pour les composants partagés
 */
 
-/* ===============================
-   PDF Day Premium Display (Topbar)
-   =============================== */
-.pdf-day-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.pdf-day-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.6px;
-  color: #64748b;
-}
-
+.pdf-day-wrapper { display: flex; flex-direction: column; gap: 6px; }
+.pdf-day-label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; color: #64748b; }
 .pdf-day-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: inline-flex; align-items: center; gap: 6px;
   background: linear-gradient(135deg, #eef2ff, #e0e7ff);
-  color: #1e3a8a;
-  padding: 6px 10px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: 0 2px 6px rgba(30, 58, 138, 0.08);
-  transition: all 0.2s ease;
+  color: #1e3a8a; padding: 6px 10px; border-radius: 12px; font-size: 13px; font-weight: 600;
 }
+.pdf-day-icon { font-size: 14px; }
 
-.pdf-day-badge:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(30, 58, 138, 0.12);
-}
+.category-badge { display: inline-block; border-radius: 999px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; line-height: 1.2; }
+.category-badge--sm { padding: 4px 10px; font-size: 10px; }
+.category-badge--md { padding: 6px 12px; font-size: 11px; }
 
-.pdf-day-icon {
-  font-size: 14px;
-}
+.team-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.team-line__unknown { font-style: italic; opacity: 0.7; }
+.team-line__sep { color: var(--muted); }
 
-/* =====================
-   CATEGORY BADGE (pastille métier)
-   ===================== */
-.category-badge {
-  display: inline-block;
-  border-radius: 999px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #fff;
-  line-height: 1.2;
-}
-.category-badge--sm {
-  padding: 4px 10px;
-  font-size: 10px;
-}
-.category-badge--md {
-  padding: 6px 12px;
-  font-size: 11px;
-}
+.ptc-ptd-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; border: 1.5px solid; }
+.ptc-ptd--ptc { background: #dbeafe; color: #1e40af; border-color: #3b82f6; }
+.ptc-ptd--ptd { background: #fef3c7; color: #92400e; border-color: #f59e0b; }
+.ptc-ptd--both { background: #dcfce7; color: #166534; border-color: #10b981; }
 
-/* =====================
-   TEAM LINE
-   ===================== */
-.team-line {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  font-size: 13px;
-  color: var(--muted);
-}
-.team-line__unknown {
-  font-style: italic;
-  opacity: 0.7;
-}
-.team-line__sep {
-  color: var(--muted);
-}
-
-/* =====================
-   PTC / PTD BADGES (Précision terrain)
-   ===================== */
-.ptc-ptd-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  border: 1.5px solid;
-}
-.ptc-ptd--ptc {
-  background: #dbeafe;
-  color: #1e40af;
-  border-color: #3b82f6;
-}
-.ptc-ptd--ptd {
-  background: #fef3c7;
-  color: #92400e;
-  border-color: #f59e0b;
-}
-.ptc-ptd--both {
-  background: #dcfce7;
-  color: #166534;
-  border-color: #10b981;
-}
-
-/* =====================
-   DOC BUTTONS (Précision des types)
-   ===================== */
 .doc-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1.5px solid var(--line);
-  background: #fff;
-  border-radius: var(--radius-xs);
-  padding: 8px 12px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 12px;
-  color: var(--txt-light);
-  transition: var(--transition);
-  box-shadow: var(--shadow-sm);
+  display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--line); background: #fff;
+  border-radius: var(--radius-xs); padding: 8px 12px; cursor: pointer; font-weight: 700; font-size: 12px;
+  color: var(--txt-light); transition: var(--transition); box-shadow: var(--shadow-sm);
 }
-.doc-btn:hover {
-  background: #fafbfc;
-  border-color: var(--line-strong);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow);
-}
+.doc-btn:hover { background: #fafbfc; border-color: var(--line-strong); transform: translateY(-1px); box-shadow: var(--shadow); }
+.doc-btn--compact { padding: 6px 9px; font-size: 11px; }
 .doc-btn__label { font-weight: 800; }
 .doc-btn__page { opacity: 0.7; font-size: 11px; }
 
-/* Variantes de couleurs précises basées sur DOC_TYPES_CONFIG */
-.doc-btn--bt     { border-color: #1e293b; color: #1e293
+.doc-btn--bt { border-color: #17499c; color: #17499c; }
+.doc-btn--at { border-color: #059669; color: #059669; }
+.doc-btn--for113 { border-color: #0ea5e9; color: #0ea5e9; }
+.doc-btn--proc { border-color: #2563eb; color: #2563eb; }
+.doc-btn--plan { border-color: #7c3aed; color: #7c3aed; }
+.doc-btn--photo { border-color: #dc2626; color: #dc2626; }
+.doc-btn--street { border-color: #ea580c; color: #ea580c; }
+.doc-btn--doc { border-color: #85ab95; color: #355145; }

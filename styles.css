@@ -460,6 +460,20 @@ body{
   margin-right:4px;
 }
 
+.display-modes{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.display-modes__label{
+  font-size:11px;
+  font-weight:700;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
 /* =====================
    PROGRESS BAR
    ===================== */
@@ -565,8 +579,19 @@ body{
    ===================== */
 .grid{
   margin-top:16px;
-  display:grid; 
-  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); 
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  gap:14px;
+}
+
+.grid--small{
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap:10px;
+}
+
+.grid--list{
+  display:flex;
+  flex-direction:column;
   gap:14px;
 }
 
@@ -804,6 +829,78 @@ body{
   padding:8px 12px;
   border-radius:var(--radius-xs);
 }
+
+
+.bt-meta{
+  font-size:13px;
+  color:var(--muted);
+  margin-bottom:12px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-weight:500;
+}
+
+.bt-meta--compact{
+  font-size:12px;
+  gap:4px;
+  margin-bottom:8px;
+}
+
+.bt-meta > div{
+  line-height:1.4;
+}
+
+.btCard--small{
+  padding:12px;
+}
+
+.btCard--small .btTop{ margin-bottom:8px; }
+.btCard--small .btId{ font-size:15px; }
+.bt-doc-count{ font-size:11px; color:var(--muted); }
+
+.bt-list{
+  border:1.5px solid var(--line);
+  border-radius:var(--radius-sm);
+  overflow:auto;
+  background:#fff;
+}
+
+.bt-list__table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:760px;
+}
+
+.bt-list__table th,
+.bt-list__table td{
+  padding:10px 12px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+  font-size:13px;
+  vertical-align:middle;
+}
+
+.bt-list__table th{
+  font-size:12px;
+  color:var(--txt-light);
+  background:#f8fafc;
+}
+
+.list-sub{ font-size:11px; color:var(--muted); }
+.list-time{ font-weight:700; }
+.list-docs{
+  display:inline-flex;
+  min-width:28px;
+  justify-content:center;
+  border-radius:999px;
+  background:#e2e8f0;
+  color:#0f172a;
+  padding:2px 8px;
+  font-weight:800;
+}
+
+.btn-open-bt{ padding:6px 10px; font-size:12px; }
 
 /* =====================
    CHIPS (Filters)
@@ -1600,4 +1697,9 @@ table.history-table td { padding: 8px 10px; border-bottom: 1px solid var(--line)
     text-align: center !important;
   }
   
+}
+
+@media (max-width: 900px){
+  .display-modes{ width:100%; }
+  #referentDisplayModeSwitch{ width:100%; }
 }

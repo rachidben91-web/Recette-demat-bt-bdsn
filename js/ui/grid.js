@@ -1,10 +1,13 @@
-/* js/ui/grid.js — DEMAT-BT v11.0.0 — 16/02/2026
-   Vue vignettes (cartes) — utilise les composants partagés
-   Mise à jour : Intégration des classes de précision pour les types de docs
+/* js/ui/grid.js — DEMAT-BT v11.3.0 — 09/03/2026
+   Vue Référent : grandes vignettes, petites vignettes, liste
 */
 
 function renderGrid(filtered, grid) {
   grid.innerHTML = "";
+  const mode = state?.referentDisplayMode || "large";
+  grid.classList.remove("grid--large", "grid--small", "grid--list");
+  grid.classList.add(`grid--${mode}`);
+
   if (filtered.length === 0) {
     grid.innerHTML = `<div class="hint" style="padding:16px;">Aucun BT à afficher avec ces filtres.</div>`;
     return;
@@ -22,15 +25,11 @@ function renderGrid(filtered, grid) {
       if (!uniq.has(id)) uniq.set(id, name);
     }
 
-    if (uniq.size === 0) {
-      return { key: "__SANS_EQUIPE__", label: "Sans équipe" };
-    }
+    if (uniq.size === 0) return { key: "__SANS_EQUIPE__", label: "Sans équipe" };
 
     const entries = [...uniq.entries()].sort((a, b) => a[1].localeCompare(b[1], "fr", { sensitivity: "base" }));
     const key = entries.map(([id]) => id).join("|");
-    const label = entries.length === 1
-      ? entries[0][1]
-      : entries.map(([, name]) => name).join(" / ");
+    const label = entries.length === 1 ? entries[0][1] : entries.map(([, name]) => name).join(" / ");
 
     return { key, label };
   }
@@ -42,11 +41,14 @@ function renderGrid(filtered, grid) {
     return { start, id };
   }
 
-  function createBtCard(bt) {
-    const card = document.createElement("div");
-    card.className = "card btCard";
+  function getDocCount(bt) {
+    return Array.isArray(bt?.docs) ? bt.docs.length : 0;
+  }
 
-    // Top : ID + badges de comptage par type
+  function createBtCard(bt, cardMode = "large") {
+    const card = document.createElement("div");
+    card.className = `card btCard btCard--${cardMode}`;
+
     const topDiv = document.createElement("div");
     topDiv.className = "btTop";
 
@@ -58,27 +60,80 @@ function renderGrid(filtered, grid) {
     idDiv.textContent = bt.id || "BT ?";
 
     leftSection.appendChild(idDiv);
-    leftSection.appendChild(createCategoryBadge(bt, "sm")); // Pastille métier
+    leftSection.appendChild(createCategoryBadge(bt, "sm"));
     topDiv.appendChild(leftSection);
-    
-    // Les badges de comptage utilisent maintenant les couleurs de DOC_TYPES_CONFIG
-    topDiv.appendChild(createDocBadges(bt));
 
-    // Meta info (Date, Client, Adresse)
-    const metaDiv = createBTMeta(bt);
-    
-    // Équipe et badges PTC/PTD
+    if (cardMode === "large") topDiv.appendChild(createDocBadges(bt));
+
+    const metaDiv = createBTMeta(bt, { compact: cardMode === "small" });
+
     const teamContainer = document.createElement("div");
     teamContainer.appendChild(createTeamLine(bt));
     metaDiv.appendChild(teamContainer);
 
+    if (cardMode === "small") {
+      const docsLine = document.createElement("div");
+      docsLine.className = "bt-doc-count";
+      docsLine.textContent = `📎 ${getDocCount(bt)} document(s)`;
+      metaDiv.appendChild(docsLine);
+    }
+
     card.appendChild(topDiv);
     card.appendChild(metaDiv);
-    
-    // Boutons d'action (Utilisent les classes .doc-btn--type pour la précision)
-    card.appendChild(createDocButtons(bt, { className: "btActions" }));
+    card.appendChild(createDocButtons(bt, { className: "btActions", compact: cardMode === "small" }));
 
     return card;
+  }
+
+  function createListView(items) {
+    const tableWrap = document.createElement("div");
+    tableWrap.className = "bt-list";
+
+    const table = document.createElement("table");
+    table.className = "bt-list__table";
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Heure / durée</th>
+          <th>Technicien</th>
+          <th>Objet</th>
+          <th>Client / localisation</th>
+          <th>Docs</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector("tbody");
+
+    for (const bt of items) {
+      const row = document.createElement("tr");
+      const slot = (typeof extractTimeSlot === "function") ? extractTimeSlot(bt) : null;
+      const timeText = slot?.label || bt.datePrevue || "—";
+      const duration = formatDuree(bt.duree);
+      const techText = (bt.team || []).map(m => mapTechByNni(m?.nni)?.name || m?.nni || "—").join(" / ") || "—";
+      const docsCount = getDocCount(bt);
+      const firstPage = bt.docs?.[0]?.page || bt.pageStart || 1;
+
+      row.innerHTML = `
+        <td><div class="list-time">${timeText}</div>${duration ? `<div class="list-sub">⏱️ ${duration}</div>` : ""}</td>
+        <td>${techText}</td>
+        <td title="${bt.objet || ""}">${bt.objet || "—"}</td>
+        <td>
+          <div>${bt.client || "—"}</div>
+          <div class="list-sub">📍 ${bt.localisation || "—"}</div>
+        </td>
+        <td><span class="list-docs">${docsCount}</span></td>
+        <td><button class="btn btn--secondary btn-open-bt">Ouvrir</button></td>
+      `;
+
+      row.querySelector(".btn-open-bt")?.addEventListener("click", () => openModal(bt, firstPage));
+      tbody.appendChild(row);
+    }
+
+    tableWrap.appendChild(table);
+    return tableWrap;
   }
 
   const groups = new Map();
@@ -111,15 +166,19 @@ function renderGrid(filtered, grid) {
     title.textContent = `${group.label} — ${group.items.length} BT`;
     section.appendChild(title);
 
-    const groupGrid = document.createElement("div");
-    groupGrid.className = "grid";
-    groupGrid.style.marginTop = "0";
+    if (mode === "list") {
+      section.appendChild(createListView(group.items));
+    } else {
+      const groupGrid = document.createElement("div");
+      groupGrid.className = `grid ${mode === "small" ? "grid--small" : "grid--large"}`;
+      groupGrid.style.marginTop = "0";
 
-    for (const bt of group.items) {
-      groupGrid.appendChild(createBtCard(bt));
+      for (const bt of group.items) {
+        groupGrid.appendChild(createBtCard(bt, mode));
+      }
+      section.appendChild(groupGrid);
     }
 
-    section.appendChild(groupGrid);
     grid.appendChild(section);
   }
 }
