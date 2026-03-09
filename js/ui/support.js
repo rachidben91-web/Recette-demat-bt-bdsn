@@ -93,12 +93,13 @@ window.SupportModule = (function() {
     // 3. INITIALISATION & NAVIGATION
     // ============================================================
 
-    function init() {
+    async function init() {
         console.log("🚀 SupportModule : Initialisation...");
         
-        // 1. Charger les Activités (Custom ou Défaut)
+        // 1. Charger les Activités (custom Supabase > custom local > défaut)
         const savedActs = localStorage.getItem('demat_activities');
         activities = savedActs ? JSON.parse(savedActs) : JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
+        await loadActivitiesFromSupabase();
 
         // 2. Charger l'Historique global
         const savedHist = localStorage.getItem('demat_history');
@@ -349,6 +350,7 @@ window.SupportModule = (function() {
         // Sauvegarde Obs Globale
         const obsGlobal = document.getElementById('obsGlobal');
         if(obsGlobal) dayData['__GLOBAL_OBS'] = obsGlobal.value;
+        dayData['__PARAM_ACTIVITIES'] = activities;
 
         // Sauvegarde Lignes
         const rows = document.getElementById('briefTableBody').querySelectorAll('tr');
@@ -410,7 +412,7 @@ window.SupportModule = (function() {
         
         // On ajoute les nouvelles données significatives
         Object.keys(data).forEach(agentName => {
-            if(agentName === '__GLOBAL_OBS') return;
+            if(agentName === '__GLOBAL_OBS' || agentName === '__PARAM_ACTIVITIES') return;
             
             const d = data[agentName];
             // On ne garde en historique que si il y a une activité ou une obs
@@ -499,8 +501,59 @@ window.SupportModule = (function() {
 
     function saveActivities() {
         localStorage.setItem('demat_activities', JSON.stringify(activities));
+
+        // Synchronisation cloud best-effort (sans bloquer l'UI)
+        saveActivitiesToSupabase();
+
         renderParams(); // Mettre à jour la grille
         renderTable();  // Mettre à jour le tableau principal (couleurs)
+    }
+
+    async function saveActivitiesToSupabase() {
+        if (!window.SupportStore || !window.supabaseClient) return;
+
+        try {
+            const { data: authData } = await window.supabaseClient.auth.getUser();
+            if (!authData?.user) return;
+
+            const key = formatDateKey(currentDate);
+            const row = await window.SupportStore.loadSupport({ jour: key });
+            const payload = row?.payload || {};
+            payload.__PARAM_ACTIVITIES = activities;
+
+            await window.SupportStore.saveSupport(payload, { jour: key });
+            console.log("☁️ Param activités sauvegardés sur Supabase pour", key);
+        } catch (e) {
+            console.warn("⚠️ Sauvegarde Supabase des paramètres activités échouée:", e.message);
+        }
+    }
+
+    async function loadActivitiesFromSupabase() {
+        if (!window.SupportStore || !window.supabaseClient) return;
+
+        try {
+            const { data: authData } = await window.supabaseClient.auth.getUser();
+            if (!authData?.user) return;
+
+            const { data: rows, error } = await window.supabaseClient
+                .from("support_journee")
+                .select("jour, payload")
+                .eq("site", "VLG")
+                .order("jour", { ascending: false })
+                .limit(90);
+
+            if (error) throw error;
+            if (!rows?.length) return;
+
+            const rowWithParams = rows.find(r => Array.isArray(r?.payload?.__PARAM_ACTIVITIES));
+            if (!rowWithParams) return;
+
+            activities = rowWithParams.payload.__PARAM_ACTIVITIES;
+            localStorage.setItem('demat_activities', JSON.stringify(activities));
+            console.log("☁️ Param activités chargés depuis Supabase (jour:", rowWithParams.jour + ")");
+        } catch (e) {
+            console.warn("⚠️ Chargement Supabase des paramètres activités échoué:", e.message);
+        }
     }
 
     // ============================================================
@@ -549,7 +602,7 @@ window.SupportModule = (function() {
                 const data = row.payload || {};
                 const jour = row.jour;
                 Object.keys(data).forEach(agentName => {
-                    if (agentName === '__GLOBAL_OBS') return;
+                    if (agentName === '__GLOBAL_OBS' || agentName === '__PARAM_ACTIVITIES') return;
                     const d = data[agentName];
                     if (d && (d.act || d.obs || d.briefA === 'OUI' || d.greve === 'OUI')) {
                         newHistory.push({
@@ -665,7 +718,7 @@ window.SupportModule = (function() {
         let csv = "Date;Agent;Activite;Observation;Brief_Agence;Brief_Dist;Debrief_Agence;Debrief_Dist;Grv\n";
         
         Object.keys(dayData).forEach(agentName => {
-            if(agentName === '__GLOBAL_OBS') return;
+            if(agentName === '__GLOBAL_OBS' || agentName === '__PARAM_ACTIVITIES') return;
             const d = dayData[agentName];
             
             // On nettoie les observations pour éviter les erreurs CSV (points virgules, sauts de ligne)
