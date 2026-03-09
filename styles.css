@@ -637,17 +637,29 @@ body{
   padding:0 2px;
   margin:0;
   font-size:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.referent-group__name{
+  min-width:0;
+  font-weight:800;
+}
+
+.referent-group__count{
+  flex:0 0 auto;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+  color:#17499c;
+  background:#e8f1ff;
+  border:1px solid #c8dcff;
 }
 
 .referent-group__grid{ margin-top:0; }
-
-.referent-group--large .referent-group__grid{
-  width:100%;
-  display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  align-items:stretch;
-  gap:12px;
-}
 
 .referent-group--large .referent-group__grid{
   width:100%;

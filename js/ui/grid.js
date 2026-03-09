@@ -1,4 +1,4 @@
-/* js/ui/grid.js — DEMAT-BT v11.5.4 — 09/03/2026
+/* js/ui/grid.js — DEMAT-BT v11.5.5 — 09/03/2026
    Vue Référent : grandes vignettes, petites vignettes, liste
 */
 
@@ -165,7 +165,16 @@ function renderGrid(filtered, grid) {
 
     const title = document.createElement("div");
     title.className = "card__title referent-group__title";
-    title.textContent = `${group.label} — ${group.items.length} BT`;
+
+    const titleName = document.createElement("span");
+    titleName.className = "referent-group__name";
+    titleName.textContent = group.label;
+
+    const titleCount = document.createElement("span");
+    titleCount.className = "referent-group__count";
+    titleCount.textContent = `${group.items.length} BT`;
+
+    title.append(titleName, titleCount);
     section.appendChild(title);
 
     if (sectionMode === "list") {
