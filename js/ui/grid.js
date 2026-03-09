@@ -1,12 +1,15 @@
-/* js/ui/grid.js — DEMAT-BT v11.5.0 — 09/03/2026
+/* js/ui/grid.js — DEMAT-BT v11.5.3 — 09/03/2026
    Vue Référent : grandes vignettes, petites vignettes, liste
 */
 
 function renderGrid(filtered, grid) {
   grid.innerHTML = "";
   const mode = state?.referentDisplayMode || "large";
-  grid.classList.remove("grid--large", "grid--small", "grid--list");
-  grid.classList.add(`grid--${mode}`);
+  grid.classList.remove("grid--large", "grid--small", "grid--list", "grid--grouped-small", "grid--grouped-large");
+  const rootModeClass = mode === "list"
+    ? "grid--list"
+    : (mode === "small" ? "grid--grouped-small" : "grid--grouped-large");
+  grid.classList.add(rootModeClass);
 
   if (filtered.length === 0) {
     grid.innerHTML = `<div class="hint" style="padding:16px;">Aucun BT à afficher avec ces filtres.</div>`;
