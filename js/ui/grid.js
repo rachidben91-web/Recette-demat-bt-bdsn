@@ -1,12 +1,14 @@
-/* js/ui/grid.js — DEMAT-BT v11.5.1 — 09/03/2026
+/* js/ui/grid.js — DEMAT-BT v11.5.2 — 09/03/2026
    Vue Référent : grandes vignettes, petites vignettes, liste
 */
 
 function renderGrid(filtered, grid) {
   grid.innerHTML = "";
   const mode = state?.referentDisplayMode || "large";
-  grid.classList.remove("grid--large", "grid--small", "grid--list", "grid--grouped-small");
-  const rootModeClass = mode === "small" ? "grid--grouped-small" : `grid--${mode}`;
+  grid.classList.remove("grid--large", "grid--small", "grid--list", "grid--grouped-small", "grid--grouped-large");
+  const rootModeClass = mode === "list"
+    ? "grid--list"
+    : (mode === "small" ? "grid--grouped-small" : "grid--grouped-large");
   grid.classList.add(rootModeClass);
 
   if (filtered.length === 0) {
