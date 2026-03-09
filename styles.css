@@ -585,7 +585,7 @@ body{
 }
 
 .grid--small{
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap:10px;
 }
 
@@ -864,20 +864,21 @@ body{
   border-radius:var(--radius-sm);
   overflow:auto;
   background:#fff;
+  width:100%;
 }
 
 .bt-list__table{
   width:100%;
   border-collapse:collapse;
-  min-width:760px;
+  min-width:980px;
 }
 
 .bt-list__table th,
 .bt-list__table td{
-  padding:10px 12px;
+  padding:8px 10px;
   border-bottom:1px solid var(--line);
   text-align:left;
-  font-size:13px;
+  font-size:12px;
   vertical-align:middle;
 }
 
@@ -889,6 +890,10 @@ body{
 
 .list-sub{ font-size:11px; color:var(--muted); }
 .list-time{ font-weight:700; }
+.bt-list__table .category-badge{ margin-top:4px; }
+.bt-list__table .team-line{ font-size:12px; gap:4px; }
+.bt-list__table .team-line__sep{ margin:0 1px; }
+.team-line--compact{ gap:4px; }
 .list-docs{
   display:inline-flex;
   min-width:28px;

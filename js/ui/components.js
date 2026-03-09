@@ -25,13 +25,19 @@ function createCategoryBadge(bt, size = "sm") {
 // -------------------------
 // Ligne d'équipe avec badges PTC/PTD
 // -------------------------
-function createTeamLine(bt) {
+function createTeamLine(bt, opts = {}) {
+  const showIcon = opts.showIcon !== false;
+  const compact = opts.compact === true;
+
   const line = document.createElement("div");
   line.className = "team-line";
+  if (compact) line.classList.add("team-line--compact");
 
-  const icon = document.createElement("span");
-  icon.textContent = "👥 ";
-  line.appendChild(icon);
+  if (showIcon) {
+    const icon = document.createElement("span");
+    icon.textContent = "👥 ";
+    line.appendChild(icon);
+  }
 
   if (!bt.team || bt.team.length === 0) {
     const empty = document.createElement("span");
