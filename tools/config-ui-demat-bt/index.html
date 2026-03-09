@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Config UI DEMAT-BT — Studio local</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Config UI DEMAT-BT</h1>
+      <p>Studio local autonome pour générer des overrides visuels DEMAT-BT.</p>
+    </div>
+    <div class="topbar__actions">
+      <button id="btnReset" class="btn btn--secondary" type="button">Réinitialiser</button>
+      <button id="btnExportJson" class="btn" type="button">Exporter JSON</button>
+      <button id="btnExportCss" class="btn" type="button">Exporter CSS</button>
+      <button id="btnExportNotes" class="btn btn--secondary" type="button">Exporter notes</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel form-panel">
+      <section class="group">
+        <h2>Couleurs</h2>
+        <div class="row2">
+          <label>Primary <input type="color" id="primary" /></label>
+          <label>Primary dark <input type="color" id="primaryDark" /></label>
+          <label>Primary light <input type="color" id="primaryLight" /></label>
+          <label>Accent blue <input type="color" id="accentBlue" /></label>
+          <label>Accent green <input type="color" id="accentGreen" /></label>
+          <label>Accent orange <input type="color" id="accentOrange" /></label>
+          <label>Accent red <input type="color" id="accentRed" /></label>
+          <label>Texte <input type="color" id="text" /></label>
+          <label>Ligne <input type="color" id="line" /></label>
+          <label>Carte <input type="color" id="card" /></label>
+          <label>Fond body <input type="color" id="bodyBackground" /></label>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2>Rayons & Ombres</h2>
+        <div class="row2">
+          <label>Radius global <input type="text" id="radiusLg" placeholder="16px" /></label>
+          <label>Radius boutons <input type="text" id="buttonRadius" placeholder="12px" /></label>
+          <label>Shadow sm <input type="text" id="shadowSm" /></label>
+          <label>Shadow md <input type="text" id="shadowMd" /></label>
+          <label>Shadow lg <input type="text" id="shadowLg" /></label>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2>Espacements, densité, typo</h2>
+        <div class="row2">
+          <label>Layout gap <input type="text" id="layoutGap" /></label>
+          <label>Layout padding <input type="text" id="layoutPadding" /></label>
+          <label>Card padding <input type="text" id="cardPadding" /></label>
+          <label>Button py <input type="text" id="buttonPaddingY" /></label>
+          <label>Button px <input type="text" id="buttonPaddingX" /></label>
+          <label>Button font-size <input type="text" id="buttonFontSize" /></label>
+          <label>Base font-size <input type="text" id="baseFontSize" /></label>
+          <label>H2 size <input type="text" id="h2Size" /></label>
+          <label>Densité
+            <select id="densityMode">
+              <option value="normal">Normal</option>
+              <option value="compact">Compact</option>
+              <option value="comfortable">Confortable</option>
+            </select>
+          </label>
+          <label>Table compacte
+            <select id="tableCompact">
+              <option value="false">Non</option>
+              <option value="true">Oui</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2>Cartes / vignettes Référent</h2>
+        <div class="row2">
+          <label>Grid large min <input type="text" id="gridLargeMinWidth" /></label>
+          <label>Grid small min <input type="text" id="gridSmallMinWidth" /></label>
+          <label>Group large min <input type="text" id="groupLargeCardMinWidth" /></label>
+          <label>Group small min <input type="text" id="groupSmallCardMinWidth" /></label>
+        </div>
+      </section>
+    </aside>
+
+    <section class="panel preview-panel">
+      <h2>Preview local (indicatif)</h2>
+      <div class="preview-canvas" id="previewCanvas">
+        <div class="preview-topbar">DEMAT-BT</div>
+        <div class="preview-grid">
+          <article class="preview-card">
+            <h3>Carte BT</h3>
+            <p>Styles de vignettes/cartes.</p>
+            <button class="preview-btn">Action</button>
+          </article>
+          <article class="preview-card">
+            <h3>Carte Brief</h3>
+            <p>Bordures / ombres / padding.</p>
+            <button class="preview-btn preview-btn--secondary">Secondaire</button>
+          </article>
+        </div>
+      </div>
+
+      <h2>Sortie CSS générée</h2>
+      <textarea id="cssOutput" rows="16" readonly></textarea>
+
+      <h2>Sortie JSON générée</h2>
+      <textarea id="jsonOutput" rows="12" readonly></textarea>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
