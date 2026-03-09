@@ -59,6 +59,7 @@ window.SupportModule = (function() {
 
     // Codes considérés comme "Absence" pour les KPIs et l'affichage rouge
     const ABSENCE_CODES = new Set(["CP","10","21","41","RTT","ABS","PAT","MALADIE"]);
+    const PARAMS_JOUR_KEY = "__PARAM_ACTIVITIES__";
 
     // ============================================================
     // 2. UTILITAIRES
@@ -100,6 +101,17 @@ window.SupportModule = (function() {
         const savedActs = localStorage.getItem('demat_activities');
         activities = savedActs ? JSON.parse(savedActs) : JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
         await loadActivitiesFromSupabase();
+
+        // Recharger les paramètres dès qu'une session Supabase devient active
+        if (window.supabaseClient?.auth?.onAuthStateChange) {
+            window.supabaseClient.auth.onAuthStateChange(async (event, session) => {
+                if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+                    await loadActivitiesFromSupabase();
+                    renderParams();
+                    renderTable();
+                }
+            });
+        }
 
         // 2. Charger l'Historique global
         const savedHist = localStorage.getItem('demat_history');
@@ -516,13 +528,13 @@ window.SupportModule = (function() {
             const { data: authData } = await window.supabaseClient.auth.getUser();
             if (!authData?.user) return;
 
-            const key = formatDateKey(currentDate);
-            const row = await window.SupportStore.loadSupport({ jour: key });
-            const payload = row?.payload || {};
-            payload.__PARAM_ACTIVITIES = activities;
-
-            await window.SupportStore.saveSupport(payload, { jour: key });
-            console.log("☁️ Param activités sauvegardés sur Supabase pour", key);
+            // Sauvegarde dédiée des paramètres pour éviter toute dépendance
+            // à la sauvegarde de la fiche du jour.
+            await window.SupportStore.saveSupport(
+                { __PARAM_ACTIVITIES: activities },
+                { jour: PARAMS_JOUR_KEY }
+            );
+            console.log("☁️ Param activités sauvegardés sur Supabase (clé dédiée)");
         } catch (e) {
             console.warn("⚠️ Sauvegarde Supabase des paramètres activités échouée:", e.message);
         }
@@ -535,6 +547,23 @@ window.SupportModule = (function() {
             const { data: authData } = await window.supabaseClient.auth.getUser();
             if (!authData?.user) return;
 
+            // 1) Source principale : ligne dédiée
+            const { data: dedicated, error: dedicatedErr } = await window.supabaseClient
+                .from("support_journee")
+                .select("payload")
+                .eq("site", "VLG")
+                .eq("jour", PARAMS_JOUR_KEY)
+                .maybeSingle();
+
+            if (dedicatedErr) throw dedicatedErr;
+            if (Array.isArray(dedicated?.payload?.__PARAM_ACTIVITIES)) {
+                activities = dedicated.payload.__PARAM_ACTIVITIES;
+                localStorage.setItem('demat_activities', JSON.stringify(activities));
+                console.log("☁️ Param activités chargés depuis Supabase (clé dédiée)");
+                return;
+            }
+
+            // 2) Fallback de migration : scanner les dernières fiches jour
             const { data: rows, error } = await window.supabaseClient
                 .from("support_journee")
                 .select("jour, payload")
