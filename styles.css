@@ -79,8 +79,8 @@ body{
 }
 
 .brand__logo{
-  width:32px;
-  height:32px;
+  width:auto;
+  height:64px;
   object-fit:contain;
   flex:0 0 auto;
 }
@@ -1186,8 +1186,7 @@ body.flip .kpi{
   }
 
   .brand__logo{
-    width:28px;
-    height:28px;
+    height:44px;
   }
   
   .layout{
