@@ -71,6 +71,23 @@ body{
   backdrop-filter: blur(10px);
 }
 
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+
+.brand__logo{
+  width:32px;
+  height:32px;
+  object-fit:contain;
+  flex:0 0 auto;
+}
+
+.brand__text{
+  min-width:0;
+}
 
 .brand__title{ 
   font-weight:800; 
@@ -1166,6 +1183,11 @@ body.flip .kpi{
 @media (max-width: 640px){
   .topbar{
     padding:12px;
+  }
+
+  .brand__logo{
+    width:28px;
+    height:28px;
   }
   
   .layout{
