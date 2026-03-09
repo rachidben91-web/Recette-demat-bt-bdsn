@@ -644,6 +644,14 @@ body{
   gap:12px;
 }
 
+.referent-group--large .referent-group__grid{
+  width:100%;
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  align-items:stretch;
+  gap:12px;
+}
+
 .referent-group--small .referent-group__grid{
   width:100%;
   display:grid;
