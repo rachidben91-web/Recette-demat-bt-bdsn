@@ -111,8 +111,10 @@ async function loadFromCache() {
     const cacheData = JSON.parse(cached);
     if (!cacheData.bts || !cacheData.bts.length) return false;
 
-    // Restaurer les BT
-    state.bts = cacheData.bts;
+    // Restaurer les BT (+ fusion prudente des doublons multi-pages si la fonction est disponible)
+    state.bts = (typeof window.mergeDuplicateBTs === "function")
+      ? window.mergeDuplicateBTs(cacheData.bts)
+      : cacheData.bts;
     state.pdfName = cacheData.pdfName || "";
     state.countsByTechId = new Map();
 

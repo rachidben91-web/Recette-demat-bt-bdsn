@@ -242,6 +242,161 @@ function parseTeamFromRealisation(text) {
   return out;
 }
 
+function normalizeMergeText(value) {
+  return stripAccents(String(value || ""))
+    .toUpperCase()
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isCloseText(a, b) {
+  const na = normalizeMergeText(a);
+  const nb = normalizeMergeText(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  if (na.length < 8 || nb.length < 8) return false;
+  return na.includes(nb) || nb.includes(na);
+}
+
+function shouldMergeBT(a, b) {
+  if (!a || !b) return false;
+  if ((a.id || "") !== (b.id || "")) return false;
+
+  const dateA = normalizeMergeText(a.datePrevue);
+  const dateB = normalizeMergeText(b.datePrevue);
+  if (dateA && dateB && dateA !== dateB) return false;
+
+  const sameObjet = isCloseText(a.objet, b.objet);
+  const sameLoc = isCloseText(a.localisation, b.localisation);
+  if (sameObjet || sameLoc) return true;
+
+  const atA = normalizeMergeText(a.atNum);
+  const atB = normalizeMergeText(b.atNum);
+  if (atA && atB && atA === atB && dateA && dateB && dateA === dateB) return true;
+
+  // Fallback prudent : même id + même date + aucune info objet/localisation exploitable
+  if (dateA && dateB && dateA === dateB) {
+    const hasObjLocA = normalizeMergeText(a.objet) || normalizeMergeText(a.localisation);
+    const hasObjLocB = normalizeMergeText(b.objet) || normalizeMergeText(b.localisation);
+    if (!hasObjLocA || !hasObjLocB) return true;
+  }
+
+  return false;
+}
+
+function pickBestText(a, b) {
+  const av = String(a || "").trim();
+  const bv = String(b || "").trim();
+  if (!av) return bv;
+  if (!bv) return av;
+  return bv.length > av.length ? bv : av;
+}
+
+function mergeTeamLists(baseTeam, extraTeam) {
+  const merged = [];
+  const seen = new Set();
+  for (const m of [...(baseTeam || []), ...(extraTeam || [])]) {
+    const nni = String(m?.nni || "").trim().toUpperCase();
+    const name = norm(m?.name || "");
+    const key = nni || normalizeMergeText(name) || "__EMPTY__";
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push({ nni, name });
+  }
+  return merged;
+}
+
+function mergeDocs(baseDocs, extraDocs) {
+  const out = [];
+  const seen = new Set();
+  for (const d of [...(baseDocs || []), ...(extraDocs || [])]) {
+    const page = Number(d?.page);
+    const type = String(d?.type || "DOC");
+    if (!Number.isFinite(page)) continue;
+    const key = `${page}|${type}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ page, type });
+  }
+  out.sort((a, b) => a.page - b.page || a.type.localeCompare(b.type));
+  return out;
+}
+
+function mergeTwoBT(base, incoming) {
+  base.pageStart = Math.min(Number(base.pageStart || Infinity), Number(incoming.pageStart || Infinity));
+  base.objet = pickBestText(base.objet, incoming.objet);
+  base.datePrevue = pickBestText(base.datePrevue, incoming.datePrevue);
+  base.client = pickBestText(base.client, incoming.client);
+  base.localisation = pickBestText(base.localisation, incoming.localisation);
+  base.atNum = pickBestText(base.atNum, incoming.atNum);
+  base.designation = pickBestText(base.designation, incoming.designation);
+  base.duree = pickBestText(base.duree, incoming.duree);
+  base.analyseDesRisques = pickBestText(base.analyseDesRisques, incoming.analyseDesRisques);
+  base.observations = pickBestText(base.observations, incoming.observations);
+  base.team = mergeTeamLists(base.team, incoming.team);
+  base.docs = mergeDocs(base.docs, incoming.docs);
+  if (typeof detectBadgesForBT === "function") {
+    base.badges = detectBadgesForBT(base);
+  }
+  return base;
+}
+
+function mergeDuplicateBTs(btList) {
+  const source = Array.isArray(btList) ? btList : [];
+  const byId = new Map();
+
+  for (const bt of source) {
+    const id = String(bt?.id || "").trim().toUpperCase();
+    if (!id) continue;
+    if (!byId.has(id)) byId.set(id, []);
+    byId.get(id).push(bt);
+  }
+
+  const mergedAll = [];
+  for (const [, items] of byId.entries()) {
+    const sorted = [...items].sort((a, b) => Number(a.pageStart || 0) - Number(b.pageStart || 0));
+    const acc = [];
+
+    for (const bt of sorted) {
+      let target = null;
+      for (const existing of acc) {
+        if (shouldMergeBT(existing, bt)) {
+          target = existing;
+          break;
+        }
+      }
+      if (!target) {
+        acc.push({
+          ...bt,
+          team: mergeTeamLists(bt.team, []),
+          docs: mergeDocs(bt.docs, []),
+          badges: Array.isArray(bt.badges) ? [...bt.badges] : []
+        });
+      } else {
+        mergeTwoBT(target, bt);
+      }
+    }
+
+    mergedAll.push(...acc);
+  }
+
+  mergedAll.sort((a, b) => Number(a.pageStart || 0) - Number(b.pageStart || 0));
+  return mergedAll;
+}
+
+function rebuildTechCountsFromBts() {
+  state.countsByTechId = new Map();
+  for (const bt of state.bts || []) {
+    for (const m of bt.team || []) {
+      const tech = mapTechByNni(m.nni);
+      if (!tech) continue;
+      const key = techKey(tech);
+      state.countsByTechId.set(key, (state.countsByTechId.get(key) || 0) + 1);
+    }
+  }
+}
+
 // 7. Boucle principale d'extraction
 async function extractAll() {
   if (!state.pdf) throw new Error("PDF non chargé.");
@@ -283,13 +438,6 @@ async function extractAll() {
 
       currentBT.badges = detectBadgesForBT(currentBT);
       state.bts.push(currentBT);
-
-      for (const m of team) {
-        const tech = mapTechByNni(m.nni);
-        if (!tech) continue;
-        const key = techKey(tech);
-        state.countsByTechId.set(key, (state.countsByTechId.get(key) || 0) + 1);
-      }
     }
     // Pièce jointe du BT précédent
     else if (currentBT) {
@@ -299,6 +447,9 @@ async function extractAll() {
       currentBT.badges = detectBadgesForBT(currentBT);
     }
   }
+
+  state.bts = mergeDuplicateBTs(state.bts);
+  rebuildTechCountsFromBts();
 
   setProgress(100, `Terminé : ${state.bts.length} BT détectés.`);
   await saveToCache();
@@ -367,3 +518,5 @@ window.PdfExtractor = {
   processFile,
   runExtraction
 };
+
+window.mergeDuplicateBTs = mergeDuplicateBTs;
