@@ -1,4 +1,4 @@
-/* js/ui/grid.js — DEMAT-BT v11.3.0 — 09/03/2026
+/* js/ui/grid.js — DEMAT-BT v11.4.1 — 09/03/2026
    Vue Référent : grandes vignettes, petites vignettes, liste
 */
 
@@ -68,7 +68,7 @@ function renderGrid(filtered, grid) {
     const metaDiv = createBTMeta(bt, { compact: cardMode === "small" });
 
     const teamContainer = document.createElement("div");
-    teamContainer.appendChild(createTeamLine(bt));
+    teamContainer.appendChild(createTeamLine(bt, { showIcon: cardMode !== "small", compact: cardMode === "small" }));
     metaDiv.appendChild(teamContainer);
 
     if (cardMode === "small") {
@@ -112,23 +112,37 @@ function renderGrid(filtered, grid) {
       const slot = (typeof extractTimeSlot === "function") ? extractTimeSlot(bt) : null;
       const timeText = slot?.label || bt.datePrevue || "—";
       const duration = formatDuree(bt.duree);
-      const techText = (bt.team || []).map(m => mapTechByNni(m?.nni)?.name || m?.nni || "—").join(" / ") || "—";
       const docsCount = getDocCount(bt);
       const firstPage = bt.docs?.[0]?.page || bt.pageStart || 1;
 
-      row.innerHTML = `
-        <td><div class="list-time">${timeText}</div>${duration ? `<div class="list-sub">⏱️ ${duration}</div>` : ""}</td>
-        <td>${techText}</td>
-        <td title="${bt.objet || ""}">${bt.objet || "—"}</td>
-        <td>
-          <div>${bt.client || "—"}</div>
-          <div class="list-sub">📍 ${bt.localisation || "—"}</div>
-        </td>
-        <td><span class="list-docs">${docsCount}</span></td>
-        <td><button class="btn btn--secondary btn-open-bt">Ouvrir</button></td>
+      const timeCell = document.createElement("td");
+      timeCell.innerHTML = `<div class="list-time">${timeText}</div>${duration ? `<div class="list-sub">⏱️ ${duration}</div>` : ""}`;
+      timeCell.appendChild(createCategoryBadge(bt, "sm"));
+
+      const techCell = document.createElement("td");
+      techCell.appendChild(createTeamLine(bt, { showIcon: false, compact: true }));
+
+      const objetCell = document.createElement("td");
+      objetCell.title = bt.objet || "";
+      objetCell.textContent = bt.objet || "—";
+
+      const clientCell = document.createElement("td");
+      clientCell.innerHTML = `
+        <div>${bt.client || "—"}</div>
+        <div class="list-sub">📍 ${bt.localisation || "—"}</div>
       `;
 
-      row.querySelector(".btn-open-bt")?.addEventListener("click", () => openModal(bt, firstPage));
+      const docsCell = document.createElement("td");
+      docsCell.innerHTML = `<span class="list-docs">${docsCount}</span>`;
+
+      const actionCell = document.createElement("td");
+      const openBtn = document.createElement("button");
+      openBtn.className = "btn btn--secondary btn-open-bt";
+      openBtn.textContent = "Ouvrir";
+      openBtn.addEventListener("click", () => openModal(bt, firstPage));
+      actionCell.appendChild(openBtn);
+
+      row.append(timeCell, techCell, objetCell, clientCell, docsCell, actionCell);
       tbody.appendChild(row);
     }
 
@@ -166,18 +180,21 @@ function renderGrid(filtered, grid) {
     title.textContent = `${group.label} — ${group.items.length} BT`;
     section.appendChild(title);
 
+    // Mode liste : conserver la lecture métier par technicien avec un tableau compact par groupe.
     if (mode === "list") {
       section.appendChild(createListView(group.items));
-    } else {
-      const groupGrid = document.createElement("div");
-      groupGrid.className = `grid ${mode === "small" ? "grid--small" : "grid--large"}`;
-      groupGrid.style.marginTop = "0";
-
-      for (const bt of group.items) {
-        groupGrid.appendChild(createBtCard(bt, mode));
-      }
-      section.appendChild(groupGrid);
+      grid.appendChild(section);
+      continue;
     }
+
+    const groupGrid = document.createElement("div");
+    groupGrid.className = `grid ${mode === "small" ? "grid--small" : "grid--large"}`;
+    groupGrid.style.marginTop = "0";
+
+    for (const bt of group.items) {
+      groupGrid.appendChild(createBtCard(bt, mode === "small" ? "small" : "large"));
+    }
+    section.appendChild(groupGrid);
 
     grid.appendChild(section);
   }
