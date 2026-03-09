@@ -1,10 +1,10 @@
-// js/main.js — DEMAT-BT v11.5.0 — 19/02/2026
+// js/main.js — DEMAT-BT v11.5.2 — 19/02/2026
 // Point d'entrée principal
 // FIX v11.2.0: renderAll alias, weather init, refreshAllViews
 // FIX v11.4.0: Modal event listeners + loadBadgeRules() + loadBadgeRules avant cache
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 DEMAT-BT v11.5.0 démarré.");
+    console.log("🚀 DEMAT-BT v11.5.2 démarré.");
 
     // ============================================================
     // HELPERS UI attendus par pdf-extractor.js
@@ -197,8 +197,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const gridEl = document.getElementById('btGrid');
         if (gridEl) {
-            gridEl.classList.remove('grid--large', 'grid--small', 'grid--list');
-            gridEl.classList.add(`grid--${safeMode}`);
+            gridEl.classList.remove('grid--large', 'grid--small', 'grid--list', 'grid--grouped-small', 'grid--grouped-large');
+            const rootModeClass = safeMode === 'list'
+                ? 'grid--list'
+                : (safeMode === 'small' ? 'grid--grouped-small' : 'grid--grouped-large');
+            gridEl.classList.add(rootModeClass);
         }
 
         localStorage.setItem(DISPLAY_MODE_KEY, safeMode);
