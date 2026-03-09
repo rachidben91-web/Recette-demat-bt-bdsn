@@ -1,10 +1,10 @@
-// js/main.js — DEMAT-BT v11.3.0 — 19/02/2026
+// js/main.js — DEMAT-BT v11.4.0 — 19/02/2026
 // Point d'entrée principal
 // FIX v11.2.0: renderAll alias, weather init, refreshAllViews
-// FIX v11.3.0: Modal event listeners + loadBadgeRules() + loadBadgeRules avant cache
+// FIX v11.4.0: Modal event listeners + loadBadgeRules() + loadBadgeRules avant cache
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 DEMAT-BT v11.3.0 démarré.");
+    console.log("🚀 DEMAT-BT v11.4.0 démarré.");
 
     // ============================================================
     // HELPERS UI attendus par pdf-extractor.js
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Charger zones.json
     if (window.loadZones) window.loadZones().catch(err => console.error("[MAIN] Erreur zones:", err));
 
-    // ── FIX v11.3.0 : Charger les règles badges AVANT la restauration du cache ──
+    // ── FIX v11.4.0 : Charger les règles badges AVANT la restauration du cache ──
     // Sans ça, BADGE_RULES reste null → timeline affiche tout en "AUTRES"
     const badgeRulesReady = (typeof loadBadgeRules === 'function')
         ? loadBadgeRules().then(() => console.log("[MAIN] ✅ Badge rules chargées"))
@@ -287,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ============================================================
-    // 5. MODAL — Événements des boutons (FIX v11.3.0)
+    // 5. MODAL — Événements des boutons (FIX v11.4.0)
     // ============================================================
 
     // Bouton Page Précédente
