@@ -589,6 +589,15 @@ body{
   gap:10px;
 }
 
+/* Mode petites vignettes Référent :
+   le conteneur racine empile les groupes en pleine largeur,
+   la grille multi-colonnes est gérée à l'intérieur de chaque groupe. */
+.grid--grouped-small{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
 .grid--list{
   display:flex;
   flex-direction:column;

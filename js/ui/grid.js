@@ -5,8 +5,9 @@
 function renderGrid(filtered, grid) {
   grid.innerHTML = "";
   const mode = state?.referentDisplayMode || "large";
-  grid.classList.remove("grid--large", "grid--small", "grid--list");
-  grid.classList.add(`grid--${mode}`);
+  grid.classList.remove("grid--large", "grid--small", "grid--list", "grid--grouped-small");
+  const rootModeClass = mode === "small" ? "grid--grouped-small" : `grid--${mode}`;
+  grid.classList.add(rootModeClass);
 
   if (filtered.length === 0) {
     grid.innerHTML = `<div class="hint" style="padding:16px;">Aucun BT à afficher avec ces filtres.</div>`;
