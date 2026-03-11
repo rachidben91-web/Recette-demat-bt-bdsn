@@ -7,7 +7,7 @@
 // NEW v1.2: loadHistoryFromSupabase() reconstruit history[] depuis TOUTES les lignes Supabase
 //           → L'onglet Données & Historique affiche maintenant les données cross-session
 //           → switchTab('tabHistory') déclenche un rechargement Supabase automatique
-// V3.2: compatibilité historique activités (support_settings + legacy support_journee)
+// V3.3: compatibilité historique + attendanceType (present/absent/neutral)
 
 window.SupportModule = (function() {
     
@@ -91,10 +91,29 @@ window.SupportModule = (function() {
     };
 
     const DEFAULT_ACTIVITY_COLOR = '#94a3b8';
+    const ABSENT_LABELS = new Set(["ABS","RTT","CP","MALADIE","GREVE"]);
 
     const slugify = (text) => String(text || '')
         .normalize('NFD').replace(/[̀-ͯ]/g, '')
         .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'activity';
+
+    function inferAttendanceType(label) {
+        const key = String(label || '').trim().toUpperCase();
+        if (!key) return 'present';
+        return ABSENT_LABELS.has(key) ? 'absent' : 'present';
+    }
+
+    function sanitizeAttendanceType(value, fallbackLabel = '') {
+        const v = String(value || '').trim().toLowerCase();
+        if (v === 'present' || v === 'absent' || v === 'neutral') return v;
+        return inferAttendanceType(fallbackLabel);
+    }
+
+    function attendanceBadge(type) {
+        if (type === 'absent') return { text: 'Absent', bg: '#fee2e2', fg: '#991b1b' };
+        if (type === 'neutral') return { text: 'Neutre', bg: '#e2e8f0', fg: '#334155' };
+        return { text: 'Présent', bg: '#dcfce7', fg: '#166534' };
+    }
 
     function normalizeActivity(raw, fallbackColor = DEFAULT_ACTIVITY_COLOR) {
         if (!raw) return null;
@@ -111,6 +130,7 @@ window.SupportModule = (function() {
             label,
             name: String(base.name || label).trim() || label,
             color,
+            attendanceType: sanitizeAttendanceType(base.attendanceType, label),
         };
     }
 
@@ -144,7 +164,8 @@ window.SupportModule = (function() {
             const name = prev.name || norm.name || label;
             const code = prev.code || norm.code || slugify(label);
 
-            byKey.set(key, { code, label, name, color: color || DEFAULT_ACTIVITY_COLOR });
+            const attendanceType = prev.attendanceType || norm.attendanceType || inferAttendanceType(label);
+            byKey.set(key, { code, label, name, color: color || DEFAULT_ACTIVITY_COLOR, attendanceType });
             mergedCount += 1;
         };
 
@@ -332,7 +353,17 @@ window.SupportModule = (function() {
             
             // Récupération de l'activité
             const actName = String(rowData.act || '').trim();
-            const actObj = findActivityByValue(actName);
+            let actObj = findActivityByValue(actName);
+            if (actName && !actObj) {
+                // V3.3 — activité historique inconnue: création temporaire en mémoire
+                actObj = normalizeActivity({
+                    label: actName,
+                    color: DEFAULT_ACTIVITY_COLOR,
+                    attendanceType: 'present',
+                    code: `tmp_${slugify(actName)}_${Date.now()}`
+                });
+                if (actObj) activities.push(actObj);
+            }
             const actLabel = actObj ? activityDisplayLabel(actObj) : actName;
             
             // Gestion Couleur
@@ -340,17 +371,18 @@ window.SupportModule = (function() {
             const fgColor = isLight(bgColor) ? '#000' : '#fff';
             const borderColor = bgColor || '#e2e8f0';
 
-            // Calculs KPI
-            if(ABSENCE_CODES.has(actName)) cptAbs++;
-            else if (actName && actName !== '') cptPres++;
+            // Calculs KPI (V3.3 basé sur attendanceType)
+            const attendanceType = actObj?.attendanceType || sanitizeAttendanceType('', actName);
+            if(attendanceType === 'absent') cptAbs++;
+            else if (attendanceType === 'present') cptPres++;
             
             if(rowData.Grv === 'OUI') cptGrv++;
 
             // Création de la ligne
             const tr = document.createElement('tr');
             
-            // Si absent, on met tout la ligne en rouge pâle (style Excel)
-            if(ABSENCE_CODES.has(actName)) {
+            // Si absent, on met toute la ligne en rouge pâle
+            if(attendanceType === 'absent' || ABSENCE_CODES.has(actName)) {
                 tr.classList.add('row-absent');
             }
 
@@ -572,6 +604,10 @@ window.SupportModule = (function() {
                            title="Changer la couleur">
                     
                     <div style="font-weight:bold; font-size:12px;">${activityDisplayLabel(a)}</div>
+                    ${(() => {
+                        const badge = attendanceBadge(a?.attendanceType || 'present');
+                        return `<span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:${badge.bg}; color:${badge.fg};">${badge.text}</span>`;
+                    })()}
                 </div>
                 
                 <button onclick="SupportModule.deleteActivity(${index})" 
@@ -586,12 +622,19 @@ window.SupportModule = (function() {
     function addActivity() {
         const nameInput = document.getElementById('newActName');
         const colorInput = document.getElementById('newActColor');
+        const attendanceInput = document.getElementById('newActAttendanceType');
         
         const label = nameInput?.value?.trim() || '';
         const color = colorInput?.value || DEFAULT_ACTIVITY_COLOR;
+        const selectedType = sanitizeAttendanceType(attendanceInput?.value, label);
 
         if(label) {
-            const candidate = normalizeActivity({ label, color });
+            const candidate = normalizeActivity({
+                label,
+                color,
+                attendanceType: selectedType,
+                code: `${slugify(label)}_${Date.now()}`
+            });
             const duplicate = activities.some(a => {
                 const sameCode = String(a?.code || '').toLowerCase() === String(candidate?.code || '').toLowerCase();
                 const sameLabel = activityDisplayLabel(a).toLowerCase() === activityDisplayLabel(candidate).toLowerCase();
@@ -634,20 +677,20 @@ window.SupportModule = (function() {
         renderTable();  // Mettre à jour le tableau principal (couleurs)
     }
 
-    // V3.2 — Param activités partagés via support_settings (avec compat historique)
+    // V3.3 — Param activités partagés via support_settings (avec attendanceType)
     async function saveActivitiesToSupabase() {
         if (!window.SupportStore || !window.supabaseClient) return;
 
         try {
             const payload = { activities: mergeActivities(activities).activities };
             await window.SupportStore.saveSetting("PARAM_ACTIVITIES", payload, { site: "VLG" });
-            console.log(`☁️ V3.2 Param activités sauvegardés dans support_settings (${payload.activities.length})`);
+            console.log(`☁️ V3.3 Param activités sauvegardés dans support_settings (${payload.activities.length})`);
         } catch (e) {
-            console.warn("⚠️ V3.2 Sauvegarde Supabase des paramètres activités échouée:", e.message);
+            console.warn("⚠️ V3.3 Sauvegarde Supabase des paramètres activités échouée:", e.message);
         }
     }
 
-    // V3.2 — Chargement paramètres activités depuis support_settings + fallback historique
+    // V3.3 — Chargement paramètres activités depuis support_settings + fallback historique
     async function loadActivitiesFromSupabase() {
         const localActs = (() => {
             try { return JSON.parse(localStorage.getItem('demat_activities') || '[]'); }
@@ -664,7 +707,7 @@ window.SupportModule = (function() {
                     ? payload.activities
                     : (Array.isArray(payload) ? payload : []);
             } catch (e) {
-                console.warn("⚠️ V3.2 Chargement support_settings échoué (fallback local/historique):", e.message);
+                console.warn("⚠️ V3.3 Chargement support_settings échoué (fallback local/historique):", e.message);
             }
 
             try {
@@ -677,7 +720,7 @@ window.SupportModule = (function() {
                 if (error) throw error;
                 fromHistory = extractHistoricalActivitiesFromRows(rows || []);
             } catch (e) {
-                console.warn("⚠️ V3.2 Lecture historique support_journee échouée:", e.message);
+                console.warn("⚠️ V3.3 Lecture historique support_journee échouée:", e.message);
             }
         }
 
@@ -691,14 +734,16 @@ window.SupportModule = (function() {
         activities = merged.activities;
         localStorage.setItem('demat_activities', JSON.stringify(activities));
 
-        console.log(`☁️ V3.2 Activités: settings=${fromSettings.length}, historiques=${fromHistory.length}, fusion=${activities.length}`);
+        console.log(`[ACTIVITY] loaded ${fromSettings.length} activities`);
+        console.log(`[ACTIVITY] merged historical activities: ${fromHistory.length}`);
+        console.log(`[ACTIVITY] attendance types applied: ${activities.length}`);
 
         if (window.SupportStore && fromHistory.length > 0) {
             try {
                 await window.SupportStore.saveSetting("PARAM_ACTIVITIES", { activities }, { site: "VLG" });
-                console.log("☁️ V3.2 Référentiel fusionné repersisté dans support_settings");
+                console.log("☁️ V3.3 Référentiel fusionné repersisté dans support_settings");
             } catch (e) {
-                console.warn("⚠️ V3.2 Persistance post-fusion ignorée:", e.message);
+                console.warn("⚠️ V3.3 Persistance post-fusion ignorée:", e.message);
             }
         }
     }
