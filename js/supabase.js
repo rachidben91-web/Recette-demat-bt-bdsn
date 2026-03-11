@@ -24,6 +24,54 @@ window.supabaseClient = window.supabase.createClient(
 
 console.log("✅ Supabase client initialisé");
 
+function classifySupabaseError(error) {
+  const message = String(error?.message || "").toLowerCase();
+  const code = String(error?.code || "").toLowerCase();
+  const status = Number(error?.status || 0);
+
+  if (message.includes("jwt") || message.includes("session") || message.includes("auth") || status === 401 || status === 403) {
+    return "auth";
+  }
+  if (message.includes("lock") || message.includes("acquiretimeout") || message.includes("navigator lock")) {
+    return "auth";
+  }
+  if (message.includes("failed to fetch") || message.includes("network") || status === 0 || status >= 500) {
+    return "network";
+  }
+  if (code === "42501" || message.includes("row-level security") || message.includes("rls") || message.includes("permission denied")) {
+    return "rls";
+  }
+  if (message.includes("upsert") || message.includes("duplicate") || message.includes("violates") || message.includes("invalid input") || message.includes("not-null")) {
+    return "sql";
+  }
+  return "unknown";
+}
+
+async function getAuthContextRobust() {
+  const client = window.supabaseClient;
+  try {
+    const { data, error } = await client.auth.getUser();
+    if (error) throw error;
+    if (data?.user) {
+      return { user: data.user, source: "getUser" };
+    }
+  } catch (e) {
+    console.warn("[SUPABASE][AUTH] getUser échoué, tentative fallback getSession:", e?.message || e);
+  }
+
+  try {
+    const { data, error } = await client.auth.getSession();
+    if (error) throw error;
+    if (data?.session?.user) {
+      return { user: data.session.user, source: "getSession" };
+    }
+  } catch (e) {
+    console.warn("[SUPABASE][AUTH] getSession échoué:", e?.message || e);
+  }
+
+  return { user: null, source: "none" };
+}
+
 // -------------------------
 // Modal de connexion (autocomplete Chrome/Edge)
 // -------------------------
@@ -346,14 +394,14 @@ function openChangePasswordModal(supabaseClient) {
   async function saveSetting(settingKey, payload, { site = SITE } = {}) {
     if (!settingKey) throw new Error("settingKey requis");
 
-    let updatedBy = null;
-    try {
-      const { data: authData } = await window.supabaseClient.auth.getUser();
-      updatedBy = authData?.user?.id || null;
-    } catch (_e) {
-      updatedBy = null;
-    }
+    const saveId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const authContext = await getAuthContextRobust();
+    const updatedBy = authContext.user?.id || null;
+    const payloadKeys = (payload && typeof payload === "object") ? Object.keys(payload).length : 0;
 
+    console.log(`[SUPABASE][${saveId}] ⏳ saveSetting start key=${settingKey} site=${site} updatedBy=${updatedBy ? "yes" : "no"} authSource=${authContext.source} payloadKeys=${payloadKeys}`);
+
+    const startedAt = performance.now();
     const { data, error } = await window.supabaseClient
       .from("support_settings")
       .upsert(
@@ -369,12 +417,20 @@ function openChangePasswordModal(supabaseClient) {
       .select("site, setting_key, updated_at")
       .single();
 
+    const durationMs = Math.round(performance.now() - startedAt);
+
     if (error) {
-      console.warn(`[SUPABASE] ⚠️ saveSetting(${settingKey}) échoué:`, error.message);
-      throw error;
+      const category = classifySupabaseError(error);
+      console.warn(`[SUPABASE][${saveId}] ❌ saveSetting failed category=${category} durationMs=${durationMs}:`, error);
+      throw Object.assign(new Error(error.message || "saveSetting échoué"), {
+        original: error,
+        category,
+        saveId,
+        operation: "support_settings.upsert",
+      });
     }
 
-    console.log(`[SUPABASE] 💾 setting sauvegardé: ${settingKey} (${site})`);
+    console.log(`[SUPABASE][${saveId}] ✅ saveSetting success key=${settingKey} site=${site} durationMs=${durationMs}`, data);
     return data;
   }
 

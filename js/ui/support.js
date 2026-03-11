@@ -773,31 +773,62 @@ window.SupportModule = (function() {
         activities = mergeActivities(activities).activities;
         localStorage.setItem('demat_activities', JSON.stringify(activities));
 
+        const saveAttemptId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        console.log(`[ACTIVITY][${saveAttemptId}] 💾 local save done (${activities.length} activités)`);
+
         // Synchronisation cloud best-effort (sans bloquer l'UI)
-        const syncState = await saveActivitiesToSupabase();
+        const syncResult = await saveActivitiesToSupabase({ saveAttemptId });
 
         renderParams(); // Mettre à jour la grille
         renderTable();  // Mettre à jour le tableau principal (couleurs)
 
         if (successMessage) {
-            if (syncState === 'ok') showActivityToast(successMessage);
-            else if (syncState === 'local') showActivityToast("Modifié localement. Synchronisation Supabase à vérifier.", 'warn');
-            else showActivityToast("Erreur lors de l'enregistrement.", 'error');
+            if (syncResult.status === 'ok') {
+                showActivityToast(successMessage);
+            } else if (syncResult.status === 'local') {
+                showActivityToast("Sauvegarde locale OK. Supabase indisponible/non connecté.", 'warn');
+            } else if (syncResult.status === 'error') {
+                showActivityToast(syncResult.toastMessage || "Erreur lors de l'enregistrement.", 'error');
+            }
         }
     }
 
-    // V3.3 — Param activités partagés via support_settings (avec attendanceType)
-    async function saveActivitiesToSupabase() {
-        if (!window.SupportStore || !window.supabaseClient) return 'local';
+    function mapSaveFailureToToast(category) {
+        if (category === 'auth') return "Échec Supabase: session expirée / authentification requise.";
+        if (category === 'network') return "Échec Supabase: problème réseau (sauvegarde locale conservée).";
+        if (category === 'rls') return "Échec Supabase: accès refusé par les règles RLS.";
+        if (category === 'sql') return "Échec Supabase: erreur d'écriture SQL/upsert.";
+        return "Erreur lors de l'enregistrement Supabase (sauvegarde locale conservée).";
+    }
 
+    // V3.3 — Param activités partagés via support_settings (avec attendanceType)
+    async function saveActivitiesToSupabase({ saveAttemptId = 'n/a' } = {}) {
+        if (!window.SupportStore || !window.supabaseClient) {
+            console.warn(`[ACTIVITY][${saveAttemptId}] ⚠️ Supabase non disponible -> local only`);
+            return { status: 'local', category: 'auth', toastMessage: "Sauvegarde locale OK. Supabase indisponible." };
+        }
+
+        const start = performance.now();
         try {
             const payload = { activities: mergeActivities(activities).activities };
-            await window.SupportStore.saveSetting("PARAM_ACTIVITIES", payload, { site: "VLG" });
-            console.log(`☁️ V3.3 Param activités sauvegardés dans support_settings (${payload.activities.length})`);
-            return 'ok';
+            console.log(`[ACTIVITY][${saveAttemptId}] ⏳ supabase saveSetting start rows=${payload.activities.length}`);
+
+            const result = await window.SupportStore.saveSetting("PARAM_ACTIVITIES", payload, { site: "VLG" });
+
+            const durationMs = Math.round(performance.now() - start);
+            console.log(`[ACTIVITY][${saveAttemptId}] ✅ Supabase confirmed write in ${durationMs}ms`, result);
+            return { status: 'ok', category: null, result };
         } catch (e) {
-            console.warn("⚠️ V3.3 Sauvegarde Supabase des paramètres activités échouée:", e.message);
-            return 'error';
+            const durationMs = Math.round(performance.now() - start);
+            const category = String(e?.category || e?.original?.category || '').toLowerCase();
+            const normalizedCategory = ['auth', 'network', 'rls', 'sql'].includes(category) ? category : 'unknown';
+            console.warn(`[ACTIVITY][${saveAttemptId}] ❌ Supabase save failed category=${normalizedCategory} in ${durationMs}ms`, e);
+            return {
+                status: 'error',
+                category: normalizedCategory,
+                toastMessage: mapSaveFailureToToast(normalizedCategory),
+                error: e,
+            };
         }
     }
 
