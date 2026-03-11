@@ -19,6 +19,8 @@ window.SupportModule = (function() {
     let history = [];
     let activities = [];
     let editingActivityIndex = null;
+    let activitySearchTerm = '';
+    let toastTimer = null;
     let sortKey = 'date';
     let sortDir = -1; // -1 = décroissant (plus récent en haut)
 
@@ -599,6 +601,10 @@ window.SupportModule = (function() {
     // ============================================================
 
     function renderParams() {
+        renderActivitiesGrid();
+    }
+
+    function renderActivitiesGrid() {
         const grid = document.getElementById('paramGrid');
         if(!grid) return;
 
@@ -606,7 +612,15 @@ window.SupportModule = (function() {
             editingActivityIndex = null;
         }
 
-        grid.innerHTML = activities.map((a, index) => {
+        const filteredActivities = activities
+            .map((a, index) => ({ a, index }))
+            .filter(({ a }) => !activitySearchTerm || activityDisplayLabel(a).toLowerCase().includes(activitySearchTerm));
+
+        if (activitySearchTerm) {
+            console.log('[ACTIVITY] search filter active');
+        }
+
+        grid.innerHTML = filteredActivities.map(({ a, index }) => {
             const safeLabel = escapeHtml(activityDisplayLabel(a));
             return `
             <div class="param-card ${editingActivityIndex === index ? 'param-card--editing' : ''}">
@@ -654,6 +668,10 @@ window.SupportModule = (function() {
             </div>
         `;
         }).join('');
+
+        if (!grid.innerHTML) {
+            grid.innerHTML = `<div class="param-card"><div class="param-card__main-zone"><div class="param-card__label">Aucune activité trouvée.</div></div></div>`;
+        }
     }
 
     function addActivity() {
@@ -678,14 +696,14 @@ window.SupportModule = (function() {
                 return sameCode || sameLabel;
             });
             if(duplicate) {
-                alert("Cette activité existe déjà !");
+                showActivityToast("Cette activité existe déjà.", 'warn');
                 return;
             }
             activities.push(candidate);
-            saveActivities();
+            saveActivities({ successMessage: "Activité enregistrée dans la base." });
             nameInput.value = ''; // Reset champ
         } else {
-            alert("Veuillez entrer un nom d'activité.");
+            showActivityToast("Veuillez entrer un nom d'activité.", 'warn');
         }
     }
 
@@ -696,7 +714,7 @@ window.SupportModule = (function() {
             activities.splice(index, 1);
             if (editingActivityIndex === index) editingActivityIndex = null;
             if (editingActivityIndex !== null && editingActivityIndex > index) editingActivityIndex -= 1;
-            saveActivities();
+            saveActivities({ successMessage: "Activité supprimée." });
         }
     }
 
@@ -720,7 +738,7 @@ window.SupportModule = (function() {
         const nextAttendance = sanitizeAttendanceType(attendanceInput?.value, nextLabel);
 
         if (!nextLabel) {
-            alert("Le nom de l'activité ne peut pas être vide.");
+            showActivityToast("Le nom de l'activité ne peut pas être vide.", 'warn');
             return;
         }
 
@@ -730,7 +748,7 @@ window.SupportModule = (function() {
         });
 
         if (duplicate) {
-            alert("Une activité avec ce nom existe déjà.");
+            showActivityToast("Une activité avec ce nom existe déjà.", 'warn');
             return;
         }
 
@@ -742,37 +760,74 @@ window.SupportModule = (function() {
         }, activities[index]?.color || DEFAULT_ACTIVITY_COLOR);
 
         editingActivityIndex = null;
-        saveActivities();
+        saveActivities({ successMessage: "Activité mise à jour dans la base." });
     }
 
     function updateActivityColor(index, newColor) {
         if (!activities[index]) return;
         activities[index].color = newColor || DEFAULT_ACTIVITY_COLOR;
-        saveActivities();
+        saveActivities({ successMessage: "Activité mise à jour dans la base." });
     }
 
-    function saveActivities() {
+    async function saveActivities({ successMessage = '' } = {}) {
         activities = mergeActivities(activities).activities;
         localStorage.setItem('demat_activities', JSON.stringify(activities));
 
         // Synchronisation cloud best-effort (sans bloquer l'UI)
-        saveActivitiesToSupabase();
+        const syncState = await saveActivitiesToSupabase();
 
         renderParams(); // Mettre à jour la grille
         renderTable();  // Mettre à jour le tableau principal (couleurs)
+
+        if (successMessage) {
+            if (syncState === 'ok') showActivityToast(successMessage);
+            else if (syncState === 'local') showActivityToast("Modifié localement. Synchronisation Supabase à vérifier.", 'warn');
+            else showActivityToast("Erreur lors de l'enregistrement.", 'error');
+        }
     }
 
     // V3.3 — Param activités partagés via support_settings (avec attendanceType)
     async function saveActivitiesToSupabase() {
-        if (!window.SupportStore || !window.supabaseClient) return;
+        if (!window.SupportStore || !window.supabaseClient) return 'local';
 
         try {
             const payload = { activities: mergeActivities(activities).activities };
             await window.SupportStore.saveSetting("PARAM_ACTIVITIES", payload, { site: "VLG" });
             console.log(`☁️ V3.3 Param activités sauvegardés dans support_settings (${payload.activities.length})`);
+            return 'ok';
         } catch (e) {
             console.warn("⚠️ V3.3 Sauvegarde Supabase des paramètres activités échouée:", e.message);
+            return 'error';
         }
+    }
+
+    function showActivityToast(message, level = 'ok') {
+        const toast = document.getElementById('activityToast');
+        if (!toast) return;
+
+        if (toastTimer) clearTimeout(toastTimer);
+        toast.className = 'activity-toast';
+        if (level === 'warn') toast.classList.add('activity-toast--warn');
+        if (level === 'error') toast.classList.add('activity-toast--error');
+        toast.textContent = String(message || 'Action effectuée.');
+        toast.classList.add('activity-toast--show');
+        console.log('[ACTIVITY] toast displayed');
+
+        toastTimer = setTimeout(() => {
+            toast.classList.remove('activity-toast--show');
+        }, 2600);
+    }
+
+    function filterActivities(search) {
+        activitySearchTerm = String(search || '').trim().toLowerCase();
+        renderActivitiesGrid();
+    }
+
+    function clearActivitiesFilter() {
+        activitySearchTerm = '';
+        const input = document.getElementById('paramSearchInput');
+        if (input) input.value = '';
+        renderActivitiesGrid();
     }
 
     // V3.3 — Chargement paramètres activités depuis support_settings + fallback historique
@@ -822,6 +877,7 @@ window.SupportModule = (function() {
         console.log(`[ACTIVITY] loaded ${fromSettings.length} activities`);
         console.log(`[ACTIVITY] merged historical activities: ${fromHistory.length}`);
         console.log(`[ACTIVITY] attendance types applied: ${activities.length}`);
+        console.log('[ACTIVITY] UI improved V3.4.1');
 
         if (window.SupportStore && fromHistory.length > 0) {
             try {
@@ -1055,6 +1111,7 @@ window.SupportModule = (function() {
         // Actions Paramètres
         addActivity, deleteActivity, updateActivityColor,
         startEditActivity, cancelEditActivity, saveEditedActivity,
+        renderActivitiesGrid, filterActivities, clearActivitiesFilter,
         
         // Actions Historique
         renderHistory, sortHistory,

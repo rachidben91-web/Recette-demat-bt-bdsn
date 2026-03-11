@@ -1495,13 +1495,37 @@ table.brief-table tr:hover { background-color: #f8fafc; }
 .val-non { background-color: #fee2e2 !important; color: #991b1b !important; border-color: #fecaca !important; }
 
 /* Grille Paramètres */
-.param-grid { display: grid; gap: 10px; }
+.param-create-row {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.param-search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.param-search-row .input { max-width: 360px; }
+
+.param-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
 .param-card {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  min-height: 58px;
+  padding: 8px 10px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
@@ -1571,15 +1595,39 @@ table.brief-table tr:hover { background-color: #f8fafc; }
 }
 .param-edit-grid {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(110px, auto);
   gap: 8px;
   width: 100%;
+  align-items: center;
 }
 .param-edit-grid .input,
 .param-edit-grid .select {
-  height: 32px;
+  min-height: 36px;
   font-size: 12px;
 }
+
+.activity-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9000;
+  background: #0f172a;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.activity-toast--show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.activity-toast--warn { background: #92400e; }
+.activity-toast--error { background: #991b1b; }
 
 @media (max-width: 1080px) {
   .param-card {
@@ -1595,6 +1643,10 @@ table.brief-table tr:hover { background-color: #f8fafc; }
 
   .param-edit-grid {
     grid-template-columns: 1fr;
+  }
+
+  .param-search-row {
+    flex-wrap: wrap;
   }
 }
 .param-dot { width: 24px; height: 24px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
