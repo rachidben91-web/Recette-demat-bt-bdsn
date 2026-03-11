@@ -18,6 +18,9 @@ window.SupportModule = (function() {
     let currentDate = new Date();
     let history = [];
     let activities = [];
+    let editingActivityIndex = null;
+    let activitySearchTerm = '';
+    let toastTimer = null;
     let sortKey = 'date';
     let sortDir = -1; // -1 = décroissant (plus récent en haut)
 
@@ -135,6 +138,12 @@ window.SupportModule = (function() {
     }
 
     const activityDisplayLabel = (act) => String(act?.label || act?.name || act?.code || 'activité');
+    const escapeHtml = (value) => String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 
     function activityMatchKey(raw) {
         if (!raw) return '';
@@ -592,31 +601,77 @@ window.SupportModule = (function() {
     // ============================================================
 
     function renderParams() {
+        renderActivitiesGrid();
+    }
+
+    function renderActivitiesGrid() {
         const grid = document.getElementById('paramGrid');
         if(!grid) return;
 
-        grid.innerHTML = activities.map((a, index) => `
-            <div class="param-card" style="justify-content:space-between;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="color" value="${a.color || DEFAULT_ACTIVITY_COLOR}" 
+        if (editingActivityIndex !== null && !activities[editingActivityIndex]) {
+            editingActivityIndex = null;
+        }
+
+        const filteredActivities = activities
+            .map((a, index) => ({ a, index }))
+            .filter(({ a }) => !activitySearchTerm || activityDisplayLabel(a).toLowerCase().includes(activitySearchTerm));
+
+        if (activitySearchTerm) {
+            console.log('[ACTIVITY] search filter active');
+        }
+
+        grid.innerHTML = filteredActivities.map(({ a, index }) => {
+            const safeLabel = escapeHtml(activityDisplayLabel(a));
+            return `
+            <div class="param-card ${editingActivityIndex === index ? 'param-card--editing' : ''}">
+                <div class="param-card__color-zone">
+                    <input type="color" value="${a?.color || DEFAULT_ACTIVITY_COLOR}" 
                            onchange="SupportModule.updateActivityColor(${index}, this.value)"
-                           style="width:30px; height:30px; border:none; background:none; cursor:pointer;"
+                           class="param-color-input"
                            title="Changer la couleur">
-                    
-                    <div style="font-weight:bold; font-size:12px;">${activityDisplayLabel(a)}</div>
-                    ${(() => {
-                        const badge = attendanceBadge(a?.attendanceType || 'present');
-                        return `<span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:${badge.bg}; color:${badge.fg};">${badge.text}</span>`;
-                    })()}
                 </div>
-                
-                <button onclick="SupportModule.deleteActivity(${index})" 
-                        style="background:none; border:none; color:#ef4444; font-weight:bold; font-size:18px; cursor:pointer; padding:0 5px;"
-                        title="Supprimer cette activité">
-                    &times;
-                </button>
+
+                <div class="param-card__main-zone">
+                    ${editingActivityIndex === index
+                        ? `
+                        <div class="param-edit-grid">
+                            <input id="editActName_${index}" type="text" class="input" value="${safeLabel}" placeholder="Nom activité">
+                            <select id="editActAttendanceType_${index}" class="select">
+                                <option value="present" ${(sanitizeAttendanceType(a?.attendanceType, activityDisplayLabel(a)) === 'present') ? 'selected' : ''}>Présent</option>
+                                <option value="absent" ${(sanitizeAttendanceType(a?.attendanceType, activityDisplayLabel(a)) === 'absent') ? 'selected' : ''}>Absent</option>
+                                <option value="neutral" ${(sanitizeAttendanceType(a?.attendanceType, activityDisplayLabel(a)) === 'neutral') ? 'selected' : ''}>Neutre</option>
+                            </select>
+                        </div>
+                        `
+                        : `
+                        <div class="param-card__label">${safeLabel}</div>
+                        ${(() => {
+                            const badge = attendanceBadge(a?.attendanceType || 'present');
+                            return `<span class="param-badge" style="background:${badge.bg}; color:${badge.fg};">${badge.text}</span>`;
+                        })()}
+                        `
+                    }
+                </div>
+
+                <div class="param-card__actions">
+                    ${editingActivityIndex === index
+                        ? `
+                        <button class="btn btn--secondary param-action-btn" onclick="SupportModule.cancelEditActivity()" title="Annuler">Annuler</button>
+                        <button class="btn param-action-btn" onclick="SupportModule.saveEditedActivity(${index})" title="Valider">Enregistrer</button>
+                        `
+                        : `
+                        <button class="btn btn--secondary param-action-btn" onclick="SupportModule.startEditActivity(${index})" title="Modifier cette activité">Modifier</button>
+                        <button class="btn btn--secondary param-action-btn param-action-btn--danger" onclick="SupportModule.deleteActivity(${index})" title="Supprimer cette activité">Supprimer</button>
+                        `
+                    }
+                </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
+
+        if (!grid.innerHTML) {
+            grid.innerHTML = `<div class="param-card"><div class="param-card__main-zone"><div class="param-card__label">Aucune activité trouvée.</div></div></div>`;
+        }
     }
 
     function addActivity() {
@@ -641,53 +696,138 @@ window.SupportModule = (function() {
                 return sameCode || sameLabel;
             });
             if(duplicate) {
-                alert("Cette activité existe déjà !");
+                showActivityToast("Cette activité existe déjà.", 'warn');
                 return;
             }
             activities.push(candidate);
-            saveActivities();
+            saveActivities({ successMessage: "Activité enregistrée dans la base." });
             nameInput.value = ''; // Reset champ
         } else {
-            alert("Veuillez entrer un nom d'activité.");
+            showActivityToast("Veuillez entrer un nom d'activité.", 'warn');
         }
     }
 
     function deleteActivity(index) {
+        if (!activities[index]) return;
         const actName = activityDisplayLabel(activities[index]);
         if(confirm(`Supprimer définitivement l'activité "${actName}" ?`)) {
             activities.splice(index, 1);
-            saveActivities();
+            if (editingActivityIndex === index) editingActivityIndex = null;
+            if (editingActivityIndex !== null && editingActivityIndex > index) editingActivityIndex -= 1;
+            saveActivities({ successMessage: "Activité supprimée." });
         }
+    }
+
+    function startEditActivity(index) {
+        if (!activities[index]) return;
+        editingActivityIndex = index;
+        renderParams();
+    }
+
+    function cancelEditActivity() {
+        editingActivityIndex = null;
+        renderParams();
+    }
+
+    function saveEditedActivity(index) {
+        if (!activities[index]) return;
+
+        const nameInput = document.getElementById(`editActName_${index}`);
+        const attendanceInput = document.getElementById(`editActAttendanceType_${index}`);
+        const nextLabel = nameInput?.value?.trim() || '';
+        const nextAttendance = sanitizeAttendanceType(attendanceInput?.value, nextLabel);
+
+        if (!nextLabel) {
+            showActivityToast("Le nom de l'activité ne peut pas être vide.", 'warn');
+            return;
+        }
+
+        const duplicate = activities.some((a, idx) => {
+            if (idx === index) return false;
+            return activityDisplayLabel(a).toLowerCase() === nextLabel.toLowerCase();
+        });
+
+        if (duplicate) {
+            showActivityToast("Une activité avec ce nom existe déjà.", 'warn');
+            return;
+        }
+
+        activities[index] = normalizeActivity({
+            ...activities[index],
+            label: nextLabel,
+            name: nextLabel,
+            attendanceType: nextAttendance,
+        }, activities[index]?.color || DEFAULT_ACTIVITY_COLOR);
+
+        editingActivityIndex = null;
+        saveActivities({ successMessage: "Activité mise à jour dans la base." });
     }
 
     function updateActivityColor(index, newColor) {
         if (!activities[index]) return;
         activities[index].color = newColor || DEFAULT_ACTIVITY_COLOR;
-        saveActivities();
+        saveActivities({ successMessage: "Activité mise à jour dans la base." });
     }
 
-    function saveActivities() {
+    async function saveActivities({ successMessage = '' } = {}) {
         activities = mergeActivities(activities).activities;
         localStorage.setItem('demat_activities', JSON.stringify(activities));
 
         // Synchronisation cloud best-effort (sans bloquer l'UI)
-        saveActivitiesToSupabase();
+        const syncState = await saveActivitiesToSupabase();
 
         renderParams(); // Mettre à jour la grille
         renderTable();  // Mettre à jour le tableau principal (couleurs)
+
+        if (successMessage) {
+            if (syncState === 'ok') showActivityToast(successMessage);
+            else if (syncState === 'local') showActivityToast("Modifié localement. Synchronisation Supabase à vérifier.", 'warn');
+            else showActivityToast("Erreur lors de l'enregistrement.", 'error');
+        }
     }
 
     // V3.3 — Param activités partagés via support_settings (avec attendanceType)
     async function saveActivitiesToSupabase() {
-        if (!window.SupportStore || !window.supabaseClient) return;
+        if (!window.SupportStore || !window.supabaseClient) return 'local';
 
         try {
             const payload = { activities: mergeActivities(activities).activities };
             await window.SupportStore.saveSetting("PARAM_ACTIVITIES", payload, { site: "VLG" });
             console.log(`☁️ V3.3 Param activités sauvegardés dans support_settings (${payload.activities.length})`);
+            return 'ok';
         } catch (e) {
             console.warn("⚠️ V3.3 Sauvegarde Supabase des paramètres activités échouée:", e.message);
+            return 'error';
         }
+    }
+
+    function showActivityToast(message, level = 'ok') {
+        const toast = document.getElementById('activityToast');
+        if (!toast) return;
+
+        if (toastTimer) clearTimeout(toastTimer);
+        toast.className = 'activity-toast';
+        if (level === 'warn') toast.classList.add('activity-toast--warn');
+        if (level === 'error') toast.classList.add('activity-toast--error');
+        toast.textContent = String(message || 'Action effectuée.');
+        toast.classList.add('activity-toast--show');
+        console.log('[ACTIVITY] toast displayed');
+
+        toastTimer = setTimeout(() => {
+            toast.classList.remove('activity-toast--show');
+        }, 2600);
+    }
+
+    function filterActivities(search) {
+        activitySearchTerm = String(search || '').trim().toLowerCase();
+        renderActivitiesGrid();
+    }
+
+    function clearActivitiesFilter() {
+        activitySearchTerm = '';
+        const input = document.getElementById('paramSearchInput');
+        if (input) input.value = '';
+        renderActivitiesGrid();
     }
 
     // V3.3 — Chargement paramètres activités depuis support_settings + fallback historique
@@ -737,6 +877,7 @@ window.SupportModule = (function() {
         console.log(`[ACTIVITY] loaded ${fromSettings.length} activities`);
         console.log(`[ACTIVITY] merged historical activities: ${fromHistory.length}`);
         console.log(`[ACTIVITY] attendance types applied: ${activities.length}`);
+        console.log('[ACTIVITY] UI improved V3.4.1');
 
         if (window.SupportStore && fromHistory.length > 0) {
             try {
@@ -969,6 +1110,8 @@ window.SupportModule = (function() {
         
         // Actions Paramètres
         addActivity, deleteActivity, updateActivityColor,
+        startEditActivity, cancelEditActivity, saveEditedActivity,
+        renderActivitiesGrid, filterActivities, clearActivitiesFilter,
         
         // Actions Historique
         renderHistory, sortHistory,

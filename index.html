@@ -298,9 +298,8 @@
 
         <div id="tabParam" class="support-panel">
             <h3 class="h2" style="font-size:18px; margin-bottom:15px;">Activités & Couleurs</h3>
-            <div id="paramGrid" class="param-grid"></div>
-            
-            <div style="margin-top:20px; padding:15px; background:#fff; border:1px solid var(--line); border-radius:8px; display:flex; gap:10px; align-items:center;">
+
+            <div class="param-create-row">
                 <input type="text" id="newActName" class="input" placeholder="Nom nouvelle activité..." style="width:200px;">
                 <input type="color" id="newActColor" value="#3b82f6" style="height:38px; width:50px; padding:0; border:none; cursor:pointer;">
                 <select id="newActAttendanceType" class="select" style="width:auto;">
@@ -310,6 +309,14 @@
                 </select>
                 <button class="btn" onclick="SupportModule.addActivity()">➕ Ajouter</button>
             </div>
+
+            <div class="param-search-row">
+                <input type="search" id="paramSearchInput" class="input" placeholder="🔎 Rechercher activité..." oninput="SupportModule.filterActivities(this.value)">
+                <button class="btn btn--secondary" onclick="SupportModule.clearActivitiesFilter()">Réinitialiser</button>
+            </div>
+
+            <div id="paramGrid" class="param-grid"></div>
+            <div id="activityToast" class="activity-toast" aria-live="polite"></div>
         </div>
 
         <div id="tabHistory" class="support-panel">
