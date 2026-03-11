@@ -1,6 +1,7 @@
 // js/supabase.js
 // DEMAT-BT — Connexion Supabase
 // v1.4 — 2026-02-27
+// V3.1: SupportStore expose loadSetting/saveSetting pour support_settings (Param activités)
 // FIX: accolade manquante → setupSupportStore était imbriquée dans setupAuthUI
 // FIX: todayISO() utilise l'heure locale (fr-CA) pour éviter décalage UTC
 // FIX: saveSupport vérifie le verrou (locked) avant toute écriture
@@ -322,6 +323,61 @@ function openChangePasswordModal(supabaseClient) {
     return data;
   }
 
+  // V3.1 — Settings partagés (table support_settings)
+  async function loadSetting(settingKey, { site = SITE } = {}) {
+    if (!settingKey) throw new Error("settingKey requis");
+
+    const { data, error } = await window.supabaseClient
+      .from("support_settings")
+      .select("payload")
+      .eq("site", site)
+      .eq("setting_key", settingKey)
+      .maybeSingle();
+
+    if (error) {
+      console.warn(`[SUPABASE] ⚠️ loadSetting(${settingKey}) échoué:`, error.message);
+      throw error;
+    }
+
+    console.log(`[SUPABASE] 📥 setting chargé: ${settingKey} (${site})`);
+    return data?.payload ?? null;
+  }
+
+  async function saveSetting(settingKey, payload, { site = SITE } = {}) {
+    if (!settingKey) throw new Error("settingKey requis");
+
+    let updatedBy = null;
+    try {
+      const { data: authData } = await window.supabaseClient.auth.getUser();
+      updatedBy = authData?.user?.id || null;
+    } catch (_e) {
+      updatedBy = null;
+    }
+
+    const { data, error } = await window.supabaseClient
+      .from("support_settings")
+      .upsert(
+        {
+          site,
+          setting_key: settingKey,
+          payload,
+          updated_at: new Date().toISOString(),
+          updated_by: updatedBy,
+        },
+        { onConflict: "site,setting_key" }
+      )
+      .select("site, setting_key, updated_at")
+      .single();
+
+    if (error) {
+      console.warn(`[SUPABASE] ⚠️ saveSetting(${settingKey}) échoué:`, error.message);
+      throw error;
+    }
+
+    console.log(`[SUPABASE] 💾 setting sauvegardé: ${settingKey} (${site})`);
+    return data;
+  }
+
   // Expose des helpers pour test console
   window.SupportStore = {
     SITE,
@@ -331,6 +387,9 @@ function openChangePasswordModal(supabaseClient) {
     // FIX v1.2 : méthodes génériques pour navigation multi-jour (support.js)
     loadSupport: ({ jour = todayISO(), site = SITE } = {}) => loadSupport({ jour, site }),
     saveSupport: (payload, { jour = todayISO(), site = SITE } = {}) => saveSupport(payload, { jour, site }),
+    // V3.1 : paramètres partagés (support_settings)
+    loadSetting: (settingKey, { site = SITE } = {}) => loadSetting(settingKey, { site }),
+    saveSetting: (settingKey, payload, { site = SITE } = {}) => saveSetting(settingKey, payload, { site }),
 
     // Petit test prêt à l'emploi
     saveTest: () =>

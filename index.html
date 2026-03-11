@@ -303,6 +303,11 @@
             <div style="margin-top:20px; padding:15px; background:#fff; border:1px solid var(--line); border-radius:8px; display:flex; gap:10px; align-items:center;">
                 <input type="text" id="newActName" class="input" placeholder="Nom nouvelle activité..." style="width:200px;">
                 <input type="color" id="newActColor" value="#3b82f6" style="height:38px; width:50px; padding:0; border:none; cursor:pointer;">
+                <select id="newActAttendanceType" class="select" style="width:auto;">
+                    <option value="present">Présent</option>
+                    <option value="absent">Absent</option>
+                    <option value="neutral">Neutre</option>
+                </select>
                 <button class="btn" onclick="SupportModule.addActivity()">➕ Ajouter</button>
             </div>
         </div>
