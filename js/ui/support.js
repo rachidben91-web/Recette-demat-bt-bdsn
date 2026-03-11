@@ -59,7 +59,6 @@ window.SupportModule = (function() {
 
     // Codes considérés comme "Absence" pour les KPIs et l'affichage rouge
     const ABSENCE_CODES = new Set(["CP","10","21","41","RTT","ABS","PAT","MALADIE"]);
-    const PARAMS_JOUR_KEY = "__PARAM_ACTIVITIES__";
 
     // ============================================================
     // 2. UTILITAIRES
@@ -294,7 +293,7 @@ window.SupportModule = (function() {
         // Mise à jour des compteurs (KPI)
         const elPres = document.getElementById('kpiPres');
         const elAbs = document.getElementById('kpiAbs');
-        const elGRV = document.getElementById('kpiGrv');
+        const elGrv = document.getElementById('kpiGreve');
         
         if(elPres) elPres.textContent = cptPres;
         if(elAbs) elAbs.textContent = cptAbs;
@@ -362,7 +361,6 @@ window.SupportModule = (function() {
         // Sauvegarde Obs Globale
         const obsGlobal = document.getElementById('obsGlobal');
         if(obsGlobal) dayData['__GLOBAL_OBS'] = obsGlobal.value;
-        dayData['__PARAM_ACTIVITIES'] = activities;
 
         // Sauvegarde Lignes
         const rows = document.getElementById('briefTableBody').querySelectorAll('tr');
@@ -521,67 +519,32 @@ window.SupportModule = (function() {
         renderTable();  // Mettre à jour le tableau principal (couleurs)
     }
 
+    // V3.1 — Param activités partagés via support_settings
     async function saveActivitiesToSupabase() {
         if (!window.SupportStore || !window.supabaseClient) return;
 
         try {
-            const { data: authData } = await window.supabaseClient.auth.getUser();
-            if (!authData?.user) return;
-
-            // Sauvegarde dédiée des paramètres pour éviter toute dépendance
-            // à la sauvegarde de la fiche du jour.
-            await window.SupportStore.saveSupport(
-                { __PARAM_ACTIVITIES: activities },
-                { jour: PARAMS_JOUR_KEY }
-            );
-            console.log("☁️ Param activités sauvegardés sur Supabase (clé dédiée)");
+            const payload = { activities };
+            await window.SupportStore.saveSetting("PARAM_ACTIVITIES", payload, { site: "VLG" });
+            console.log("☁️ V3.1 Param activités sauvegardés dans support_settings");
         } catch (e) {
-            console.warn("⚠️ Sauvegarde Supabase des paramètres activités échouée:", e.message);
+            console.warn("⚠️ V3.1 Sauvegarde Supabase des paramètres activités échouée:", e.message);
         }
     }
 
+    // V3.1 — Chargement paramètres activités depuis support_settings
     async function loadActivitiesFromSupabase() {
         if (!window.SupportStore || !window.supabaseClient) return;
 
         try {
-            const { data: authData } = await window.supabaseClient.auth.getUser();
-            if (!authData?.user) return;
+            const payload = await window.SupportStore.loadSetting("PARAM_ACTIVITIES", { site: "VLG" });
+            if (!Array.isArray(payload?.activities)) return;
 
-            // 1) Source principale : ligne dédiée
-            const { data: dedicated, error: dedicatedErr } = await window.supabaseClient
-                .from("support_journee")
-                .select("payload")
-                .eq("site", "VLG")
-                .eq("jour", PARAMS_JOUR_KEY)
-                .maybeSingle();
-
-            if (dedicatedErr) throw dedicatedErr;
-            if (Array.isArray(dedicated?.payload?.__PARAM_ACTIVITIES)) {
-                activities = dedicated.payload.__PARAM_ACTIVITIES;
-                localStorage.setItem('demat_activities', JSON.stringify(activities));
-                console.log("☁️ Param activités chargés depuis Supabase (clé dédiée)");
-                return;
-            }
-
-            // 2) Fallback de migration : scanner les dernières fiches jour
-            const { data: rows, error } = await window.supabaseClient
-                .from("support_journee")
-                .select("jour, payload")
-                .eq("site", "VLG")
-                .order("jour", { ascending: false })
-                .limit(90);
-
-            if (error) throw error;
-            if (!rows?.length) return;
-
-            const rowWithParams = rows.find(r => Array.isArray(r?.payload?.__PARAM_ACTIVITIES));
-            if (!rowWithParams) return;
-
-            activities = rowWithParams.payload.__PARAM_ACTIVITIES;
+            activities = payload.activities;
             localStorage.setItem('demat_activities', JSON.stringify(activities));
-            console.log("☁️ Param activités chargés depuis Supabase (jour:", rowWithParams.jour + ")");
+            console.log("☁️ V3.1 Param activités chargés depuis support_settings");
         } catch (e) {
-            console.warn("⚠️ Chargement Supabase des paramètres activités échoué:", e.message);
+            console.warn("⚠️ V3.1 Chargement Supabase des paramètres activités échoué (fallback localStorage):", e.message);
         }
     }
 
