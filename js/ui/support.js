@@ -7,6 +7,7 @@
 // NEW v1.2: loadHistoryFromSupabase() reconstruit history[] depuis TOUTES les lignes Supabase
 //           → L'onglet Données & Historique affiche maintenant les données cross-session
 //           → switchTab('tabHistory') déclenche un rechargement Supabase automatique
+// V3.2: compatibilité historique activités (support_settings + legacy support_journee)
 
 window.SupportModule = (function() {
     
@@ -88,6 +89,107 @@ window.SupportModule = (function() {
         const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b; 
         return luma > 128;
     };
+
+    const DEFAULT_ACTIVITY_COLOR = '#94a3b8';
+
+    const slugify = (text) => String(text || '')
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'activity';
+
+    function normalizeActivity(raw, fallbackColor = DEFAULT_ACTIVITY_COLOR) {
+        if (!raw) return null;
+        const base = (typeof raw === 'string') ? { label: raw } : raw;
+
+        const label = String(base.label || base.name || base.code || '').trim();
+        if (!label) return null;
+
+        const code = String(base.code || slugify(label)).trim();
+        const color = String(base.color || fallbackColor).trim() || DEFAULT_ACTIVITY_COLOR;
+
+        return {
+            code,
+            label,
+            name: String(base.name || label).trim() || label,
+            color,
+        };
+    }
+
+    const activityDisplayLabel = (act) => String(act?.label || act?.name || act?.code || 'activité');
+
+    function activityMatchKey(raw) {
+        if (!raw) return '';
+        const norm = normalizeActivity(raw);
+        if (!norm) return '';
+        return (norm.code || slugify(norm.label)).toLowerCase();
+    }
+
+    function mergeActivities(list) {
+        const byKey = new Map();
+        let mergedCount = 0;
+
+        const upsert = (raw) => {
+            const norm = normalizeActivity(raw);
+            if (!norm) return;
+            const key = activityMatchKey(norm);
+            if (!key) return;
+
+            if (!byKey.has(key)) {
+                byKey.set(key, norm);
+                return;
+            }
+
+            const prev = byKey.get(key);
+            const color = (prev.color && prev.color !== DEFAULT_ACTIVITY_COLOR) ? prev.color : norm.color;
+            const label = prev.label || norm.label;
+            const name = prev.name || norm.name || label;
+            const code = prev.code || norm.code || slugify(label);
+
+            byKey.set(key, { code, label, name, color: color || DEFAULT_ACTIVITY_COLOR });
+            mergedCount += 1;
+        };
+
+        (list || []).forEach(upsert);
+        return { activities: Array.from(byKey.values()), mergedCount };
+    }
+
+    function findActivityByValue(value) {
+        const v = String(value || '').trim();
+        if (!v) return null;
+        const lowered = v.toLowerCase();
+        return activities.find(a => {
+            const label = activityDisplayLabel(a).toLowerCase();
+            const code = String(a?.code || '').toLowerCase();
+            const name = String(a?.name || '').toLowerCase();
+            return label === lowered || code === lowered || name === lowered;
+        }) || null;
+    }
+
+    function extractHistoricalActivitiesFromRows(rows) {
+        const found = [];
+
+        (rows || []).forEach(row => {
+            const payload = row?.payload;
+            if (!payload || typeof payload !== 'object') return;
+
+            if (Array.isArray(payload.__PARAM_ACTIVITIES)) {
+                payload.__PARAM_ACTIVITIES.forEach(a => found.push(a));
+            }
+
+            Object.keys(payload).forEach(key => {
+                if (key === '__GLOBAL_OBS' || key === '__PARAM_ACTIVITIES') return;
+                const item = payload[key];
+                if (!item || typeof item !== 'object') return;
+
+                if (item.act && typeof item.act === 'string') {
+                    found.push({ label: item.act, color: item.actColor || item.color || DEFAULT_ACTIVITY_COLOR });
+                } else if (item.act && typeof item.act === 'object') {
+                    found.push(item.act);
+                }
+            });
+        });
+
+        return found;
+    }
 
     // ============================================================
     // 3. INITIALISATION & NAVIGATION
@@ -229,11 +331,12 @@ window.SupportModule = (function() {
             const rowData = savedDay[tech.name] || {};
             
             // Récupération de l'activité
-            const actName = rowData.act || '';
-            const actObj = activities.find(a => a.name === actName);
+            const actName = String(rowData.act || '').trim();
+            const actObj = findActivityByValue(actName);
+            const actLabel = actObj ? activityDisplayLabel(actObj) : actName;
             
             // Gestion Couleur
-            const bgColor = actObj ? actObj.color : '';
+            const bgColor = actObj?.color || DEFAULT_ACTIVITY_COLOR;
             const fgColor = isLight(bgColor) ? '#000' : '#fff';
             const borderColor = bgColor || '#e2e8f0';
 
@@ -266,7 +369,11 @@ window.SupportModule = (function() {
                     <select class="editable-select input-act" data-tech="${tech.name}" 
                             style="background-color:${bgColor}; color:${fgColor}; border-color:${borderColor};">
                         <option value="">-</option>
-                        ${activities.map(a => `<option value="${a.name}" ${actName===a.name?'selected':''}>${a.name}</option>`).join('')}
+                        ${activities.map(a => {
+                            const label = activityDisplayLabel(a);
+                            return `<option value="${label}" ${actLabel===label?'selected':''}>${label}</option>`;
+                        }).join('')}
+                        ${actLabel && !activities.some(a => activityDisplayLabel(a) === actLabel) ? `<option value="${actLabel}" selected>${actLabel}</option>` : ''}
                     </select>
                 </td>
                 
@@ -331,7 +438,7 @@ window.SupportModule = (function() {
         // 1. Changement visuel immédiat
         if(el.classList.contains('input-act')) {
             const actName = el.value;
-            const actObj = activities.find(a => a.name === actName);
+            const actObj = findActivityByValue(actName);
             const color = actObj ? actObj.color : '';
             
             el.style.backgroundColor = color;
@@ -459,12 +566,12 @@ window.SupportModule = (function() {
         grid.innerHTML = activities.map((a, index) => `
             <div class="param-card" style="justify-content:space-between;">
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="color" value="${a.color}" 
+                    <input type="color" value="${a.color || DEFAULT_ACTIVITY_COLOR}" 
                            onchange="SupportModule.updateActivityColor(${index}, this.value)"
                            style="width:30px; height:30px; border:none; background:none; cursor:pointer;"
                            title="Changer la couleur">
                     
-                    <div style="font-weight:bold; font-size:12px;">${a.name}</div>
+                    <div style="font-weight:bold; font-size:12px;">${activityDisplayLabel(a)}</div>
                 </div>
                 
                 <button onclick="SupportModule.deleteActivity(${index})" 
@@ -480,15 +587,21 @@ window.SupportModule = (function() {
         const nameInput = document.getElementById('newActName');
         const colorInput = document.getElementById('newActColor');
         
-        const name = nameInput.value.trim().toUpperCase();
-        const color = colorInput.value;
-        
-        if(name) {
-            if(activities.find(a => a.name === name)) {
+        const label = nameInput?.value?.trim() || '';
+        const color = colorInput?.value || DEFAULT_ACTIVITY_COLOR;
+
+        if(label) {
+            const candidate = normalizeActivity({ label, color });
+            const duplicate = activities.some(a => {
+                const sameCode = String(a?.code || '').toLowerCase() === String(candidate?.code || '').toLowerCase();
+                const sameLabel = activityDisplayLabel(a).toLowerCase() === activityDisplayLabel(candidate).toLowerCase();
+                return sameCode || sameLabel;
+            });
+            if(duplicate) {
                 alert("Cette activité existe déjà !");
                 return;
             }
-            activities.push({ name, color });
+            activities.push(candidate);
             saveActivities();
             nameInput.value = ''; // Reset champ
         } else {
@@ -497,7 +610,7 @@ window.SupportModule = (function() {
     }
 
     function deleteActivity(index) {
-        const actName = activities[index].name;
+        const actName = activityDisplayLabel(activities[index]);
         if(confirm(`Supprimer définitivement l'activité "${actName}" ?`)) {
             activities.splice(index, 1);
             saveActivities();
@@ -505,11 +618,13 @@ window.SupportModule = (function() {
     }
 
     function updateActivityColor(index, newColor) {
-        activities[index].color = newColor;
+        if (!activities[index]) return;
+        activities[index].color = newColor || DEFAULT_ACTIVITY_COLOR;
         saveActivities();
     }
 
     function saveActivities() {
+        activities = mergeActivities(activities).activities;
         localStorage.setItem('demat_activities', JSON.stringify(activities));
 
         // Synchronisation cloud best-effort (sans bloquer l'UI)
@@ -519,32 +634,72 @@ window.SupportModule = (function() {
         renderTable();  // Mettre à jour le tableau principal (couleurs)
     }
 
-    // V3.1 — Param activités partagés via support_settings
+    // V3.2 — Param activités partagés via support_settings (avec compat historique)
     async function saveActivitiesToSupabase() {
         if (!window.SupportStore || !window.supabaseClient) return;
 
         try {
-            const payload = { activities };
+            const payload = { activities: mergeActivities(activities).activities };
             await window.SupportStore.saveSetting("PARAM_ACTIVITIES", payload, { site: "VLG" });
-            console.log("☁️ V3.1 Param activités sauvegardés dans support_settings");
+            console.log(`☁️ V3.2 Param activités sauvegardés dans support_settings (${payload.activities.length})`);
         } catch (e) {
-            console.warn("⚠️ V3.1 Sauvegarde Supabase des paramètres activités échouée:", e.message);
+            console.warn("⚠️ V3.2 Sauvegarde Supabase des paramètres activités échouée:", e.message);
         }
     }
 
-    // V3.1 — Chargement paramètres activités depuis support_settings
+    // V3.2 — Chargement paramètres activités depuis support_settings + fallback historique
     async function loadActivitiesFromSupabase() {
-        if (!window.SupportStore || !window.supabaseClient) return;
+        const localActs = (() => {
+            try { return JSON.parse(localStorage.getItem('demat_activities') || '[]'); }
+            catch (_e) { return []; }
+        })();
 
-        try {
-            const payload = await window.SupportStore.loadSetting("PARAM_ACTIVITIES", { site: "VLG" });
-            if (!Array.isArray(payload?.activities)) return;
+        let fromSettings = [];
+        let fromHistory = [];
 
-            activities = payload.activities;
-            localStorage.setItem('demat_activities', JSON.stringify(activities));
-            console.log("☁️ V3.1 Param activités chargés depuis support_settings");
-        } catch (e) {
-            console.warn("⚠️ V3.1 Chargement Supabase des paramètres activités échoué (fallback localStorage):", e.message);
+        if (window.SupportStore && window.supabaseClient) {
+            try {
+                const payload = await window.SupportStore.loadSetting("PARAM_ACTIVITIES", { site: "VLG" });
+                fromSettings = Array.isArray(payload?.activities)
+                    ? payload.activities
+                    : (Array.isArray(payload) ? payload : []);
+            } catch (e) {
+                console.warn("⚠️ V3.2 Chargement support_settings échoué (fallback local/historique):", e.message);
+            }
+
+            try {
+                const { data: rows, error } = await window.supabaseClient
+                    .from("support_journee")
+                    .select("jour, payload")
+                    .eq("site", "VLG")
+                    .order("jour", { ascending: false })
+                    .limit(120);
+                if (error) throw error;
+                fromHistory = extractHistoricalActivitiesFromRows(rows || []);
+            } catch (e) {
+                console.warn("⚠️ V3.2 Lecture historique support_journee échouée:", e.message);
+            }
+        }
+
+        const merged = mergeActivities([
+            ...DEFAULT_ACTIVITIES,
+            ...localActs,
+            ...fromSettings,
+            ...fromHistory,
+        ]);
+
+        activities = merged.activities;
+        localStorage.setItem('demat_activities', JSON.stringify(activities));
+
+        console.log(`☁️ V3.2 Activités: settings=${fromSettings.length}, historiques=${fromHistory.length}, fusion=${activities.length}`);
+
+        if (window.SupportStore && fromHistory.length > 0) {
+            try {
+                await window.SupportStore.saveSetting("PARAM_ACTIVITIES", { activities }, { site: "VLG" });
+                console.log("☁️ V3.2 Référentiel fusionné repersisté dans support_settings");
+            } catch (e) {
+                console.warn("⚠️ V3.2 Persistance post-fusion ignorée:", e.message);
+            }
         }
     }
 
