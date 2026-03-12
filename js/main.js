@@ -125,6 +125,16 @@ document.addEventListener('DOMContentLoaded', () => {
     window.switchView = function(viewName) {
         console.log("Navigation vers :", viewName);
 
+        if (viewName === 'support' && window.__SUPPORT_AUTH_CONNECTED !== true) {
+            console.warn("[MAIN] Accès support bloqué: utilisateur non connecté.");
+            alert("Veuillez vous connecter pour accéder au Support Journée.");
+            const authBtn = document.getElementById('btnAuth');
+            if (authBtn && authBtn.dataset.state === 'in') {
+                authBtn.click();
+            }
+            return;
+        }
+
         // Cacher toutes les vues
         document.querySelectorAll('.view').forEach(el => {
             el.style.display = 'none';

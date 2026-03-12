@@ -227,6 +227,7 @@ function openChangePasswordModal(supabaseClient) {
 (function setupAuthUI() {
   const btn    = document.getElementById("btnAuth");
   const status = document.getElementById("authStatus");
+  const supportBtn = document.getElementById("btnSupportView");
   const client = window.supabaseClient;
 
   if (!btn || !status || !client) {
@@ -235,6 +236,8 @@ function openChangePasswordModal(supabaseClient) {
   }
 
   function setUI(user) {
+    const connected = !!user?.email;
+
     if (user?.email) {
       status.textContent = `Connecté : ${user.email}`;
       btn.textContent    = "Se déconnecter";
@@ -243,6 +246,27 @@ function openChangePasswordModal(supabaseClient) {
       status.textContent = "Non connecté";
       btn.textContent    = "Se connecter";
       btn.dataset.state  = "in";
+    }
+
+    // Verrouille l'accès Support Journée tant que l'utilisateur n'est pas connecté.
+    window.__SUPPORT_AUTH_CONNECTED = connected;
+    if (supportBtn) {
+      supportBtn.disabled = !connected;
+      supportBtn.classList.toggle("btn--disabled", !connected);
+      supportBtn.title = connected
+        ? "Ouvrir Support Journée"
+        : "Connectez-vous pour accéder au Support Journée";
+    }
+
+    window.dispatchEvent(new CustomEvent("demat:auth-changed", {
+      detail: { connected, user: user || null }
+    }));
+
+    if (!connected) {
+      const supportView = document.getElementById("viewSupport");
+      if (supportView?.classList?.contains("view--active") && typeof window.switchView === "function") {
+        window.switchView("referent");
+      }
     }
   }
 
