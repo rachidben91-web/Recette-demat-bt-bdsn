@@ -1639,6 +1639,24 @@ table.brief-table tr:hover { background-color: #f8fafc; }
 .activity-toast--warn { background: #92400e; }
 .activity-toast--error { background: #991b1b; }
 
+.flatpickr-day.support-has-data {
+  color: #b91c1c !important;
+  border-color: #ef4444 !important;
+  font-weight: 700;
+}
+
+.flatpickr-day.support-has-data:hover {
+  background: #fee2e2 !important;
+}
+
+.flatpickr-day.support-has-data.selected,
+.flatpickr-day.support-has-data.startRange,
+.flatpickr-day.support-has-data.endRange {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #fff !important;
+}
+
 @media (max-width: 1080px) {
   .param-card__actions {
     justify-content: flex-start;

@@ -24,6 +24,8 @@ window.SupportModule = (function() {
     let sortKey = 'date';
     let sortDir = -1; // -1 = décroissant (plus récent en haut)
     let lastSupportMeta = null;
+    let supportDatePickerInstance = null;
+    let supportDaysWithData = new Set();
 
     // Liste des activités par défaut (Fidèle au fichier Excel)
     const DEFAULT_ACTIVITIES = [
@@ -101,6 +103,109 @@ window.SupportModule = (function() {
         const el = document.getElementById('supportLastUpdate');
         if (!el) return;
         el.textContent = formatLastUpdateLabel(meta);
+    }
+
+    function hasMeaningfulDayData(payload) {
+        if (!payload || typeof payload !== 'object') return false;
+
+        if (String(payload.__GLOBAL_OBS || '').trim()) return true;
+
+        return Object.keys(payload).some((agentName) => {
+            if (agentName === '__GLOBAL_OBS' || agentName === '__PARAM_ACTIVITIES' || agentName === '_meta') return false;
+            const d = payload[agentName];
+            if (!d || typeof d !== 'object') return false;
+            return Boolean(
+                String(d.act || '').trim() ||
+                String(d.obs || '').trim() ||
+                d.briefA === 'OUI' ||
+                d.briefD === 'OUI' ||
+                d.debriefA === 'OUI' ||
+                d.debriefD === 'OUI' ||
+                d.Grv === 'OUI'
+            );
+        });
+    }
+
+    function dateKeyFromDate(dateObj) {
+        if (!(dateObj instanceof Date)) return '';
+        return dateObj.toLocaleDateString('fr-CA');
+    }
+
+    function markSupportCalendarDay(dayElem) {
+        if (!dayElem || !dayElem.dateObj) return;
+        const key = dateKeyFromDate(dayElem.dateObj);
+        dayElem.classList.toggle('support-has-data', supportDaysWithData.has(key));
+    }
+
+    function redrawSupportDatePickerMarkers() {
+        if (!supportDatePickerInstance) return;
+        supportDatePickerInstance.calendarContainer
+            ?.querySelectorAll('.flatpickr-day')
+            ?.forEach(markSupportCalendarDay);
+    }
+
+    async function refreshSupportDaysWithData() {
+        const nextSet = new Set();
+
+        for (let i = 0; i < localStorage.length; i += 1) {
+            const key = localStorage.key(i);
+            if (!key || !key.startsWith('demat_day_')) continue;
+            const dayKey = key.replace('demat_day_', '');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) continue;
+            try {
+                const payload = JSON.parse(localStorage.getItem(key) || '{}');
+                if (hasMeaningfulDayData(payload)) nextSet.add(dayKey);
+            } catch (_e) {}
+        }
+
+        if (window.SupportStore && window.supabaseClient) {
+            try {
+                const { data: authData } = await window.supabaseClient.auth.getUser();
+                if (authData?.user) {
+                    const { data: rows, error } = await window.supabaseClient
+                        .from('support_journee')
+                        .select('jour, payload')
+                        .eq('site', 'VLG')
+                        .order('jour', { ascending: false })
+                        .limit(400);
+                    if (error) throw error;
+
+                    (rows || []).forEach((row) => {
+                        const dayKey = String(row?.jour || '');
+                        if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) return;
+                        if (hasMeaningfulDayData(row?.payload || {})) nextSet.add(dayKey);
+                    });
+                }
+            } catch (e) {
+                console.warn('[SUPPORT] refreshSupportDaysWithData Supabase ignoré:', e?.message || e);
+            }
+        }
+
+        supportDaysWithData = nextSet;
+        redrawSupportDatePickerMarkers();
+        console.log(`[SUPPORT] calendrier marqué: ${supportDaysWithData.size} jour(s) avec données.`);
+    }
+
+    function initSupportDatePicker() {
+        const elPicker = document.getElementById('supportDatePicker');
+        if (!elPicker || supportDatePickerInstance || !window.flatpickr) return;
+
+        // L'input natif est remplacé par Flatpickr pour pouvoir styliser les jours "avec données".
+        supportDatePickerInstance = window.flatpickr(elPicker, {
+            dateFormat: 'Y-m-d',
+            defaultDate: formatDateKey(currentDate),
+            locale: window.flatpickr?.l10ns?.fr || 'default',
+            allowInput: false,
+            onChange: (selectedDates) => {
+                if (!selectedDates || selectedDates.length === 0) return;
+                const nextKey = dateKeyFromDate(selectedDates[0]);
+                if (nextKey) goToDate(nextKey);
+            },
+            onDayCreate: (_dObj, _dStr, _fp, dayElem) => markSupportCalendarDay(dayElem),
+            onMonthChange: () => redrawSupportDatePickerMarkers(),
+            onYearChange: () => redrawSupportDatePickerMarkers(),
+            onOpen: () => redrawSupportDatePickerMarkers(),
+        });
     }
 
     // Détermine si une couleur de fond est claire ou foncée pour adapter le texte (noir/blanc)
@@ -278,10 +383,15 @@ window.SupportModule = (function() {
         history = savedHist ? JSON.parse(savedHist) : [];
 
         // 3. Premier Rendu
+        initSupportDatePicker();
         updateDateDisplay();
         loadAndRenderTable();
         renderParams();
         renderStats(); 
+
+        refreshSupportDaysWithData().catch((e) => {
+            console.warn('[SUPPORT] impossible de marquer le calendrier:', e?.message || e);
+        });
 
         if (window.SupportStore?.backfillLegacyMeta) {
             window.SupportStore.backfillLegacyMeta({ site: "VLG", limit: 365 })
@@ -344,6 +454,9 @@ window.SupportModule = (function() {
         // Input date picker
         const elPicker = document.getElementById('supportDatePicker');
         if(elPicker) elPicker.value = formatDateKey(currentDate);
+        if (supportDatePickerInstance) {
+            supportDatePickerInstance.setDate(formatDateKey(currentDate), false);
+        }
     }
 
     function changeDay(delta) {
@@ -608,6 +721,9 @@ window.SupportModule = (function() {
 
         const key = formatDateKey(currentDate);
         localStorage.setItem('demat_day_' + key, JSON.stringify(dayData));
+        if (hasMeaningfulDayData(dayData)) supportDaysWithData.add(key);
+        else supportDaysWithData.delete(key);
+        redrawSupportDatePickerMarkers();
         
         // FIX v11.1 : Synchronisation Supabase (si connecté)
         if(window.SupportStore && window.supabaseClient) {
@@ -662,7 +778,10 @@ window.SupportModule = (function() {
 
     function clearDay() {
         if(confirm("Voulez-vous vraiment vider toutes les saisies de ce jour ?")) {
-            localStorage.removeItem('demat_day_' + formatDateKey(currentDate));
+            const dayKey = formatDateKey(currentDate);
+            localStorage.removeItem('demat_day_' + dayKey);
+            supportDaysWithData.delete(dayKey);
+            redrawSupportDatePickerMarkers();
             renderTable();
         }
     }
