@@ -261,6 +261,11 @@ window.SupportModule = (function() {
         if (window.supabaseClient?.auth?.onAuthStateChange) {
             window.supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+                    if (window.SupportStore?.backfillLegacyMeta) {
+                        window.SupportStore.backfillLegacyMeta({ site: "VLG", limit: 365 })
+                            .then((r) => console.log(`[SUPPORT] legacy meta backfill: scanned=${r?.scanned || 0}, patched=${r?.patched || 0}`))
+                            .catch((e) => console.warn("[SUPPORT] legacy meta backfill ignored:", e?.message || e));
+                    }
                     await loadActivitiesFromSupabase();
                     renderParams();
                     renderTable();
@@ -277,6 +282,12 @@ window.SupportModule = (function() {
         loadAndRenderTable();
         renderParams();
         renderStats(); 
+
+        if (window.SupportStore?.backfillLegacyMeta) {
+            window.SupportStore.backfillLegacyMeta({ site: "VLG", limit: 365 })
+                .then((r) => console.log(`[SUPPORT] startup legacy meta backfill: scanned=${r?.scanned || 0}, patched=${r?.patched || 0}`))
+                .catch((e) => console.warn("[SUPPORT] startup legacy meta backfill ignored:", e?.message || e));
+        }
         
         // 4. Listeners globaux (Délégation d'événements pour performance)
         const tbody = document.getElementById('briefTableBody');

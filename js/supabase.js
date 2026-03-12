@@ -410,6 +410,68 @@ function openChangePasswordModal(supabaseClient) {
     return data;
   }
 
+  // Rattrapage legacy:
+  // complète payload._meta.lastModifiedByEmail pour les lignes modifiées par l'utilisateur connecté.
+  async function backfillLegacyMeta({ site = SITE, limit = 365 } = {}) {
+    const user = await requireUser();
+    const maxRows = Math.max(1, Math.min(Number(limit) || 365, 1500));
+
+    const { data: rows, error } = await window.supabaseClient
+      .from("support_journee")
+      .select("jour, site, payload, updated_at, updated_by, locked")
+      .eq("site", site)
+      .eq("updated_by", user.id)
+      .order("jour", { ascending: false })
+      .limit(maxRows);
+
+    if (error) throw error;
+
+    let scanned = 0;
+    let patched = 0;
+    for (const row of (rows || [])) {
+      scanned += 1;
+      if (row?.locked) continue;
+
+      const payload = (row?.payload && typeof row.payload === "object") ? row.payload : {};
+      const meta = (payload._meta && typeof payload._meta === "object") ? payload._meta : {};
+      const hasEmail = String(meta.lastModifiedByEmail || meta.createdBy || "").trim().length > 0;
+      if (hasEmail) continue;
+
+      const migratedPayload = {
+        ...payload,
+        _meta: {
+          ...meta,
+          lastModifiedAt: meta.lastModifiedAt || row.updated_at || new Date().toISOString(),
+          lastModifiedByEmail: user.email || "",
+          lastModifiedById: user.id || "",
+          migratedLegacyMeta: true,
+        },
+      };
+
+      const { error: patchErr } = await window.supabaseClient
+        .from("support_journee")
+        .upsert(
+          {
+            jour: row.jour,
+            site: row.site || site,
+            payload: migratedPayload,
+            updated_at: row.updated_at || new Date().toISOString(),
+            updated_by: row.updated_by || user.id,
+          },
+          { onConflict: "jour,site" }
+        );
+
+      if (patchErr) {
+        console.warn("[SUPABASE] backfillLegacyMeta: patch ignored for jour", row.jour, patchErr.message);
+        continue;
+      }
+      patched += 1;
+    }
+
+    console.log(`[SUPABASE] backfillLegacyMeta done site=${site} scanned=${scanned} patched=${patched}`);
+    return { scanned, patched };
+  }
+
   // V3.1 — Settings partagés (table support_settings)
   async function loadSetting(settingKey, { site = SITE } = {}) {
     if (!settingKey) throw new Error("settingKey requis");
@@ -482,6 +544,7 @@ function openChangePasswordModal(supabaseClient) {
     // FIX v1.2 : méthodes génériques pour navigation multi-jour (support.js)
     loadSupport: ({ jour = todayISO(), site = SITE } = {}) => loadSupport({ jour, site }),
     saveSupport: (payload, { jour = todayISO(), site = SITE } = {}) => saveSupport(payload, { jour, site }),
+    backfillLegacyMeta: ({ site = SITE, limit = 365 } = {}) => backfillLegacyMeta({ site, limit }),
     // V3.1 : paramètres partagés (support_settings)
     loadSetting: (settingKey, { site = SITE } = {}) => loadSetting(settingKey, { site }),
     saveSetting: (settingKey, payload, { site = SITE } = {}) => saveSetting(settingKey, payload, { site }),
