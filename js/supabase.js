@@ -357,6 +357,21 @@ function openChangePasswordModal(supabaseClient) {
 
   async function saveSupport(payload, { jour = todayISO(), site = SITE } = {}) {
     const user = await requireUser();
+    const nowIso = new Date().toISOString();
+
+    const existingMeta = (payload && typeof payload === "object" && payload._meta && typeof payload._meta === "object")
+      ? payload._meta
+      : {};
+
+    const payloadToSave = {
+      ...(payload || {}),
+      _meta: {
+        ...existingMeta,
+        lastModifiedAt: nowIso,
+        lastModifiedByEmail: user.email || "",
+        lastModifiedById: user.id || "",
+      },
+    };
 
     // FIX v1.1 : vérifier le verrou avant d'écrire
     const { data: current, error: errCheck } = await window.supabaseClient
@@ -380,8 +395,8 @@ function openChangePasswordModal(supabaseClient) {
         {
           jour,
           site,
-          payload,
-          updated_at: new Date().toISOString(),
+          payload: payloadToSave,
+          updated_at: nowIso,
           updated_by: user.id,
         },
         { onConflict: "jour,site" }

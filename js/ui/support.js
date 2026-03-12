@@ -23,6 +23,7 @@ window.SupportModule = (function() {
     let toastTimer = null;
     let sortKey = 'date';
     let sortDir = -1; // -1 = décroissant (plus récent en haut)
+    let lastSupportMeta = null;
 
     // Liste des activités par défaut (Fidèle au fichier Excel)
     const DEFAULT_ACTIVITIES = [
@@ -78,6 +79,27 @@ window.SupportModule = (function() {
         const week1 = new Date(date.getFullYear(), 0, 4);
         return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     };
+
+    function formatLastUpdateLabel(meta) {
+        if (!meta) return "Dernière modification : —";
+        const by = String(meta.lastModifiedByEmail || meta.createdBy || meta.updatedBy || '').trim();
+        const atRaw = meta.lastModifiedAt || meta.updatedAt || null;
+        let at = '';
+        if (atRaw) {
+            const dt = new Date(atRaw);
+            if (!Number.isNaN(dt.getTime())) at = dt.toLocaleString('fr-FR');
+        }
+        if (by && at) return `Dernière modification : ${by} le ${at}`;
+        if (by) return `Dernière modification : ${by}`;
+        if (at) return `Dernière modification : le ${at}`;
+        return "Dernière modification : —";
+    }
+
+    function renderLastUpdate(meta = null) {
+        const el = document.getElementById('supportLastUpdate');
+        if (!el) return;
+        el.textContent = formatLastUpdateLabel(meta);
+    }
 
     // Détermine si une couleur de fond est claire ou foncée pour adapter le texte (noir/blanc)
     const isLight = hex => {
@@ -337,11 +359,20 @@ window.SupportModule = (function() {
 
     async function loadAndRenderTable() {
         const key = formatDateKey(currentDate);
+        lastSupportMeta = null;
         
         // Tenter de charger depuis Supabase (si connecté)
         if(window.SupportStore && window.supabaseClient) {
             try {
                 const row = await window.SupportStore.loadSupport({ jour: key });
+                if (row?.payload?._meta && typeof row.payload._meta === 'object') {
+                    lastSupportMeta = row.payload._meta;
+                } else if (row?.updated_at || row?.updated_by) {
+                    lastSupportMeta = {
+                        updatedAt: row.updated_at || null,
+                        updatedBy: row.updated_by || null,
+                    };
+                }
                 if(row?.payload && Object.keys(row.payload).length > 1) {
                     // Supabase a des données → on met à jour le localStorage local aussi
                     localStorage.setItem('demat_day_' + key, JSON.stringify(row.payload));
@@ -351,6 +382,14 @@ window.SupportModule = (function() {
                 console.warn("⚠️ Chargement Supabase échoué, fallback localStorage :", e.message);
             }
         }
+
+        if (!lastSupportMeta) {
+            try {
+                const savedDay = JSON.parse(localStorage.getItem('demat_day_' + key) || '{}');
+                if (savedDay?._meta) lastSupportMeta = savedDay._meta;
+            } catch (_e) {}
+        }
+        renderLastUpdate(lastSupportMeta);
         
         renderTable();
     }
@@ -560,7 +599,10 @@ window.SupportModule = (function() {
         // FIX v11.1 : Synchronisation Supabase (si connecté)
         if(window.SupportStore && window.supabaseClient) {
             window.SupportStore.saveSupport(dayData, { jour: key })
-                .then(() => {
+                .then((savedRow) => {
+                    const meta = savedRow?.payload?._meta || dayData?._meta || null;
+                    lastSupportMeta = meta;
+                    renderLastUpdate(lastSupportMeta);
                     // Feedback visuel discret
                     const btn = document.querySelector('button[onclick*="saveDay"], button[onclick*="SupportModule.saveDay"]');
                     if(btn) {
