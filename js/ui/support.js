@@ -82,7 +82,9 @@ window.SupportModule = (function() {
 
     function formatLastUpdateLabel(meta) {
         if (!meta) return "Dernière modification : —";
-        const by = String(meta.lastModifiedByEmail || meta.createdBy || meta.updatedBy || '').trim();
+        const rawBy = String(meta.lastModifiedByEmail || meta.createdBy || meta.updatedBy || '').trim();
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawBy);
+        const by = isUuid ? '' : rawBy;
         const atRaw = meta.lastModifiedAt || meta.updatedAt || null;
         let at = '';
         if (atRaw) {
@@ -91,7 +93,7 @@ window.SupportModule = (function() {
         }
         if (by && at) return `Dernière modification : ${by} le ${at}`;
         if (by) return `Dernière modification : ${by}`;
-        if (at) return `Dernière modification : le ${at}`;
+        if (at) return `Dernière modification : utilisateur non identifié le ${at}`;
         return "Dernière modification : —";
     }
 
