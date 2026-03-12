@@ -278,6 +278,17 @@ window.SupportModule = (function() {
         if(tabId === 'tabHistory') {
             // Recharger depuis Supabase à chaque ouverture de l'onglet historique
             loadHistoryFromSupabase().then(() => renderHistory());
+            return;
+        }
+
+        // Quand on revient sur Brief, recharger les données du jour pour éviter un affichage vide/stale
+        if (tabId === 'tabBrief') {
+            loadAndRenderTable();
+            return;
+        }
+
+        if (tabId === 'tabParam') {
+            renderParams();
         }
     }
 
@@ -354,6 +365,9 @@ window.SupportModule = (function() {
         
         // Utilisation de la liste globale window.TECHNICIANS (chargée par technicians.js)
         const techs = window.TECHNICIANS || [];
+        if (!Array.isArray(techs) || techs.length === 0) {
+            console.warn('[SUPPORT] renderTable: aucun technicien chargé (window.TECHNICIANS vide).');
+        }
 
         let cptPres = 0, cptAbs = 0, cptGrv = 0;
 
@@ -433,6 +447,8 @@ window.SupportModule = (function() {
             `;
             tbody.appendChild(tr);
         });
+
+        console.log(`[SUPPORT] renderTable: ${techs.length} techniciens, ${tbody.querySelectorAll('tr').length} lignes rendues.`);
 
         // Charger l'observation globale
         const obsGlobal = document.getElementById('obsGlobal');
@@ -708,7 +724,10 @@ window.SupportModule = (function() {
     }
 
     function deleteActivity(index) {
-        if (!activities[index]) return;
+        if (!activities[index]) {
+            console.warn(`[ACTIVITY] delete ignored: invalid index=${index}, size=${activities.length}`);
+            return;
+        }
         const actName = activityDisplayLabel(activities[index]);
         if(confirm(`Supprimer définitivement l'activité "${actName}" ?`)) {
             activities.splice(index, 1);
@@ -776,11 +795,12 @@ window.SupportModule = (function() {
         const saveAttemptId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         console.log(`[ACTIVITY][${saveAttemptId}] 💾 local save done (${activities.length} activités)`);
 
+        // Mettre à jour l'UI immédiatement pour éviter les actions sur index obsolètes
+        renderParams();
+        renderTable();
+
         // Synchronisation cloud best-effort (sans bloquer l'UI)
         const syncResult = await saveActivitiesToSupabase({ saveAttemptId });
-
-        renderParams(); // Mettre à jour la grille
-        renderTable();  // Mettre à jour le tableau principal (couleurs)
 
         if (successMessage) {
             if (syncResult.status === 'ok') {
