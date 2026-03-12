@@ -861,7 +861,9 @@ window.SupportModule = (function() {
         renderActivitiesGrid();
     }
 
-    // V3.3 — Chargement paramètres activités depuis support_settings + fallback historique
+    // V3.4 — Chargement paramètres activités:
+    // - support_settings.PARAM_ACTIVITIES = source de vérité
+    // - fallback historique uniquement au bootstrap (si aucun paramétrage en base)
     async function loadActivitiesFromSupabase() {
         const localActs = (() => {
             try { return JSON.parse(localStorage.getItem('demat_activities') || '[]'); }
@@ -870,6 +872,7 @@ window.SupportModule = (function() {
 
         let fromSettings = [];
         let fromHistory = [];
+        let settingsLoaded = false;
 
         if (window.SupportStore && window.supabaseClient) {
             try {
@@ -877,10 +880,19 @@ window.SupportModule = (function() {
                 fromSettings = Array.isArray(payload?.activities)
                     ? payload.activities
                     : (Array.isArray(payload) ? payload : []);
+                settingsLoaded = true;
             } catch (e) {
                 console.warn("⚠️ V3.3 Chargement support_settings échoué (fallback local/historique):", e.message);
             }
-
+        }
+        
+        // Si les paramètres cloud existent, ils priment.
+        // On ne fusionne PAS avec l'historique pour éviter de ressusciter des activités supprimées.
+        let merged;
+        if (fromSettings.length > 0) {
+            merged = mergeActivities(fromSettings);
+        } else if (settingsLoaded) {
+            // support_settings lu mais vide: bootstrap initial
             try {
                 const { data: rows, error } = await window.supabaseClient
                     .from("support_journee")
@@ -893,14 +905,16 @@ window.SupportModule = (function() {
             } catch (e) {
                 console.warn("⚠️ V3.3 Lecture historique support_journee échouée:", e.message);
             }
-        }
 
-        const merged = mergeActivities([
-            ...DEFAULT_ACTIVITIES,
-            ...localActs,
-            ...fromSettings,
-            ...fromHistory,
-        ]);
+            merged = mergeActivities([
+                ...DEFAULT_ACTIVITIES,
+                ...localActs,
+                ...fromHistory,
+            ]);
+        } else {
+            // Impossible de lire support_settings (offline/auth): garder local pour ne pas écraser.
+            merged = mergeActivities(localActs.length > 0 ? localActs : DEFAULT_ACTIVITIES);
+        }
 
         activities = merged.activities;
         localStorage.setItem('demat_activities', JSON.stringify(activities));
@@ -910,7 +924,7 @@ window.SupportModule = (function() {
         console.log(`[ACTIVITY] attendance types applied: ${activities.length}`);
         console.log('[ACTIVITY] UI improved V3.4.1');
 
-        if (window.SupportStore && fromHistory.length > 0) {
+        if (window.SupportStore && settingsLoaded && fromSettings.length === 0 && fromHistory.length > 0) {
             try {
                 await window.SupportStore.saveSetting("PARAM_ACTIVITIES", { activities }, { site: "VLG" });
                 console.log("☁️ V3.3 Référentiel fusionné repersisté dans support_settings");
