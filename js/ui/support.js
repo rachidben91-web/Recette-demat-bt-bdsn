@@ -265,6 +265,8 @@ window.SupportModule = (function() {
         // L'input natif est remplacé par Flatpickr pour pouvoir styliser les jours "avec données".
         supportDatePickerInstance = window.flatpickr(elPicker, {
             dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'd/m/Y',
             defaultDate: formatDateKey(currentDate),
             locale: window.flatpickr?.l10ns?.fr || 'default',
             allowInput: false,
