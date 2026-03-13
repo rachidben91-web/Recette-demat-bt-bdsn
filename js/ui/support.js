@@ -29,6 +29,7 @@ window.SupportModule = (function() {
     let currentDayUpdatedAt = null;
     let currentDayLockToken = null;
     let lockRenewTimer = null;
+    let supportSaveQueue = Promise.resolve();
 
     // Liste des activités par défaut (Fidèle au fichier Excel)
     const DEFAULT_ACTIVITIES = [
@@ -302,6 +303,15 @@ window.SupportModule = (function() {
     const slugify = (text) => String(text || '')
         .normalize('NFD').replace(/[̀-ͯ]/g, '')
         .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'activity';
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
 
     function inferAttendanceType(label) {
         const key = String(label || '').trim().toUpperCase();
@@ -666,26 +676,35 @@ window.SupportModule = (function() {
             else if (tech.ptc === 'PTC - PTD') qualif = 'PTC-PTD';
             else if (tech.ptc) qualif = 'PTC';
 
+            const safeTechName = escapeHtml(tech.name);
+            const safeQualif = escapeHtml(qualif);
+            const safeObs = escapeHtml(rowData.obs || '');
+            const activityOptions = activities.map(a => {
+                const label = activityDisplayLabel(a);
+                const safeLabel = escapeHtml(label);
+                return `<option value="${safeLabel}" ${actLabel===label?'selected':''}>${safeLabel}</option>`;
+            }).join('');
+            const missingActivityOption = actLabel && !activities.some(a => activityDisplayLabel(a) === actLabel)
+                ? `<option value="${escapeHtml(actLabel)}" selected>${escapeHtml(actLabel)}</option>`
+                : '';
+
             tr.innerHTML = `
                 <td style="text-align:center; color:#94a3b8; font-size:10px;">${idx + 1}</td>
-                <td class="cell-name">${tech.name}</td>
-                <td class="cell-ptc">${qualif}</td>
-                                
+                <td class="cell-name">${safeTechName}</td>
+                <td class="cell-ptc">${safeQualif}</td>
+                                 
                 <td>
-                    <select class="editable-select input-act" data-tech="${tech.name}" 
+                    <select class="editable-select input-act" data-tech="${safeTechName}" 
                             style="background-color:${bgColor}; color:${fgColor}; border-color:${borderColor};">
                         <option value="">-</option>
-                        ${activities.map(a => {
-                            const label = activityDisplayLabel(a);
-                            return `<option value="${label}" ${actLabel===label?'selected':''}>${label}</option>`;
-                        }).join('')}
-                        ${actLabel && !activities.some(a => activityDisplayLabel(a) === actLabel) ? `<option value="${actLabel}" selected>${actLabel}</option>` : ''}
+                        ${activityOptions}
+                        ${missingActivityOption}
                     </select>
                 </td>
                 
                 <td>
-                    <input class="editable-input input-obs" data-tech="${tech.name}" 
-                           value="${rowData.obs||''}" placeholder="...">
+                    <input class="editable-input input-obs" data-tech="${safeTechName}" 
+                           value="${safeObs}" placeholder="...">
                 </td>
                 
                 <td>${renderSelect('briefA', rowData.briefA, tech.name)}</td>
@@ -813,13 +832,9 @@ window.SupportModule = (function() {
         
         // FIX v11.1 : Synchronisation Supabase (si connecté)
         if(window.SupportStore && window.supabaseClient) {
-            window.SupportStore.saveSupport(dayData, {
-                jour: key,
-                site: "VLG",
-                expectedUpdatedAt: currentDayUpdatedAt,
-                lockToken: currentDayLockToken,
-            })
+            queueSupportSave(dayData, key)
                 .then((savedRow) => {
+                    if (!savedRow) return;
                     const meta = savedRow?.payload?._meta || dayData?._meta || null;
                     lastSupportMeta = meta;
                     renderLastUpdate(lastSupportMeta);
@@ -855,6 +870,20 @@ window.SupportModule = (function() {
         
         // Mise à jour de l'historique pour la recherche
         updateHistoryLog(key, dayData);
+    }
+
+    function queueSupportSave(dayData, key) {
+        const payloadSnapshot = JSON.parse(JSON.stringify(dayData || {}));
+        supportSaveQueue = supportSaveQueue
+            .catch(() => null)
+            .then(() => window.SupportStore.saveSupport(payloadSnapshot, {
+                jour: key,
+                site: "VLG",
+                expectedUpdatedAt: currentDayUpdatedAt,
+                lockToken: currentDayLockToken,
+            }));
+
+        return supportSaveQueue;
     }
 
     function updateHistoryLog(dateKey, data) {

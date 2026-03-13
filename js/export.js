@@ -24,6 +24,10 @@ async function ensureJsPDF() {
   return window.jspdf;
 }
 
+function localDateStamp() {
+  return new Date().toLocaleDateString("fr-CA").replace(/-/g, "");
+}
+
 /**
  * Récupère les dimensions et l'orientation d'une page du PDF source.
  * Retourne { widthPt, heightPt, widthMm, heightMm, orientation, format }
@@ -140,7 +144,7 @@ async function exportDayPDF() {
   }
 
   try {
-    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const dateStr = localDateStamp();
     const docName = `Export_Journee_${dateStr}.pdf`;
 
     const jspdfLib = await ensureJsPDF();
