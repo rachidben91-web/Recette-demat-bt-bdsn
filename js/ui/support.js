@@ -730,8 +730,9 @@ window.SupportModule = (function() {
         let cls = '';
         if(val === 'OUI') cls = 'val-oui';
         else if(val === 'NON') cls = 'val-non';
-        
-        return `<select class="editable-select ${cls}" data-tech="${techName}" data-field="${field}">
+
+        const safeTechName = escapeHtml(techName);
+        return `<select class="editable-select ${cls}" data-tech="${safeTechName}" data-field="${field}">
             <option value="">-</option>
             <option value="OUI" ${val==='OUI'?'selected':''}>OUI</option>
             <option value="NON" ${val==='NON'?'selected':''}>NON</option>
@@ -740,7 +741,8 @@ window.SupportModule = (function() {
 
     // Helper pour générer les selects OUI (simple)
     function renderYesNo(field, val, techName) {
-         return `<select class="editable-select" data-tech="${techName}" data-field="${field}" style="font-size:10px; width:50px;">
+         const safeTechName = escapeHtml(techName);
+         return `<select class="editable-select" data-tech="${safeTechName}" data-field="${field}" style="font-size:10px; width:50px;">
             <option value="">-</option>
             <option value="OUI" ${val==='OUI'?'selected':''}>OUI</option>
         </select>`;
@@ -1432,14 +1434,19 @@ window.SupportModule = (function() {
             return valA.localeCompare(valB) * sortDir;
         });
 
+        const renderSafeText = (value, fallback = '') => {
+            const normalized = String(value || '').trim();
+            return normalized ? escapeHtml(normalized) : fallback;
+        };
+
         tbody.innerHTML = data.map(h => `
             <tr>
-                <td>${h.date}</td>
-                <td style="font-weight:bold;">${h.agent}</td>
-                <td><span style="padding:2px 6px; border-radius:4px; background:#f1f5f9; font-size:11px;">${h.act||'-'}</span></td>
-                <td style="color:var(--muted); font-style:italic; font-size:11px;">${h.obs||''}</td>
-                <td style="text-align:center;">${h.brief}</td>
-                <td style="text-align:center;">${h.debrief}</td>
+                <td>${renderSafeText(h.date, '-')}</td>
+                <td style="font-weight:bold;">${renderSafeText(h.agent, '-')}</td>
+                <td><span style="padding:2px 6px; border-radius:4px; background:#f1f5f9; font-size:11px;">${renderSafeText(h.act, '-')}</span></td>
+                <td style="color:var(--muted); font-style:italic; font-size:11px;">${renderSafeText(h.obs, '')}</td>
+                <td style="text-align:center;">${renderSafeText(h.brief, '')}</td>
+                <td style="text-align:center;">${renderSafeText(h.debrief, '')}</td>
             </tr>
         `).join('');
         
