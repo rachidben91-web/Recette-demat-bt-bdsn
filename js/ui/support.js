@@ -448,7 +448,7 @@ window.SupportModule = (function() {
                     }
                     await loadActivitiesFromSupabase();
                     renderParams();
-                    renderTable();
+                    await loadAndRenderTable();
                 }
             });
         }
@@ -828,6 +828,10 @@ window.SupportModule = (function() {
             queueSupportSave(dayData, key)
                 .then((savedRow) => {
                     if (!savedRow) return;
+                    if (key !== formatDateKey(currentDate)) {
+                        console.log("[SUPPORT] sauvegarde confirmée pour une autre journée, UI courante inchangée.");
+                        return;
+                    }
                     const meta = savedRow?.payload?._meta || dayData?._meta || null;
                     lastSupportMeta = meta;
                     renderLastUpdate(lastSupportMeta);
