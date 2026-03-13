@@ -119,7 +119,16 @@ function renderGrid(filtered, grid) {
       const firstPage = bt.docs?.[0]?.page || bt.pageStart || 1;
 
       const timeCell = document.createElement("td");
-      timeCell.innerHTML = `<div class="list-time">${timeText}</div>${duration ? `<div class="list-sub">⏱️ ${duration}</div>` : ""}`;
+      const timeMain = document.createElement("div");
+      timeMain.className = "list-time";
+      timeMain.textContent = timeText;
+      timeCell.appendChild(timeMain);
+      if (duration) {
+        const timeSub = document.createElement("div");
+        timeSub.className = "list-sub";
+        timeSub.textContent = `⏱️ ${duration}`;
+        timeCell.appendChild(timeSub);
+      }
       timeCell.appendChild(createCategoryBadge(bt, "sm"));
 
       const techCell = document.createElement("td");
@@ -130,13 +139,18 @@ function renderGrid(filtered, grid) {
       objetCell.textContent = bt.objet || "—";
 
       const clientCell = document.createElement("td");
-      clientCell.innerHTML = `
-        <div>${bt.client || "—"}</div>
-        <div class="list-sub">📍 ${bt.localisation || "—"}</div>
-      `;
+      const clientMain = document.createElement("div");
+      clientMain.textContent = bt.client || "—";
+      const clientSub = document.createElement("div");
+      clientSub.className = "list-sub";
+      clientSub.textContent = `📍 ${bt.localisation || "—"}`;
+      clientCell.append(clientMain, clientSub);
 
       const docsCell = document.createElement("td");
-      docsCell.innerHTML = `<span class="list-docs">${docsCount}</span>`;
+      const docsSpan = document.createElement("span");
+      docsSpan.className = "list-docs";
+      docsSpan.textContent = String(docsCount);
+      docsCell.appendChild(docsSpan);
 
       const actionCell = document.createElement("td");
       const openBtn = document.createElement("button");

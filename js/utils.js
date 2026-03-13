@@ -86,3 +86,10 @@ function mapTechByNni(nni) {
 function techKey(tech) {
   return tech ? (tech.id || tech.nni) : "";
 }
+
+// Echappement HTML défensif (utile si une valeur doit passer dans un template string).
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str || "";
+  return div.innerHTML;
+}

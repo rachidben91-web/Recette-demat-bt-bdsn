@@ -347,29 +347,11 @@ function openChangePasswordModal(supabaseClient) {
 
     if (error) throw error;
 
-    // 2) Si pas trouvé -> créer une ligne vide
+    // 2) Si pas trouvé -> ne rien créer ici (lecture pure).
+    // La création éventuelle est gérée au premier save.
     if (!data) {
-      const user = await requireUser();
-      const emptyPayload = { _meta: { createdAt: new Date().toISOString(), createdBy: user.email } };
-
-      const { data: created, error: err2 } = await window.supabaseClient
-        .from("support_journee")
-        .upsert(
-          {
-            jour,
-            site,
-            payload: emptyPayload,
-            updated_at: new Date().toISOString(),
-            updated_by: user.id,
-          },
-          { onConflict: "jour,site" }
-        )
-        .select("id, jour, site, payload, locked, updated_at, updated_by")
-        .single();
-
-      if (err2) throw err2;
-      console.log("🆕 Support créé en base :", created);
-      return created;
+      console.log("📭 Aucun support trouvé en base pour", jour, site);
+      return null;
     }
 
     console.log("📥 Support chargé depuis la base :", data);

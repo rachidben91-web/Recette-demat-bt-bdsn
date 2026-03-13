@@ -337,17 +337,30 @@
       // Header Carte
       const header = document.createElement("div");
       header.className = "groupHeader";
-      header.innerHTML = `
-        <div class="groupHeaderLeft">
-          <div class="groupDot" style="background:${color}"></div>
-          <div class="groupTitle">${g.groupKey}</div>
-        </div>
-        <div class="groupMeta">
-          <span class="groupPill">${g.btSum} BT</span>
-          <span class="groupPill">${g.techCount} tech</span>
-          <span class="chev">▾</span>
-        </div>
-      `;
+      const headerLeft = document.createElement("div");
+      headerLeft.className = "groupHeaderLeft";
+      const groupDot = document.createElement("div");
+      groupDot.className = "groupDot";
+      groupDot.style.background = color;
+      const groupTitle = document.createElement("div");
+      groupTitle.className = "groupTitle";
+      groupTitle.textContent = g.groupKey;
+      headerLeft.append(groupDot, groupTitle);
+
+      const headerMeta = document.createElement("div");
+      headerMeta.className = "groupMeta";
+      const btPill = document.createElement("span");
+      btPill.className = "groupPill";
+      btPill.textContent = `${g.btSum} BT`;
+      const techPill = document.createElement("span");
+      techPill.className = "groupPill";
+      techPill.textContent = `${g.techCount} tech`;
+      const chev = document.createElement("span");
+      chev.className = "chev";
+      chev.textContent = "▾";
+      headerMeta.append(btPill, techPill, chev);
+
+      header.append(headerLeft, headerMeta);
 
       header.addEventListener("click", () => {
         card.dataset.open = (card.dataset.open === "true") ? "false" : "true";
@@ -389,18 +402,29 @@
           const subRow = document.createElement("div");
           subRow.className = "subRow";
 
-          subRow.innerHTML = `
-            <div class="subLeft">
-              <div class="subTitle">
-                <span style="width:10px;height:10px;border-radius:999px;background:${color};display:inline-block"></span>
-                ${humanLabelFromBadgeId(s.subKey)}
-              </div>
-              <div class="subMeta">${s.btCount} BT • ${techEntries.length} technicien(s)</div>
-            </div>
-            <div class="subRight"></div>
-          `;
+          const subLeft = document.createElement("div");
+          subLeft.className = "subLeft";
+          const subTitle = document.createElement("div");
+          subTitle.className = "subTitle";
+          const subDot = document.createElement("span");
+          subDot.style.width = "10px";
+          subDot.style.height = "10px";
+          subDot.style.borderRadius = "999px";
+          subDot.style.background = color;
+          subDot.style.display = "inline-block";
+          const subLabel = document.createElement("span");
+          subLabel.textContent = humanLabelFromBadgeId(s.subKey);
+          subTitle.append(subDot, subLabel);
+          const subMeta = document.createElement("div");
+          subMeta.className = "subMeta";
+          subMeta.textContent = `${s.btCount} BT • ${techEntries.length} technicien(s)`;
+          subLeft.append(subTitle, subMeta);
 
-          const right = subRow.querySelector(".subRight");
+          const subRight = document.createElement("div");
+          subRight.className = "subRight";
+          subRow.append(subLeft, subRight);
+
+          const right = subRight;
 
           if (!techEntries.length) {
             const empty = document.createElement("div");
@@ -413,7 +437,12 @@
               chip.className = "techChip";
               chip.type = "button";
               chip.title = `Filtrer sur ${t.name}`;
-              chip.innerHTML = `<span>${t.name}</span><span class="techChipCount">${t.count}</span>`;
+              const chipName = document.createElement("span");
+              chipName.textContent = t.name;
+              const chipCount = document.createElement("span");
+              chipCount.className = "techChipCount";
+              chipCount.textContent = String(t.count);
+              chip.append(chipName, chipCount);
               chip.addEventListener("click", () => applyTechFilter(t.id));
               right.appendChild(chip);
             }

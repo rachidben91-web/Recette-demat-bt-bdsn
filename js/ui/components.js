@@ -113,11 +113,15 @@ function createDocButtons(bt, opts = {}) {
     const config = DOC_TYPES_CONFIG[doc.type];
     const btn = document.createElement("button");
     btn.className = `doc-btn doc-btn--${doc.type.toLowerCase()}${opts.compact ? " doc-btn--compact" : ""}`;
-    btn.innerHTML = `
-      <span>${config.icon}</span>
-      <span class="doc-btn__label">${doc.type}</span>
-      <span class="doc-btn__page">(p.${doc.page})</span>
-    `;
+    const iconSpan = document.createElement("span");
+    iconSpan.textContent = config.icon;
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "doc-btn__label";
+    labelSpan.textContent = doc.type;
+    const pageSpan = document.createElement("span");
+    pageSpan.className = "doc-btn__page";
+    pageSpan.textContent = `(p.${doc.page})`;
+    btn.append(iconSpan, labelSpan, pageSpan);
     btn.title = config.desc;
     btn.addEventListener("click", () => openModal(bt, doc.page));
     container.appendChild(btn);
@@ -133,23 +137,25 @@ function createBTMeta(bt, opts = {}) {
   div.className = `bt-meta${opts.compact ? " bt-meta--compact" : ""}`;
   const duree = formatDuree(bt.duree);
 
+  const appendLine = (text) => {
+    const line = document.createElement("div");
+    line.textContent = text || "—";
+    div.appendChild(line);
+  };
+
   if (opts.compact) {
-    div.innerHTML = `
-      <div>📅 ${bt.datePrevue || "—"}${duree ? ` · ⏱️ ${duree}` : ""}</div>
-      <div>📋 ${bt.objet || "—"}</div>
-      <div>👤 ${bt.client || "—"}</div>
-    `;
+    appendLine(`📅 ${bt.datePrevue || "—"}${duree ? ` · ⏱️ ${duree}` : ""}`);
+    appendLine(`📋 ${bt.objet || "—"}`);
+    appendLine(`👤 ${bt.client || "—"}`);
     return div;
   }
 
-  div.innerHTML = `
-    <div>📅 ${bt.datePrevue || "—"}</div>
-    ${duree ? `<div>⏱️ ${duree}</div>` : ""}
-    <div>📋 ${bt.objet || "—"}</div>
-    <div>👤 ${bt.client || "—"}</div>
-    <div>📍 ${bt.localisation || "—"}</div>
-    ${bt.atNum ? `<div>🧾 ${bt.atNum}</div>` : ""}
-  `;
+  appendLine(`📅 ${bt.datePrevue || "—"}`);
+  if (duree) appendLine(`⏱️ ${duree}`);
+  appendLine(`📋 ${bt.objet || "—"}`);
+  appendLine(`👤 ${bt.client || "—"}`);
+  appendLine(`📍 ${bt.localisation || "—"}`);
+  if (bt.atNum) appendLine(`🧾 ${bt.atNum}`);
   return div;
 }
 
@@ -169,7 +175,13 @@ function createDocBadges(bt) {
     badge.className = `doc-badge ${type === "BT" ? "doc-badge--strong" : ""}`;
     badge.style.setProperty("--doc-color", config.color);
     badge.title = config.desc;
-    badge.innerHTML = `<span>${config.icon}</span> ${type} <span class="doc-badge__count">×${count}</span>`;
+    const icon = document.createElement("span");
+    icon.textContent = config.icon;
+    const typeText = document.createTextNode(` ${type} `);
+    const countSpan = document.createElement("span");
+    countSpan.className = "doc-badge__count";
+    countSpan.textContent = `×${count}`;
+    badge.append(icon, typeText, countSpan);
     container.appendChild(badge);
   }
   return container;
@@ -187,20 +199,26 @@ function createInfoBlocks(bt) {
   if (bt.analyseDesRisques) {
     const div = document.createElement("div");
     div.className = "briefSub__block briefSub__block--warning";
-    div.innerHTML = `
-      <div class="briefSub__block-title">⚠️ Analyse des risques</div>
-      <div class="briefSub__block-content">${bt.analyseDesRisques}</div>
-    `;
+    const title = document.createElement("div");
+    title.className = "briefSub__block-title";
+    title.textContent = "⚠️ Analyse des risques";
+    const content = document.createElement("div");
+    content.className = "briefSub__block-content";
+    content.textContent = bt.analyseDesRisques;
+    div.append(title, content);
     container.appendChild(div);
   }
 
   if (bt.observations) {
     const div = document.createElement("div");
     div.className = "briefSub__block briefSub__block--info";
-    div.innerHTML = `
-      <div class="briefSub__block-title">💬 Observations</div>
-      <div class="briefSub__block-content">${bt.observations}</div>
-    `;
+    const title = document.createElement("div");
+    title.className = "briefSub__block-title";
+    title.textContent = "💬 Observations";
+    const content = document.createElement("div");
+    content.className = "briefSub__block-content";
+    content.textContent = bt.observations;
+    div.append(title, content);
     container.appendChild(div);
   }
 
