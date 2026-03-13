@@ -26,6 +26,9 @@ window.SupportModule = (function() {
     let lastSupportMeta = null;
     let supportDatePickerInstance = null;
     let supportDaysWithData = new Set();
+    let currentDayUpdatedAt = null;
+    let currentDayLockToken = null;
+    let lockRenewTimer = null;
 
     // Liste des activités par défaut (Fidèle au fichier Excel)
     const DEFAULT_ACTIVITIES = [
@@ -103,6 +106,34 @@ window.SupportModule = (function() {
         const el = document.getElementById('supportLastUpdate');
         if (!el) return;
         el.textContent = formatLastUpdateLabel(meta);
+    }
+
+    function formatLockStatusLabel(status, lockObj = null) {
+        const email = String(lockObj?.ownerEmail || lockObj?.ownerId || '').trim();
+        const expires = lockObj?.expiresAt ? new Date(lockObj.expiresAt) : null;
+        const expLabel = (expires && !Number.isNaN(expires.getTime())) ? expires.toLocaleTimeString('fr-FR') : null;
+
+        if (status === 'acquired') {
+            return expLabel
+                ? `Statut édition : verrou actif (vous) jusqu'à ${expLabel}`
+                : "Statut édition : verrou actif (vous)";
+        }
+        if (status === 'busy') {
+            const who = email || 'un autre utilisateur';
+            return expLabel
+                ? `Statut édition : en cours par ${who} (jusqu'à ${expLabel})`
+                : `Statut édition : en cours par ${who}`;
+        }
+        if (status === 'locked') {
+            return "Statut édition : fiche verrouillée (lecture seule)";
+        }
+        return "Statut édition : —";
+    }
+
+    function renderLockStatus(status = null, lockObj = null) {
+        const el = document.getElementById('supportLockStatus');
+        if (!el) return;
+        el.textContent = formatLockStatusLabel(status, lockObj);
     }
 
     function hasMeaningfulDayData(payload) {
@@ -184,6 +215,47 @@ window.SupportModule = (function() {
         supportDaysWithData = nextSet;
         redrawSupportDatePickerMarkers();
         console.log(`[SUPPORT] calendrier marqué: ${supportDaysWithData.size} jour(s) avec données.`);
+    }
+
+    async function ensureEditLockForCurrentDay({ silent = true } = {}) {
+        const key = formatDateKey(currentDate);
+        if (!window.SupportStore?.acquireDayLock || !window.supabaseClient) {
+            renderLockStatus(null, null);
+            return null;
+        }
+
+        try {
+            const { data: authData } = await window.supabaseClient.auth.getUser();
+            if (!authData?.user) {
+                renderLockStatus(null, null);
+                return null;
+            }
+
+            const lockResult = await window.SupportStore.acquireDayLock({
+                jour: key,
+                site: "VLG",
+                ttlSeconds: 10 * 60,
+                token: currentDayLockToken || null,
+            });
+
+            if (lockResult?.status === 'acquired') {
+                currentDayLockToken = lockResult?.lock?.token || currentDayLockToken || null;
+                if (lockResult?.updatedAt) currentDayUpdatedAt = lockResult.updatedAt;
+                renderLockStatus('acquired', lockResult?.lock || null);
+            } else if (lockResult?.status === 'busy') {
+                renderLockStatus('busy', lockResult?.lock || null);
+            } else if (lockResult?.status === 'locked') {
+                renderLockStatus('locked', null);
+            } else {
+                renderLockStatus(null, null);
+            }
+
+            return lockResult;
+        } catch (e) {
+            if (!silent) console.warn('[SUPPORT] lock check failed:', e?.message || e);
+            renderLockStatus(null, null);
+            return null;
+        }
     }
 
     function initSupportDatePicker() {
@@ -388,10 +460,18 @@ window.SupportModule = (function() {
         loadAndRenderTable();
         renderParams();
         renderStats(); 
+        renderLockStatus(null, null);
 
         refreshSupportDaysWithData().catch((e) => {
             console.warn('[SUPPORT] impossible de marquer le calendrier:', e?.message || e);
         });
+
+        if (lockRenewTimer) clearInterval(lockRenewTimer);
+        lockRenewTimer = setInterval(() => {
+            const briefPanel = document.getElementById('tabBrief');
+            if (!briefPanel?.classList?.contains('active')) return;
+            ensureEditLockForCurrentDay({ silent: true }).catch(() => {});
+        }, 120000);
 
         if (window.SupportStore?.backfillLegacyMeta) {
             window.SupportStore.backfillLegacyMeta({ site: "VLG", limit: 365 })
@@ -486,6 +566,8 @@ window.SupportModule = (function() {
     async function loadAndRenderTable() {
         const key = formatDateKey(currentDate);
         lastSupportMeta = null;
+        currentDayUpdatedAt = null;
+        currentDayLockToken = null;
         
         // Tenter de charger depuis Supabase (si connecté)
         if(window.SupportStore && window.supabaseClient) {
@@ -499,6 +581,7 @@ window.SupportModule = (function() {
                         updatedBy: row.updated_by || null,
                     };
                 }
+                if (row?.updated_at) currentDayUpdatedAt = row.updated_at;
                 if(row?.payload && Object.keys(row.payload).length > 1) {
                     // Supabase a des données → on met à jour le localStorage local aussi
                     localStorage.setItem('demat_day_' + key, JSON.stringify(row.payload));
@@ -516,6 +599,7 @@ window.SupportModule = (function() {
             } catch (_e) {}
         }
         renderLastUpdate(lastSupportMeta);
+        await ensureEditLockForCurrentDay({ silent: true });
         
         renderTable();
     }
@@ -727,11 +811,20 @@ window.SupportModule = (function() {
         
         // FIX v11.1 : Synchronisation Supabase (si connecté)
         if(window.SupportStore && window.supabaseClient) {
-            window.SupportStore.saveSupport(dayData, { jour: key })
+            window.SupportStore.saveSupport(dayData, {
+                jour: key,
+                site: "VLG",
+                expectedUpdatedAt: currentDayUpdatedAt,
+                lockToken: currentDayLockToken,
+            })
                 .then((savedRow) => {
                     const meta = savedRow?.payload?._meta || dayData?._meta || null;
                     lastSupportMeta = meta;
                     renderLastUpdate(lastSupportMeta);
+                    if (savedRow?.updated_at) currentDayUpdatedAt = savedRow.updated_at;
+                    const lockObj = savedRow?.payload?._lock || null;
+                    if (lockObj?.token) currentDayLockToken = lockObj.token;
+                    renderLockStatus('acquired', lockObj);
                     // Feedback visuel discret
                     const btn = document.querySelector('button[onclick*="saveDay"], button[onclick*="SupportModule.saveDay"]');
                     if(btn) {
@@ -743,6 +836,17 @@ window.SupportModule = (function() {
                 })
                 .catch(e => {
                     console.error("❌ Erreur sauvegarde Supabase :", e.message);
+                    const category = String(e?.category || '').toLowerCase();
+                    if (category === 'conflict') {
+                        alert("⚠️ Conflit détecté : cette journée a été modifiée ailleurs.\nRecharge de la journée en cours.");
+                        loadAndRenderTable();
+                        return;
+                    }
+                    if (category === 'lock') {
+                        alert("⛔ Sauvegarde refusée : un autre utilisateur édite cette journée.");
+                        ensureEditLockForCurrentDay({ silent: false });
+                        return;
+                    }
                     alert("⚠️ Sauvegarde locale OK, mais Supabase a échoué :\n" + e.message);
                 });
         }

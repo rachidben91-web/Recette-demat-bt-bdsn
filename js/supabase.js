@@ -44,6 +44,12 @@ function classifySupabaseError(error) {
   if (message.includes("upsert") || message.includes("duplicate") || message.includes("violates") || message.includes("invalid input") || message.includes("not-null")) {
     return "sql";
   }
+  if (message.includes("conflit") || message.includes("conflict") || message.includes("version")) {
+    return "conflict";
+  }
+  if (message.includes("edition en cours") || message.includes("édition en cours")) {
+    return "lock";
+  }
   return "unknown";
 }
 
@@ -301,6 +307,7 @@ function openChangePasswordModal(supabaseClient) {
 // -------------------------
 (function setupSupportStore() {
   const SITE = "VLG";
+  const DEFAULT_LOCK_TTL_SECONDS = 10 * 60;
 
   function todayISO() {
     // FIX v1.1 : utilise l'heure locale pour éviter décalage UTC en fin de journée
@@ -355,28 +362,117 @@ function openChangePasswordModal(supabaseClient) {
     return data;
   }
 
-  async function saveSupport(payload, { jour = todayISO(), site = SITE } = {}) {
+  function parseIsoDate(value) {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function isLockActive(lockObj) {
+    if (!lockObj || typeof lockObj !== "object") return false;
+    const exp = parseIsoDate(lockObj.expiresAt);
+    if (!exp) return false;
+    return exp.getTime() > Date.now();
+  }
+
+  function lockOwnerLabel(lockObj) {
+    return String(lockObj?.ownerEmail || lockObj?.ownerId || "un autre utilisateur");
+  }
+
+  function makeConflictError(message, details = {}) {
+    return Object.assign(new Error(message), { category: "conflict", details });
+  }
+
+  function makeLockError(message, details = {}) {
+    return Object.assign(new Error(message), { category: "lock", details });
+  }
+
+  async function acquireDayLock(
+    { jour = todayISO(), site = SITE, ttlSeconds = DEFAULT_LOCK_TTL_SECONDS, token = null } = {}
+  ) {
+    const user = await requireUser();
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const expiresAtIso = new Date(now.getTime() + Math.max(30, Number(ttlSeconds) || DEFAULT_LOCK_TTL_SECONDS) * 1000).toISOString();
+
+    const { data: current, error: readErr } = await window.supabaseClient
+      .from("support_journee")
+      .select("id, jour, site, payload, locked, updated_at, updated_by")
+      .eq("jour", jour)
+      .eq("site", site)
+      .maybeSingle();
+
+    if (readErr) throw readErr;
+    if (current?.locked) {
+      return { status: "locked", updatedAt: current?.updated_at || null, lock: null };
+    }
+
+    const currentPayload = (current?.payload && typeof current.payload === "object") ? current.payload : {};
+    const currentLock = (currentPayload._lock && typeof currentPayload._lock === "object") ? currentPayload._lock : null;
+
+    if (isLockActive(currentLock) && currentLock.ownerId && currentLock.ownerId !== user.id) {
+      return {
+        status: "busy",
+        updatedAt: current?.updated_at || null,
+        lock: currentLock,
+      };
+    }
+
+    const lockToken = token || currentLock?.token || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const nextLock = {
+      ownerId: user.id,
+      ownerEmail: user.email || "",
+      token: lockToken,
+      acquiredAt: currentLock?.acquiredAt || nowIso,
+      touchedAt: nowIso,
+      expiresAt: expiresAtIso,
+    };
+
+    const nextPayload = {
+      ...currentPayload,
+      _lock: nextLock,
+    };
+
+    const { data: written, error: writeErr } = await window.supabaseClient
+      .from("support_journee")
+      .upsert(
+        {
+          jour,
+          site,
+          payload: nextPayload,
+          updated_at: current?.updated_at || nowIso,
+          updated_by: current?.updated_by || user.id,
+        },
+        { onConflict: "jour,site" }
+      )
+      .select("id, jour, site, payload, locked, updated_at, updated_by")
+      .single();
+
+    if (writeErr) throw writeErr;
+
+    return {
+      status: "acquired",
+      updatedAt: written?.updated_at || current?.updated_at || null,
+      lock: written?.payload?._lock || nextLock,
+    };
+  }
+
+  async function saveSupport(
+    payload,
+    {
+      jour = todayISO(),
+      site = SITE,
+      expectedUpdatedAt = null,
+      lockToken = null,
+      lockTtlSeconds = DEFAULT_LOCK_TTL_SECONDS,
+    } = {}
+  ) {
     const user = await requireUser();
     const nowIso = new Date().toISOString();
-
-    const existingMeta = (payload && typeof payload === "object" && payload._meta && typeof payload._meta === "object")
-      ? payload._meta
-      : {};
-
-    const payloadToSave = {
-      ...(payload || {}),
-      _meta: {
-        ...existingMeta,
-        lastModifiedAt: nowIso,
-        lastModifiedByEmail: user.email || "",
-        lastModifiedById: user.id || "",
-      },
-    };
 
     // FIX v1.1 : vérifier le verrou avant d'écrire
     const { data: current, error: errCheck } = await window.supabaseClient
       .from("support_journee")
-      .select("locked")
+      .select("locked, updated_at, payload")
       .eq("jour", jour)
       .eq("site", site)
       .maybeSingle();
@@ -388,6 +484,47 @@ function openChangePasswordModal(supabaseClient) {
       console.warn(msg);
       throw new Error(msg);
     }
+
+    const currentPayload = (current?.payload && typeof current.payload === "object") ? current.payload : {};
+    const currentLock = (currentPayload._lock && typeof currentPayload._lock === "object") ? currentPayload._lock : null;
+    if (isLockActive(currentLock) && currentLock.ownerId && currentLock.ownerId !== user.id) {
+      const msg = `⛔ Édition en cours par ${lockOwnerLabel(currentLock)} (jusqu'à ${currentLock.expiresAt || "n/a"}).`;
+      throw makeLockError(msg, { lock: currentLock, jour, site });
+    }
+
+    if (isLockActive(currentLock) && currentLock.ownerId === user.id && lockToken && currentLock.token && currentLock.token !== lockToken) {
+      const msg = "⛔ Votre verrou d'édition n'est plus valide. Rechargez la fiche.";
+      throw makeLockError(msg, { lock: currentLock, jour, site });
+    }
+
+    if (expectedUpdatedAt && current?.updated_at && expectedUpdatedAt !== current.updated_at) {
+      const msg = "⚠️ Conflit de sauvegarde: la fiche a été modifiée par un autre utilisateur. Rechargez avant de réessayer.";
+      throw makeConflictError(msg, { expectedUpdatedAt, currentUpdatedAt: current.updated_at, jour, site, lock: currentLock });
+    }
+
+    const existingMeta = (payload && typeof payload === "object" && payload._meta && typeof payload._meta === "object")
+      ? payload._meta
+      : {};
+
+    const nextLock = {
+      ownerId: user.id,
+      ownerEmail: user.email || "",
+      token: lockToken || currentLock?.token || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+      acquiredAt: currentLock?.acquiredAt || nowIso,
+      touchedAt: nowIso,
+      expiresAt: new Date(Date.now() + Math.max(30, Number(lockTtlSeconds) || DEFAULT_LOCK_TTL_SECONDS) * 1000).toISOString(),
+    };
+
+    const payloadToSave = {
+      ...(payload || {}),
+      _meta: {
+        ...existingMeta,
+        lastModifiedAt: nowIso,
+        lastModifiedByEmail: user.email || "",
+        lastModifiedById: user.id || "",
+      },
+      _lock: nextLock,
+    };
 
     const { data, error } = await window.supabaseClient
       .from("support_journee")
@@ -543,7 +680,12 @@ function openChangePasswordModal(supabaseClient) {
     saveToday: (payload) => saveSupport(payload, { jour: todayISO(), site: SITE }),
     // FIX v1.2 : méthodes génériques pour navigation multi-jour (support.js)
     loadSupport: ({ jour = todayISO(), site = SITE } = {}) => loadSupport({ jour, site }),
-    saveSupport: (payload, { jour = todayISO(), site = SITE } = {}) => saveSupport(payload, { jour, site }),
+    saveSupport: (
+      payload,
+      { jour = todayISO(), site = SITE, expectedUpdatedAt = null, lockToken = null, lockTtlSeconds = DEFAULT_LOCK_TTL_SECONDS } = {}
+    ) => saveSupport(payload, { jour, site, expectedUpdatedAt, lockToken, lockTtlSeconds }),
+    acquireDayLock: ({ jour = todayISO(), site = SITE, ttlSeconds = DEFAULT_LOCK_TTL_SECONDS, token = null } = {}) =>
+      acquireDayLock({ jour, site, ttlSeconds, token }),
     backfillLegacyMeta: ({ site = SITE, limit = 365 } = {}) => backfillLegacyMeta({ site, limit }),
     // V3.1 : paramètres partagés (support_settings)
     loadSetting: (settingKey, { site = SITE } = {}) => loadSetting(settingKey, { site }),
