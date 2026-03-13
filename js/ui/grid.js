@@ -5,7 +5,7 @@
 function renderGrid(filtered, grid) {
   grid.innerHTML = "";
   const mode = state?.referentDisplayMode || "large";
-  grid.classList.remove("grid--large", "grid--small", "grid--list", "grid--grouped-small", "grid--grouped-large");
+  grid.classList.remove("grid--large", "grid--small", "grid--list", "grid--grouped-small", "grid--grouped-large", "grid--empty");
   const rootModeClass = mode === "list"
     ? "grid--list"
     : (mode === "small" ? "grid--grouped-small" : "grid--grouped-large");
@@ -13,11 +13,12 @@ function renderGrid(filtered, grid) {
 
   if (filtered.length === 0) {
     grid.classList.remove("grid--list", "grid--grouped-small", "grid--grouped-large");
+    grid.classList.add("grid--empty");
     grid.innerHTML = `
       <section class="empty-state">
         <div class="empty-state__visual">
           <div class="empty-state__logo-wrap">
-            <img class="empty-state__logo" src="./assets/logo-topbar.png" alt="Logo DEMAT-BT" />
+            <img class="empty-state__logo" src="./assets/logo-home.png" alt="Logo DEMAT-BT" />
           </div>
         </div>
         <div class="empty-state__content">
