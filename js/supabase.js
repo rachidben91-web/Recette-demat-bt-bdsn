@@ -24,6 +24,15 @@ window.supabaseClient = window.supabase.createClient(
 
 console.log("✅ Supabase client initialisé");
 
+function setSupabaseConnectionStatus(isConnected, title = "") {
+  const dot = document.getElementById("supabaseStatusDot");
+  if (!dot) return;
+  const connected = !!isConnected;
+  dot.style.background = connected ? "#22c55e" : "#ef4444";
+  dot.title = title || (connected ? "Supabase connecté" : "Supabase déconnecté");
+}
+window.setSupabaseConnectionStatus = setSupabaseConnectionStatus;
+
 function classifySupabaseError(error) {
   const message = String(error?.message || "").toLowerCase();
   const code = String(error?.code || "").toLowerCase();
@@ -248,10 +257,12 @@ function openChangePasswordModal(supabaseClient) {
       status.textContent = `Connecté : ${user.email}`;
       btn.textContent    = "Se déconnecter";
       btn.dataset.state  = "out";
+      setSupabaseConnectionStatus(true, "Supabase connecté");
     } else {
       status.textContent = "Non connecté";
       btn.textContent    = "Se connecter";
       btn.dataset.state  = "in";
+      setSupabaseConnectionStatus(false, "Supabase déconnecté");
     }
 
     // Verrouille l'accès Support Journée tant que l'utilisateur n'est pas connecté.
@@ -284,7 +295,10 @@ function openChangePasswordModal(supabaseClient) {
       console.warn("🔑 Session active avec must_change_password — forçage.");
       openChangePasswordModal(client);
     }
-  }).catch(() => setUI(null));
+  }).catch(() => {
+    setUI(null);
+    setSupabaseConnectionStatus(false, "Supabase déconnecté");
+  });
 
   // Changements de session
   client.auth.onAuthStateChange((_event, session) => {

@@ -18,7 +18,15 @@ async function loadBadgeRules() {
     console.log("[BADGES] Règles chargées ✅", BADGE_RULES?.version || "");
   } catch (e) {
     console.warn("[BADGES] Impossible de charger badges-rules.json — pastilles désactivées.", e);
-    BADGE_RULES = null;
+    BADGE_RULES = {
+      version: "fallback",
+      badges: [],
+      notes: { ui: { display: { maxBadgesPerBT: 1, stackOrder: [] } } }
+    };
+    const progMsg = document.getElementById('progMsg');
+    if (progMsg) {
+      progMsg.textContent = "⚠️ Règles de badges non disponibles — classification désactivée.";
+    }
   }
 }
 

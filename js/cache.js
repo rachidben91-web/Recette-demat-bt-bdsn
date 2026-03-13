@@ -86,7 +86,12 @@ async function saveToCache() {
         badges: bt.badges || []
       }))
     };
-    localStorage.setItem('dematbt_cache', JSON.stringify(cacheData));
+    const json = JSON.stringify(cacheData);
+    const sizeMB = (new Blob([json])).size / (1024 * 1024);
+    if (sizeMB > 4) {
+      console.warn(`[CACHE] ⚠️ Taille cache élevée: ${sizeMB.toFixed(1)} Mo — risque de dépassement localStorage`);
+    }
+    localStorage.setItem('dematbt_cache', json);
 
     // Sauvegarder le PDF dans IndexedDB si disponible
     if (state.pdfFile) {
@@ -97,6 +102,9 @@ async function saveToCache() {
     console.log("[CACHE] État sauvegardé ✅", cacheData.bts.length, "BT");
   } catch (err) {
     console.error("[CACHE] Erreur sauvegarde:", err);
+    if (err && err.name === "QuotaExceededError") {
+      alert("⚠️ Cache trop volumineux. Les données seront rechargées au prochain lancement.");
+    }
   }
 }
 

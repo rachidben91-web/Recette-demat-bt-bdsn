@@ -882,13 +882,56 @@ window.SupportModule = (function() {
         localStorage.setItem('demat_history', JSON.stringify(history));
     }
 
-    function clearDay() {
+    async function clearDay() {
         if(confirm("Voulez-vous vraiment vider toutes les saisies de ce jour ?")) {
             const dayKey = formatDateKey(currentDate);
-            localStorage.removeItem('demat_day_' + dayKey);
-            supportDaysWithData.delete(dayKey);
-            redrawSupportDatePickerMarkers();
-            renderTable();
+            const applyLocalClear = () => {
+                localStorage.removeItem('demat_day_' + dayKey);
+                supportDaysWithData.delete(dayKey);
+                redrawSupportDatePickerMarkers();
+                updateHistoryLog(dayKey, {});
+                renderTable();
+            };
+
+            if(window.SupportStore && window.supabaseClient) {
+                try {
+                    const clearedPayload = { __GLOBAL_OBS: "" };
+                    const savedRow = await window.SupportStore.saveSupport(clearedPayload, {
+                        jour: dayKey,
+                        site: "VLG",
+                        expectedUpdatedAt: currentDayUpdatedAt,
+                        lockToken: currentDayLockToken,
+                    });
+                    if (savedRow?.updated_at) currentDayUpdatedAt = savedRow.updated_at;
+                    const lockObj = savedRow?.payload?._lock || null;
+                    if (lockObj?.token) currentDayLockToken = lockObj.token;
+                    renderLockStatus('acquired', lockObj);
+                    applyLocalClear();
+                    if (typeof window.setSupabaseConnectionStatus === "function") {
+                        window.setSupabaseConnectionStatus(true, "Supabase connecté");
+                    }
+                    return;
+                } catch (e) {
+                    const category = String(e?.category || '').toLowerCase();
+                    if (category === 'conflict') {
+                        alert("⚠️ Conflit détecté : la journée a été modifiée ailleurs. Rechargement.");
+                        await loadAndRenderTable();
+                        return;
+                    }
+                    if (category === 'lock') {
+                        alert("⛔ Suppression refusée : un autre utilisateur édite cette journée.");
+                        await ensureEditLockForCurrentDay({ silent: false });
+                        return;
+                    }
+                    if (typeof window.setSupabaseConnectionStatus === "function") {
+                        window.setSupabaseConnectionStatus(false, "Supabase indisponible");
+                    }
+                    alert("⚠️ Suppression cloud échouée. Aucune suppression appliquée.\n" + (e?.message || e));
+                    return;
+                }
+            }
+
+            applyLocalClear();
         }
     }
 
@@ -1105,6 +1148,9 @@ window.SupportModule = (function() {
     async function saveActivitiesToSupabase({ saveAttemptId = 'n/a' } = {}) {
         if (!window.SupportStore || !window.supabaseClient) {
             console.warn(`[ACTIVITY][${saveAttemptId}] ⚠️ Supabase non disponible -> local only`);
+            if (typeof window.setSupabaseConnectionStatus === "function") {
+                window.setSupabaseConnectionStatus(false, "Supabase indisponible");
+            }
             return { status: 'local', category: 'auth', toastMessage: "Sauvegarde locale OK. Supabase indisponible." };
         }
 
@@ -1117,12 +1163,18 @@ window.SupportModule = (function() {
 
             const durationMs = Math.round(performance.now() - start);
             console.log(`[ACTIVITY][${saveAttemptId}] ✅ Supabase confirmed write in ${durationMs}ms`, result);
+            if (typeof window.setSupabaseConnectionStatus === "function") {
+                window.setSupabaseConnectionStatus(true, "Supabase connecté");
+            }
             return { status: 'ok', category: null, result };
         } catch (e) {
             const durationMs = Math.round(performance.now() - start);
             const category = String(e?.category || e?.original?.category || '').toLowerCase();
             const normalizedCategory = ['auth', 'network', 'rls', 'sql'].includes(category) ? category : 'unknown';
             console.warn(`[ACTIVITY][${saveAttemptId}] ❌ Supabase save failed category=${normalizedCategory} in ${durationMs}ms`, e);
+            if (typeof window.setSupabaseConnectionStatus === "function") {
+                window.setSupabaseConnectionStatus(false, "Supabase indisponible");
+            }
             return {
                 status: 'error',
                 category: normalizedCategory,
