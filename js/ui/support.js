@@ -137,6 +137,107 @@ window.SupportModule = (function() {
         el.textContent = formatLockStatusLabel(status, lockObj);
     }
 
+    function formatSupportWeatherDateLabel(dateObj) {
+        if (!(dateObj instanceof Date) || Number.isNaN(dateObj.getTime())) return '';
+        return dateObj.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+        });
+    }
+
+    function renderSupportWeatherState(message, isError = false) {
+        const summaryEl = document.getElementById('supportWeatherSummary');
+        const gridEl = document.getElementById('supportWeatherGrid');
+        if (summaryEl) summaryEl.textContent = String(message || '');
+        if (gridEl) {
+            const safeMessage = escapeHtml(message || (isError ? 'Prévisions indisponibles.' : 'Chargement...'));
+            gridEl.innerHTML = `<div class="support-weather-card support-weather-card--loading">${safeMessage}</div>`;
+        }
+    }
+
+    async function renderSupportWeatherForecast() {
+        const summaryEl = document.getElementById('supportWeatherSummary');
+        const gridEl = document.getElementById('supportWeatherGrid');
+        if (!summaryEl || !gridEl) return;
+
+        const screenDate = new Date(currentDate.getTime());
+        const dateLabel = formatSupportWeatherDateLabel(screenDate);
+        renderSupportWeatherState(`Prévisions terrain pour ${dateLabel}...`);
+
+        if (!window.WeatherModule?.getForecastForDate) {
+            renderSupportWeatherState("Prévisions météo indisponibles.", true);
+            return;
+        }
+
+        try {
+            const result = await window.WeatherModule.getForecastForDate(screenDate);
+            if (formatDateKey(screenDate) !== formatDateKey(currentDate)) return;
+
+            const availableForecasts = (result?.communes || []).filter(item => item?.forecast);
+            if (availableForecasts.length === 0) {
+                renderSupportWeatherState(`Aucune prévision disponible pour ${dateLabel}.`, true);
+                return;
+            }
+
+            const riskCount = availableForecasts.filter(item => item.forecast?.rsf?.level === 'risk').length;
+            const warnCount = availableForecasts.filter(item => item.forecast?.rsf?.level === 'warn').length;
+            if (riskCount > 0) summaryEl.textContent = `${dateLabel} : vigilance humidité forte sur ${riskCount} commune(s).`;
+            else if (warnCount > 0) summaryEl.textContent = `${dateLabel} : humidité possible sur ${warnCount} commune(s).`;
+            else summaryEl.textContent = `${dateLabel} : conditions plutôt favorables pour la RSF.`;
+
+            gridEl.innerHTML = (result.communes || []).map((item) => {
+                const city = escapeHtml(window.WeatherModule.prettyName(item.name));
+                const forecast = item.forecast;
+                if (!forecast) {
+                    return `
+                        <div class="support-weather-card">
+                            <div class="support-weather-card__top">
+                                <div class="support-weather-card__city">${city}</div>
+                                <div class="support-weather-card__icon">🌡️</div>
+                            </div>
+                            <div class="support-weather-card__temp">—</div>
+                            <div class="support-weather-card__metrics">
+                                <div class="support-weather-card__metric"><span>Prévision</span><strong>Indisponible</strong></div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const badge = forecast.rsf || { level: 'warn', label: 'RSF a surveiller', summary: 'Prevision incomplete' };
+                const badgeClass = badge.level === 'risk'
+                    ? 'support-weather-card__badge--risk'
+                    : (badge.level === 'warn' ? 'support-weather-card__badge--warn' : 'support-weather-card__badge--good');
+
+                const min = Number.isFinite(forecast.tempMin) ? `${forecast.tempMin}°` : '—';
+                const max = Number.isFinite(forecast.tempMax) ? `${forecast.tempMax}°` : '—';
+                const rainProb = Number.isFinite(forecast.rainProbMax) ? `${forecast.rainProbMax}%` : '—';
+                const rainMm = Number.isFinite(forecast.rainMm) ? `${forecast.rainMm.toFixed(forecast.rainMm >= 1 ? 1 : 0)} mm` : '—';
+                const rainHours = Number.isFinite(forecast.rainHours) ? `${String(forecast.rainHours).replace('.', ',')} h` : '—';
+
+                return `
+                    <div class="support-weather-card">
+                        <div class="support-weather-card__top">
+                            <div class="support-weather-card__city">${city}</div>
+                            <div class="support-weather-card__icon">${forecast.icon || '🌡️'}</div>
+                        </div>
+                        <div class="support-weather-card__temp">${min} / ${max}</div>
+                        <div class="support-weather-card__metrics">
+                            <div class="support-weather-card__metric"><span>Prob. pluie</span><strong>${rainProb}</strong></div>
+                            <div class="support-weather-card__metric"><span>Cumul pluie</span><strong>${rainMm}</strong></div>
+                            <div class="support-weather-card__metric"><span>Heures humides</span><strong>${rainHours}</strong></div>
+                        </div>
+                        <div class="support-weather-card__badge ${badgeClass}">${escapeHtml(badge.label)} · ${escapeHtml(badge.summary)}</div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            console.warn('[SUPPORT] météo prévisionnelle indisponible:', e?.message || e);
+            if (formatDateKey(screenDate) !== formatDateKey(currentDate)) return;
+            renderSupportWeatherState(`Prévisions indisponibles pour ${dateLabel}.`, true);
+        }
+    }
+
     function hasMeaningfulDayData(payload) {
         if (!payload || typeof payload !== 'object') return false;
 
@@ -540,6 +641,10 @@ window.SupportModule = (function() {
         if (supportDatePickerInstance) {
             supportDatePickerInstance.setDate(formatDateKey(currentDate), false);
         }
+
+        renderSupportWeatherForecast().catch((e) => {
+            console.warn('[SUPPORT] rendu météo impossible:', e?.message || e);
+        });
     }
 
     function changeDay(delta) {

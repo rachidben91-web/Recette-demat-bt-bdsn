@@ -237,6 +237,18 @@
                 </div>
             </div>
 
+            <div id="supportWeatherPanel" class="support-weather-panel screen-only">
+                <div class="support-weather-panel__header">
+                    <div>
+                        <div class="support-weather-panel__title">Prévisions météo terrain</div>
+                        <div class="support-weather-panel__subtitle" id="supportWeatherSummary">Chargement des prévisions...</div>
+                    </div>
+                </div>
+                <div id="supportWeatherGrid" class="support-weather-grid">
+                    <div class="support-weather-card support-weather-card--loading">Chargement...</div>
+                </div>
+            </div>
+
             <div class="support-toolbar screen-only">
                 <button class="btn" onclick="SupportModule.saveDay()">💾 Enregistrer</button>
                 <button class="btn btn--secondary" onclick="SupportModule.printDay()">🖨️ Imprimer</button>
