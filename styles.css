@@ -746,11 +746,11 @@ body{
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 18px;
   align-items: center;
-  min-height: 420px;
-  padding: 28px;
+  min-height: 340px;
+  padding: 22px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 24px;
   background:
@@ -779,8 +779,8 @@ body{
 }
 
 .empty-state__logo-wrap {
-  width: min(100%, 320px);
-  aspect-ratio: 1;
+  width: min(100%, 250px);
+  min-height: 220px;
   display: grid;
   place-items: center;
   border-radius: 28px;
@@ -790,7 +790,7 @@ body{
 }
 
 .empty-state__logo {
-  width: 84%;
+  width: 78%;
   height: auto;
   object-fit: contain;
 }
@@ -799,8 +799,8 @@ body{
   position: relative;
   z-index: 1;
   display: grid;
-  gap: 18px;
-  max-width: 760px;
+  gap: 14px;
+  max-width: 820px;
 }
 
 .empty-state__eyebrow {
@@ -820,8 +820,8 @@ body{
 
 .empty-state__title {
   margin: 0;
-  font-size: clamp(28px, 3vw, 42px);
-  line-height: 1.08;
+  font-size: clamp(24px, 2vw, 34px);
+  line-height: 1.14;
   font-weight: 900;
   color: #0f172a;
   letter-spacing: -0.03em;
@@ -829,10 +829,10 @@ body{
 
 .empty-state__text {
   margin: 0;
-  max-width: 640px;
+  max-width: 760px;
   color: #475569;
-  font-size: 15px;
-  line-height: 1.7;
+  font-size: 14px;
+  line-height: 1.65;
 }
 
 .empty-state__steps {
@@ -842,7 +842,7 @@ body{
 }
 
 .empty-state__step {
-  padding: 14px;
+  padding: 12px;
   border-radius: 18px;
   background: rgba(255,255,255,0.84);
   border: 1px solid rgba(148, 163, 184, 0.22);
@@ -2092,7 +2092,7 @@ table.brief-table tr:hover { background-color: #f8fafc; }
 @media (max-width: 1080px) {
   .empty-state {
     grid-template-columns: 1fr;
-    padding: 22px;
+    padding: 20px;
   }
 
   .empty-state__visual {
