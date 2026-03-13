@@ -12,7 +12,46 @@ function renderGrid(filtered, grid) {
   grid.classList.add(rootModeClass);
 
   if (filtered.length === 0) {
-    grid.innerHTML = `<div class="hint" style="padding:16px;">Aucun BT à afficher avec ces filtres.</div>`;
+    grid.classList.remove("grid--list", "grid--grouped-small", "grid--grouped-large");
+    grid.innerHTML = `
+      <section class="empty-state">
+        <div class="empty-state__visual">
+          <div class="empty-state__logo-wrap">
+            <img class="empty-state__logo" src="./assets/logo-home.png" alt="Logo DEMAT-BT" />
+          </div>
+        </div>
+        <div class="empty-state__content">
+          <div class="empty-state__eyebrow">Bienvenue</div>
+          <h3 class="empty-state__title">Préparez la journée, extrayez les BT et pilotez l'activité terrain.</h3>
+          <p class="empty-state__text">
+            Chargez le PDF du jour pour alimenter automatiquement le Référent, le Brief équipe et le Support Journée.
+            Tant qu'aucune journée n'est importée, cette zone reste votre point de départ.
+          </p>
+          <div class="empty-state__steps">
+            <div class="empty-state__step">
+              <div class="empty-state__step-num">1</div>
+              <div class="empty-state__step-title">Importer le PDF</div>
+              <div class="empty-state__step-text">Ajoutez la journée reçue pour lancer le traitement.</div>
+            </div>
+            <div class="empty-state__step">
+              <div class="empty-state__step-num">2</div>
+              <div class="empty-state__step-title">Extraire les BT</div>
+              <div class="empty-state__step-text">L'application détecte les interventions et leurs documents associés.</div>
+            </div>
+            <div class="empty-state__step">
+              <div class="empty-state__step-num">3</div>
+              <div class="empty-state__step-title">Travailler la journée</div>
+              <div class="empty-state__step-text">Passez ensuite sur Référent, Brief ou Support Journée selon le besoin.</div>
+            </div>
+          </div>
+          <div class="empty-state__features">
+            <span class="empty-state__feature">📋 Référent d'équipe</span>
+            <span class="empty-state__feature">🧭 Brief technicien</span>
+            <span class="empty-state__feature">🌦️ Support Journée</span>
+          </div>
+        </div>
+      </section>
+    `;
     return;
   }
 
