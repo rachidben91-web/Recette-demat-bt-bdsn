@@ -225,6 +225,18 @@ body{
   box-shadow: var(--shadow);
 }
 
+.sidebar-step--disabled{
+  cursor:not-allowed;
+  opacity:0.58;
+  box-shadow:none;
+  filter:saturate(0.75);
+}
+
+.sidebar-step--disabled:hover{
+  transform:none;
+  box-shadow:none;
+}
+
 .sidebar-step__num {
   width: 34px;
   height: 34px;

@@ -1,10 +1,10 @@
-// js/main.js — DEMAT-BT v11.7.1 — 14/03/2026
+// js/main.js — DEMAT-BT v11.7.2 — 14/03/2026
 // Point d'entrée principal
 // FIX v11.2.0: renderAll alias, weather init, refreshAllViews
 // FIX v11.4.0: Modal event listeners + loadBadgeRules() + loadBadgeRules avant cache
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 DEMAT-BT v11.7.1 démarré.");
+    console.log("🚀 DEMAT-BT v11.7.2 démarré.");
 
     // ============================================================
     // HELPERS UI attendus par pdf-extractor.js
@@ -46,9 +46,36 @@ document.addEventListener('DOMContentLoaded', () => {
     window.setExtractEnabled = function (enabled) {
         const btn = document.getElementById('btnExtract');
         if (!btn) return;
-        btn.disabled = !enabled;
-        btn.classList.toggle('btn--disabled', !enabled);
+        const connected = window.__SUPPORT_AUTH_CONNECTED === true;
+        const canExtract = connected && !!enabled && !!state?.pdf;
+        btn.disabled = !canExtract;
+        btn.classList.toggle('btn--disabled', !canExtract);
+        btn.classList.toggle('sidebar-step--disabled', !canExtract);
+        btn.title = connected
+            ? (canExtract ? "Extraire les BT du PDF chargé" : "Importe d'abord un PDF valide pour extraire les BT")
+            : "Connecte-toi pour importer et extraire les BT";
     };
+
+    function updatePreparationControls() {
+        const connected = window.__SUPPORT_AUTH_CONNECTED === true;
+        const hasPdf = !!state?.pdf;
+        const pdfInput = document.getElementById('pdfFile');
+        const importStep = document.querySelector('.sidebar-step--secondary');
+
+        if (pdfInput) {
+            pdfInput.disabled = !connected;
+        }
+
+        if (importStep) {
+            importStep.classList.toggle('sidebar-step--disabled', !connected);
+            importStep.setAttribute('aria-disabled', connected ? 'false' : 'true');
+            importStep.title = connected
+                ? "Importer le PDF du jour"
+                : "Connecte-toi pour importer le PDF du jour";
+        }
+
+        window.setExtractEnabled(connected && hasPdf);
+    }
 
     // ============================================================
     // 1. INITIALISATION DES MODULES & DONNÉES
@@ -117,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Alias globaux pour compatibilité ──
     window.renderAll = refreshAllViews;
     window.refreshAllViews = refreshAllViews;
+    window.updatePreparationControls = updatePreparationControls;
 
     function formatJourneeLabel(jourIso) {
         const match = String(jourIso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -413,11 +441,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Import PDF
     const pdfInput = document.getElementById('pdfFile');
     if (pdfInput) {
+        pdfInput.addEventListener('click', (e) => {
+            if (window.__SUPPORT_AUTH_CONNECTED !== true) {
+                e.preventDefault();
+                alert("Veuillez vous connecter pour importer le PDF du jour.");
+            }
+        });
         pdfInput.addEventListener('change', (e) => {
             if (e.target.files && e.target.files[0]) {
                 const file = e.target.files[0];
                 if (window.PdfExtractor) {
                     window.PdfExtractor.processFile(file).then(() => {
+                        updatePreparationControls();
                         refreshAllViews();
                     });
                 }
@@ -429,8 +464,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnExtract = document.getElementById('btnExtract');
     if (btnExtract) {
         btnExtract.addEventListener('click', () => {
+            if (window.__SUPPORT_AUTH_CONNECTED !== true) {
+                alert("Veuillez vous connecter pour extraire les BT.");
+                return;
+            }
+            if (!state?.pdf) {
+                alert("Importe d'abord un PDF valide avant de lancer l'extraction.");
+                return;
+            }
             if (window.PdfExtractor) {
                 window.PdfExtractor.runExtraction().then(() => {
+                    updatePreparationControls();
                     refreshAllViews();
                 });
             }
@@ -587,6 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
     badgeRulesReady.then(() => {
         if (typeof loadFromCache === 'function') {
             loadFromCache().then(restored => {
+                updatePreparationControls();
                 if (restored) {
                     console.log("[MAIN] ✅ Cache restauré, lancement du rendu");
                     refreshAllViews();
@@ -599,10 +644,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Vue par défaut
         switchView('referent');
+        updatePreparationControls();
         console.log("[MAIN] ✅ Initialisation terminée");
     });
 
     window.addEventListener("demat:auth-changed", (event) => {
+        updatePreparationControls();
         if (event?.detail?.connected) {
             tryLoadRemoteBriefJournee({ force: false });
             refreshSavedJournees();

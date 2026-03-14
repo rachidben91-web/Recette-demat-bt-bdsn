@@ -518,11 +518,19 @@ async function processFile(file) {
     console.log("[DEMAT-BT] PDF chargé ✅", state.totalPages, "pages");
     window.setProgress(0, `PDF chargé (${state.totalPages} pages).`);
     window.setExtractEnabled(true);
+    if (typeof window.updatePreparationControls === "function") {
+      window.updatePreparationControls();
+    }
   } catch (e) {
     console.error(e);
     window.setPdfStatus("Erreur PDF");
     window.setProgress(0, "Erreur chargement PDF (voir console).");
     window.setExtractEnabled(false);
+    state.pdf = null;
+    state.totalPages = 0;
+    if (typeof window.updatePreparationControls === "function") {
+      window.updatePreparationControls();
+    }
     throw e;
   }
 }
@@ -540,6 +548,9 @@ async function runExtraction() {
     window.setProgress(100, `Terminé : ${state.bts.length} BT détectés.`);
   } finally {
     window.setExtractEnabled(!!state.pdf);
+    if (typeof window.updatePreparationControls === "function") {
+      window.updatePreparationControls();
+    }
   }
 }
 
