@@ -3,7 +3,7 @@
    Mis à jour : Intégration FOR-113 et nouveaux types de pièces jointes
 */
 
-const APP_VERSION = "V11.8.2";
+const APP_VERSION = "V11.8.3";
 
 /**
  * Configuration des types de documents détectables.
@@ -33,6 +33,7 @@ const state = {
   pdfFile: null,       // File object binaire
   pdfName: "",         // Nom du fichier chargé
   totalPages: 0,       // Nombre total de pages du PDF
+  pdfSourceCache: new Map(), // Cache mémoire des PDF unitaires BT
   
   // Données métier extraites
   bts: [],             // Tableau des objets BT détectés

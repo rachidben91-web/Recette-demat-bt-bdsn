@@ -108,9 +108,14 @@ function nextPage() {
 
 // Rendu PDF via Canvas
 async function renderPage(pageNum) {
-  if (!state.pdf) return;
+  const bt = state.modal.currentBT;
+  if (!bt) return;
   try {
-    const page = await state.pdf.getPage(pageNum);
+    const pdfDoc = (typeof window.getPdfDocumentForBt === "function")
+      ? await window.getPdfDocumentForBt(bt)
+      : state.pdf;
+    if (!pdfDoc) return;
+    const page = await pdfDoc.getPage(pageNum);
     // Scale 1.5 est souvent suffisant et plus performant que 2, mais tu peux garder 2
     const viewport = page.getViewport({ scale: 2 });
     const canvas = $("canvas"); // Vérifie si l'ID est bien "canvas" ou "pdfCanvas" dans ton HTML

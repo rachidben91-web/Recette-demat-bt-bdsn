@@ -1,4 +1,4 @@
-/* js/brief-journee.js — DEMAT-BT v11.8.2 — 14/03/2026
+/* js/brief-journee.js — DEMAT-BT v11.8.3 — 14/03/2026
    Snapshot métier des vues Référent / Brief, sans PDF source.
 */
 
@@ -72,6 +72,14 @@
     return {
       id: String(bt?.id || "").trim(),
       pageStart: Number(bt?.pageStart || 0) || null,
+      sourcePdf: bt?.sourcePdf && typeof bt.sourcePdf === "object"
+        ? {
+            storageKey: String(bt.sourcePdf.storageKey || "").trim(),
+            filename: String(bt.sourcePdf.filename || "").trim(),
+            importedAt: bt.sourcePdf.importedAt || null,
+            pageCount: Number(bt.sourcePdf.pageCount || 0) || null,
+          }
+        : null,
       badges: Array.isArray(bt?.badges) ? [...bt.badges] : [],
       datePrevue: norm(bt?.datePrevue || ""),
       objet: norm(bt?.objet || ""),
@@ -134,6 +142,14 @@
 
     return {
       ...bt,
+      sourcePdf: bt?.sourcePdf && typeof bt.sourcePdf === "object"
+        ? {
+            storageKey: String(bt.sourcePdf.storageKey || "").trim(),
+            filename: String(bt.sourcePdf.filename || "").trim(),
+            importedAt: bt.sourcePdf.importedAt || null,
+            pageCount: Number(bt.sourcePdf.pageCount || 0) || null,
+          }
+        : null,
       badges: Array.isArray(bt?.badges) ? [...bt.badges] : [],
       docs: normalizeDocs(bt?.docs),
       datePrevue: norm(bt?.datePrevue || ""),

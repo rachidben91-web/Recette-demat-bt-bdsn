@@ -23,13 +23,13 @@ function openDB() {
   });
 }
 
-async function savePDFToIndexedDB(pdfArrayBuffer, filename) {
+async function savePDFToIndexedDB(pdfArrayBuffer, filename, storageKey = 'current_pdf') {
   try {
     const db = await openDB();
     const tx = db.transaction([STORE_NAME], 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     await new Promise((resolve, reject) => {
-      const req = store.put({ data: pdfArrayBuffer, filename, timestamp: Date.now() }, 'current_pdf');
+      const req = store.put({ data: pdfArrayBuffer, filename, timestamp: Date.now() }, storageKey);
       req.onsuccess = resolve;
       req.onerror = () => reject(req.error);
     });
@@ -39,13 +39,13 @@ async function savePDFToIndexedDB(pdfArrayBuffer, filename) {
   }
 }
 
-async function loadPDFFromIndexedDB() {
+async function loadPDFFromIndexedDB(storageKey = 'current_pdf') {
   try {
     const db = await openDB();
     const tx = db.transaction([STORE_NAME], 'readonly');
     const store = tx.objectStore(STORE_NAME);
     return new Promise((resolve, reject) => {
-      const req = store.get('current_pdf');
+      const req = store.get(storageKey);
       req.onsuccess = () => resolve(req.result || null);
       req.onerror = () => reject(req.error);
     });
@@ -55,19 +55,52 @@ async function loadPDFFromIndexedDB() {
   }
 }
 
-async function clearPDFFromIndexedDB() {
+async function clearPDFFromIndexedDB(storageKey = null) {
   try {
     const db = await openDB();
     const tx = db.transaction([STORE_NAME], 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     await new Promise((resolve, reject) => {
-      const req = store.delete('current_pdf');
+      const req = storageKey ? store.delete(storageKey) : store.clear();
       req.onsuccess = resolve;
       req.onerror = () => reject(req.error);
     });
   } catch (err) {
     console.error("[CACHE] Erreur suppression PDF:", err);
   }
+}
+
+async function ensurePdfDocumentFromBuffer(data) {
+  await ensurePdfJs();
+  const loadingTask = window.pdfjsLib.getDocument({ data, stopAtErrors: false });
+  return loadingTask.promise;
+}
+
+async function loadPdfDocumentByStorageKey(storageKey = 'current_pdf') {
+  if (storageKey === 'current_pdf' && state.pdf) {
+    return state.pdf;
+  }
+
+  if (!(state.pdfSourceCache instanceof Map)) {
+    state.pdfSourceCache = new Map();
+  }
+
+  if (state.pdfSourceCache.has(storageKey)) {
+    return state.pdfSourceCache.get(storageKey);
+  }
+
+  const pdfData = await loadPDFFromIndexedDB(storageKey);
+  if (!pdfData?.data) return null;
+
+  const pdfDoc = await ensurePdfDocumentFromBuffer(pdfData.data);
+  state.pdfSourceCache.set(storageKey, pdfDoc);
+  return pdfDoc;
+}
+
+async function getPdfDocumentForBt(bt) {
+  const sourceKey = String(bt?.sourcePdf?.storageKey || '').trim();
+  if (!sourceKey) return state.pdf || null;
+  return loadPdfDocumentByStorageKey(sourceKey);
 }
 
 // -------------------------
@@ -168,6 +201,7 @@ async function loadFromCache() {
 
 async function clearCache() {
   localStorage.removeItem('dematbt_cache');
+  state.pdfSourceCache = new Map();
   await clearPDFFromIndexedDB();
   console.log("[CACHE] Cache vidé (localStorage + IndexedDB)");
 }
@@ -190,3 +224,7 @@ function getCacheInfo() {
     return null;
   }
 }
+
+window.loadPdfDocumentByStorageKey = loadPdfDocumentByStorageKey;
+window.getPdfDocumentForBt = getPdfDocumentForBt;
+window.savePDFToIndexedDB = savePDFToIndexedDB;

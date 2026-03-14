@@ -32,8 +32,10 @@ function localDateStamp() {
  * Récupère les dimensions et l'orientation d'une page du PDF source.
  * Retourne { widthPt, heightPt, widthMm, heightMm, orientation, format }
  */
-async function getPageDimensions(pageNum) {
-  const page = await state.pdf.getPage(pageNum);
+async function getPageDimensions(pageNum, pdfDoc = null) {
+  const sourcePdf = pdfDoc || state.pdf;
+  if (!sourcePdf) throw new Error("Aucun PDF source disponible.");
+  const page = await sourcePdf.getPage(pageNum);
   const viewport = page.getViewport({ scale: 1.0 }); // échelle 1:1 = points PDF natifs
 
   const widthPt = viewport.width;
@@ -63,8 +65,10 @@ async function getPageDimensions(pageNum) {
  * Convertit une page du PDF source en image Data URL.
  * Adapte le scale selon la taille de la page pour un bon compromis qualité/poids.
  */
-async function renderPageToDataURL(pageNum) {
-  const page = await state.pdf.getPage(pageNum);
+async function renderPageToDataURL(pageNum, pdfDoc = null) {
+  const sourcePdf = pdfDoc || state.pdf;
+  if (!sourcePdf) throw new Error("Aucun PDF source disponible.");
+  const page = await sourcePdf.getPage(pageNum);
   const baseViewport = page.getViewport({ scale: 1.0 });
 
   // Scale adaptatif : 2.0 pour A4, 1.5 pour A3+, 1.0 pour très grand
@@ -94,17 +98,22 @@ async function exportBTPDF(btArg) {
     alert("Aucun BT sélectionné pour l'export.");
     return;
   }
-  if (!state.pdf) return;
-
   try {
     const docName = `BT_${bt.id}.pdf`;
     setProgress(0, `Génération ${docName}...`);
 
     const jspdfLib = await ensureJsPDF();
+    const pdfDoc = (typeof window.getPdfDocumentForBt === "function")
+      ? await window.getPdfDocumentForBt(bt)
+      : state.pdf;
+    if (!pdfDoc) {
+      alert("Aucun PDF source disponible pour ce BT.");
+      return;
+    }
 
     // Récupérer les dimensions de la PREMIÈRE page pour initialiser le PDF
     const sortedDocs = [...bt.docs].sort((a, b) => a.page - b.page);
-    const firstDims = await getPageDimensions(sortedDocs[0].page);
+    const firstDims = await getPageDimensions(sortedDocs[0].page, pdfDoc);
 
     const pdf = new jspdfLib.jsPDF({
       orientation: firstDims.orientation,
@@ -134,11 +143,6 @@ async function exportDayPDF() {
     alert("Aucun BT à exporter dans la vue actuelle.");
     return false;
   }
-  if (!state.pdf) {
-    alert("Aucun PDF source chargé.");
-    return false;
-  }
-
   if (!confirm(`Confirmez-vous l'export de ${btList.length} BT et de leurs pièces jointes ?`)) {
     return false;
   }
@@ -151,7 +155,17 @@ async function exportDayPDF() {
 
     // Initialiser avec les dimensions de la première page du premier BT
     const firstBT = btList.find(bt => bt.docs && bt.docs.length > 0);
-    const firstDims = firstBT ? await getPageDimensions(firstBT.docs[0].page) : { orientation: "p", format: "a4" };
+    let firstDims = { orientation: "p", format: "a4" };
+    if (firstBT) {
+      const firstPdfDoc = (typeof window.getPdfDocumentForBt === "function")
+        ? await window.getPdfDocumentForBt(firstBT)
+        : state.pdf;
+      if (!firstPdfDoc) {
+        alert(`PDF source introuvable pour ${firstBT.id}.`);
+        return false;
+      }
+      firstDims = await getPageDimensions(firstBT.docs[0].page, firstPdfDoc);
+    }
 
     const pdf = new jspdfLib.jsPDF({
       orientation: firstDims.orientation,
@@ -329,12 +343,18 @@ Cordialement,`;
  */
 async function addBTToPDF(pdfDoc, bt, isFirstDocOfPdf) {
   const sortedDocs = [...bt.docs].sort((a, b) => a.page - b.page);
+  const sourcePdf = (typeof window.getPdfDocumentForBt === "function")
+    ? await window.getPdfDocumentForBt(bt)
+    : state.pdf;
+  if (!sourcePdf) {
+    throw new Error(`PDF source introuvable pour ${bt.id}.`);
+  }
 
   for (let i = 0; i < sortedDocs.length; i++) {
     const doc = sortedDocs[i];
 
     // Récupérer les dimensions originales de cette page
-    const dims = await getPageDimensions(doc.page);
+    const dims = await getPageDimensions(doc.page, sourcePdf);
 
     // Ajouter une nouvelle page avec les bonnes dimensions
     // (sauf si c'est la toute première page du fichier entier)
@@ -358,7 +378,7 @@ async function addBTToPDF(pdfDoc, bt, isFirstDocOfPdf) {
     }
 
     // 1. Capture de la page PDF originale en image haute qualité
-    const imgData = await renderPageToDataURL(doc.page);
+    const imgData = await renderPageToDataURL(doc.page, sourcePdf);
 
     // 2. Insertion image — RESPECT des dimensions originales
     const pageWidth = pdfDoc.internal.pageSize.getWidth();

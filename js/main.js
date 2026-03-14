@@ -1,10 +1,10 @@
-// js/main.js — DEMAT-BT v11.8.2 — 14/03/2026
+// js/main.js — DEMAT-BT v11.8.3 — 14/03/2026
 // Point d'entrée principal
 // FIX v11.2.0: renderAll alias, weather init, refreshAllViews
 // FIX v11.4.0: Modal event listeners + loadBadgeRules() + loadBadgeRules avant cache
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 DEMAT-BT v11.8.2 démarré.");
+    console.log("🚀 DEMAT-BT v11.8.3 démarré.");
 
     // ============================================================
     // HELPERS UI attendus par pdf-extractor.js
@@ -59,11 +59,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function updatePreparationControls() {
         const connected = window.__SUPPORT_AUTH_CONNECTED === true;
         const hasPdf = !!state?.pdf;
+        const hasJourneeContext = !!state?.journee?.jour || (Array.isArray(state?.bts) && state.bts.length > 0);
         const pdfInput = document.getElementById('pdfFile');
-        const importStep = document.querySelector('.sidebar-step--secondary');
+        const btPdfInput = document.getElementById('btPdfFile');
+        const importStep = pdfInput?.closest('.sidebar-step');
+        const importBtStep = btPdfInput?.closest('.sidebar-step');
 
         if (pdfInput) {
             pdfInput.disabled = !connected;
+        }
+        if (btPdfInput) {
+            btPdfInput.disabled = !connected || !hasJourneeContext;
         }
 
         if (importStep) {
@@ -72,6 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
             importStep.title = connected
                 ? "Importer le PDF du jour"
                 : "Connecte-toi pour importer le PDF du jour";
+        }
+        if (importBtStep) {
+            const canImportBt = connected && hasJourneeContext;
+            importBtStep.classList.toggle('sidebar-step--disabled', !canImportBt);
+            importBtStep.setAttribute('aria-disabled', canImportBt ? 'false' : 'true');
+            importBtStep.title = !connected
+                ? "Connecte-toi pour importer un BT"
+                : (hasJourneeContext ? "Importer un BT régénéré dans la journée courante" : "Charge d'abord une journée avant d'ajouter un BT");
         }
 
         window.setExtractEnabled(connected && hasPdf);
@@ -589,6 +603,42 @@ document.addEventListener('DOMContentLoaded', () => {
                     await clearCache();
                 }
                 location.reload();
+            }
+        });
+    }
+
+    const btPdfInput = document.getElementById('btPdfFile');
+    if (btPdfInput) {
+        btPdfInput.addEventListener('click', (e) => {
+            if (window.__SUPPORT_AUTH_CONNECTED !== true) {
+                e.preventDefault();
+                alert("Veuillez vous connecter pour importer un BT.");
+                return;
+            }
+            if (!state?.journee?.jour && (!Array.isArray(state?.bts) || state.bts.length === 0)) {
+                e.preventDefault();
+                alert("Charge d'abord une journée avant d'importer un BT unitaire.");
+            }
+        });
+        btPdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            try {
+                if (!window.PdfExtractor?.importSingleBT) {
+                    throw new Error("Import BT indisponible.");
+                }
+                const result = await window.PdfExtractor.importSingleBT(file);
+                refreshAllViews();
+                updatePreparationControls();
+                refreshSavedJournees();
+                if (result?.bt?.id) {
+                    alert(`BT ${result.bt.id} ${result.action || "intégré"} dans la journée.`);
+                }
+            } catch (err) {
+                console.error("[MAIN] Import BT unitaire impossible:", err);
+                alert(`Import BT impossible : ${err?.message || err}`);
+            } finally {
+                e.target.value = "";
             }
         });
     }

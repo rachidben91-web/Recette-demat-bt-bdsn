@@ -406,19 +406,19 @@ function rebuildTechCountsFromBts() {
 }
 
 // 7. Boucle principale d'extraction
-async function extractAll() {
-  if (!state.pdf) throw new Error("PDF non chargé.");
+async function extractBtsFromPdf(pdfDoc, { totalPages = pdfDoc?.numPages || 0, onProgress = null } = {}) {
+  if (!pdfDoc) throw new Error("PDF non chargé.");
   if (!ZONES) throw new Error("Zones non chargées.");
 
   const bb = (label) => getZoneBBox(label);
-
-  state.bts = [];
-  state.countsByTechId = new Map();
   let currentBT = null;
+  const extractedBts = [];
 
-  for (let p = 1; p <= state.totalPages; p++) {
-    setProgress((p - 1) / state.totalPages * 100, `Analyse page ${p}/${state.totalPages}...`);
-    const page = await state.pdf.getPage(p);
+  for (let p = 1; p <= totalPages; p++) {
+    if (typeof onProgress === "function") {
+      onProgress((p - 1) / Math.max(1, totalPages) * 100, `Analyse page ${p}/${totalPages}...`);
+    }
+    const page = await pdfDoc.getPage(p);
 
     // Tentative de détection d'un nouveau BT via sa bbox précise
     const btNumTxt = norm(await extractTextInBBox(page, bb("BT_NUM")));
@@ -451,7 +451,7 @@ async function extractAll() {
       currentBT.team = mergeTeamLists(currentBT.teamCurrent, []);
 
       currentBT.badges = detectBadgesForBT(currentBT);
-      state.bts.push(currentBT);
+      extractedBts.push(currentBT);
     }
     // Pièce jointe du BT précédent
     else if (currentBT) {
@@ -462,7 +462,18 @@ async function extractAll() {
     }
   }
 
-  state.bts = mergeDuplicateBTs(state.bts);
+  return mergeDuplicateBTs(extractedBts);
+}
+
+async function extractAll() {
+  if (!state.pdf) throw new Error("PDF non chargé.");
+
+  state.bts = [];
+  state.countsByTechId = new Map();
+  state.bts = await extractBtsFromPdf(state.pdf, {
+    totalPages: state.totalPages,
+    onProgress: (pct, message) => setProgress(pct, message),
+  });
   rebuildTechCountsFromBts();
 
   setProgress(100, `Terminé : ${state.bts.length} BT détectés.`);
@@ -594,9 +605,103 @@ async function runExtraction() {
   }
 }
 
+function buildSingleBtSourceKey(btId) {
+  return `bt_pdf_${String(btId || "unknown").trim().toUpperCase()}_${Date.now()}`;
+}
+
+async function importSingleBT(file) {
+  if (!file) return null;
+  if (!ZONES) await loadZones();
+
+  if (!Array.isArray(state.bts) || state.bts.length === 0) {
+    throw new Error("Charge d'abord une journée avant d'ajouter un BT unitaire.");
+  }
+
+  const jour = (window.BriefJournee && typeof window.BriefJournee.getJourneeDate === "function")
+    ? window.BriefJournee.getJourneeDate()
+    : (state?.journee?.jour || "");
+  const site = state?.journee?.site || window.BriefStore?.SITE || "VLG";
+
+  setProgress(0, `Import du BT ${file.name}...`);
+
+  await ensurePdfJs();
+  const buf = await file.arrayBuffer();
+  const loadingTask = window.pdfjsLib.getDocument({ data: buf, stopAtErrors: false });
+  const pdfDoc = await loadingTask.promise;
+  const importedBts = await extractBtsFromPdf(pdfDoc, {
+    totalPages: pdfDoc.numPages,
+    onProgress: (pct, message) => setProgress(pct, `BT unitaire — ${message}`),
+  });
+
+  if (!importedBts.length) {
+    throw new Error("Aucun BT détecté dans le PDF importé.");
+  }
+  if (importedBts.length > 1) {
+    throw new Error("Le PDF importé contient plusieurs BT. Utilise un PDF unitaire.");
+  }
+
+  const incomingBt = importedBts[0];
+  const incomingId = String(incomingBt?.id || "").trim().toUpperCase();
+  if (!incomingId) {
+    throw new Error("Identifiant BT introuvable dans le PDF importé.");
+  }
+
+  const sourceKey = buildSingleBtSourceKey(incomingId);
+  if (typeof window.savePDFToIndexedDB === "function") {
+    await window.savePDFToIndexedDB(buf, file.name, sourceKey);
+  }
+  if (!(state.pdfSourceCache instanceof Map)) {
+    state.pdfSourceCache = new Map();
+  }
+  state.pdfSourceCache.set(sourceKey, pdfDoc);
+
+  incomingBt.sourcePdf = {
+    storageKey: sourceKey,
+    filename: file.name,
+    importedAt: new Date().toISOString(),
+    pageCount: pdfDoc.numPages,
+  };
+
+  const existingIndex = (state.bts || []).findIndex((bt) => String(bt?.id || "").trim().toUpperCase() === incomingId);
+  let actionLabel = "ajouté";
+
+  if (existingIndex >= 0) {
+    const existingBt = state.bts[existingIndex];
+    incomingBt.pageStart = existingBt?.pageStart || incomingBt.pageStart;
+    if (window.BriefJournee && typeof window.BriefJournee.preserveBtAssignment === "function") {
+      window.BriefJournee.preserveBtAssignment(incomingBt, existingBt);
+    }
+    state.bts.splice(existingIndex, 1, incomingBt);
+    actionLabel = "mis à jour";
+  } else {
+    const maxPageStart = Math.max(0, ...state.bts.map((bt) => Number(bt?.pageStart || 0)));
+    incomingBt.pageStart = maxPageStart + 1;
+    state.bts.push(incomingBt);
+  }
+
+  if (typeof detectBadgesForBT === "function") {
+    incomingBt.badges = detectBadgesForBT(incomingBt);
+  }
+  if (typeof rebuildTechCountsFromBts === "function") rebuildTechCountsFromBts();
+  if (typeof renderAll === "function") renderAll();
+  if (typeof saveToCache === "function") await saveToCache();
+  if (typeof window.saveCurrentBriefJournee === "function") {
+    await window.saveCurrentBriefJournee({ silent: true, source: "import bt unitaire" });
+  }
+
+  setProgress(100, `BT ${incomingId} ${actionLabel} dans la journée.`);
+  return {
+    bt: incomingBt,
+    action: actionLabel,
+    jour,
+    site,
+  };
+}
+
 window.PdfExtractor = {
   processFile,
-  runExtraction
+  runExtraction,
+  importSingleBT
 };
 
 window.mergeDuplicateBTs = mergeDuplicateBTs;
