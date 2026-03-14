@@ -1,4 +1,4 @@
-/* js/ui/grid.js — DEMAT-BT v11.7.0 — 14/03/2026
+/* js/ui/grid.js — DEMAT-BT v11.7.1 — 14/03/2026
    Vue Référent : grandes vignettes, petites vignettes, liste
 */
 
@@ -276,6 +276,7 @@ function renderGrid(filtered, grid) {
 
     for (const bt of items) {
       const row = document.createElement("tr");
+      if (bt.hasManualAssignmentChange) row.classList.add("bt-list__row--changed");
       const slot = (typeof extractTimeSlot === "function") ? extractTimeSlot(bt) : null;
       const timeText = slot?.label || bt.datePrevue || "—";
       const duration = formatDuree(bt.duree);
@@ -294,9 +295,19 @@ function renderGrid(filtered, grid) {
         timeCell.appendChild(timeSub);
       }
       timeCell.appendChild(createCategoryBadge(bt, "sm"));
+      if (bt.hasManualAssignmentChange) {
+        const badgeWrap = document.createElement("div");
+        badgeWrap.className = "bt-list__assignment-flag";
+        badgeWrap.appendChild(createAssignmentBadge(bt, { label: "A reporter dans O2" }));
+        timeCell.appendChild(badgeWrap);
+      }
 
       const techCell = document.createElement("td");
       techCell.appendChild(createTeamLine(bt, { showIcon: false, compact: true }));
+      if (bt.hasManualAssignmentChange) {
+        const summary = createAssignmentSummary(bt, { compact: true });
+        if (summary) techCell.appendChild(summary);
+      }
 
       const objetCell = document.createElement("td");
       objetCell.title = bt.objet || "";
@@ -342,6 +353,7 @@ function renderGrid(filtered, grid) {
 
       const editorRow = document.createElement("tr");
       editorRow.className = "bt-list__editor-row";
+      if (bt.hasManualAssignmentChange) editorRow.classList.add("bt-list__editor-row--changed");
       editorRow.hidden = true;
       const editorCell = document.createElement("td");
       editorCell.colSpan = 6;

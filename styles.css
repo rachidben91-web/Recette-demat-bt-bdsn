@@ -1433,7 +1433,19 @@ body{
 .bt-list__table .team-line{ font-size:12px; gap:4px; }
 .bt-list__table .team-line__sep{ margin:0 1px; }
 .team-line--compact{ gap:4px; }
+.bt-list__assignment-flag{
+  margin-top:6px;
+}
+.bt-list__row--changed td{
+  background:#fffaf5;
+}
+.bt-list__row--changed td:first-child{
+  box-shadow: inset 3px 0 0 #f97316;
+}
 .bt-list__editor-row td{
+  background:#fff7ed;
+}
+.bt-list__editor-row--changed td{
   background:#fff7ed;
 }
 .bt-list__actions{
