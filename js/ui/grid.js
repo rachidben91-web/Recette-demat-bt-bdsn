@@ -68,13 +68,21 @@ function renderGrid(filtered, grid) {
       if (!uniq.has(id)) uniq.set(id, name);
     }
 
-    if (uniq.size === 0) return { key: "__SANS_EQUIPE__", label: "Sans équipe" };
+    if (uniq.size === 0) {
+      return { key: "__SANS_EQUIPE__", label: "Sans équipe", fullLabel: "Sans équipe" };
+    }
 
     const entries = [...uniq.entries()].sort((a, b) => a[1].localeCompare(b[1], "fr", { sensitivity: "base" }));
     const key = entries.map(([id]) => id).join("|");
-    const label = entries.length === 1 ? entries[0][1] : entries.map(([, name]) => name).join(" / ");
+    const fullLabel = entries.length === 1 ? entries[0][1] : entries.map(([, name]) => name).join(" / ");
+    const maxVisible = 4;
+    const visibleNames = entries.slice(0, maxVisible).map(([, name]) => name);
+    const hiddenCount = Math.max(0, entries.length - visibleNames.length);
+    const label = hiddenCount > 0
+      ? `${visibleNames.join(" / ")} / +${hiddenCount}`
+      : fullLabel;
 
-    return { key, label };
+    return { key, label, fullLabel };
   }
 
   function getBtSortTuple(bt) {
@@ -439,6 +447,7 @@ function renderGrid(filtered, grid) {
     const titleName = document.createElement("span");
     titleName.className = "referent-group__name";
     titleName.textContent = group.label;
+    titleName.title = group.fullLabel || group.label;
 
     const titleCount = document.createElement("span");
     titleCount.className = "referent-group__count";
