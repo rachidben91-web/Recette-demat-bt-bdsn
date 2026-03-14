@@ -539,9 +539,41 @@ async function runExtraction() {
   if (!state.pdf) throw new Error("PDF non chargé.");
   if (!ZONES) await loadZones();
   try {
-    const preservedBts = Array.isArray(state.bts)
-      ? state.bts.map((bt) => ({ ...bt }))
-      : [];
+    const jour = (window.BriefJournee && typeof window.BriefJournee.getJourneeDate === "function")
+      ? window.BriefJournee.getJourneeDate()
+      : (state?.journee?.jour || "");
+    const site = state?.journee?.site || window.BriefStore?.SITE || "VLG";
+    const preservedById = new Map();
+
+    function rememberBts(list) {
+      for (const bt of (Array.isArray(list) ? list : [])) {
+        const id = String(bt?.id || "").trim().toUpperCase();
+        if (!id) continue;
+        preservedById.set(id, { ...bt });
+      }
+    }
+
+    if (window.__SUPPORT_AUTH_CONNECTED === true && window.BriefStore && jour) {
+      try {
+        const remoteRecord = await window.BriefStore.loadJournee({ jour, site });
+        const remoteBts = Array.isArray(remoteRecord?.payload?.bts)
+          ? remoteRecord.payload.bts.map((bt) =>
+              (window.BriefJournee && typeof window.BriefJournee.hydrateBt === "function")
+                ? window.BriefJournee.hydrateBt(bt)
+                : bt
+            ).filter(Boolean)
+          : [];
+        rememberBts(remoteBts);
+      } catch (err) {
+        console.warn("[DEMAT-BT] Impossible de charger la journée distante avant fusion:", err);
+      }
+    }
+
+    if (state?.journee?.jour === jour) {
+      rememberBts(state.bts);
+    }
+
+    const preservedBts = [...preservedById.values()];
     window.setExtractEnabled(false);
     window.setProgress(0, "Extraction en cours…");
     await extractAll();
