@@ -51,6 +51,23 @@ const state = {
   
   // Statistiques calculées
   countsByTechId: new Map(), // Nombre de BT par technicien (clé: NNI)
+
+  // Journée BT persistée
+  journee: {
+    jour: "",
+    site: "VLG",
+    status: "draft",
+    source: {
+      pdfName: "",
+      importedAt: null
+    },
+    remote: {
+      id: null,
+      updatedAt: null,
+      updatedBy: null,
+      loadedAt: null
+    }
+  },
   
   // État de la visionneuse (Modal)
   modal: {

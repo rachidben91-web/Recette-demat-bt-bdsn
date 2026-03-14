@@ -79,6 +79,7 @@ async function saveToCache() {
       version: APP_VERSION,
       timestamp: Date.now(),
       pdfName: state.pdfName,
+      journee: state.journee || null,
       bts: state.bts.map(bt => ({
         ...bt,
         team: bt.team || [],
@@ -124,6 +125,7 @@ async function loadFromCache() {
       ? window.mergeDuplicateBTs(cacheData.bts)
       : cacheData.bts;
     state.pdfName = cacheData.pdfName || "";
+    state.journee = cacheData.journee || state.journee;
     state.countsByTechId = new Map();
 
     for (const bt of state.bts) {

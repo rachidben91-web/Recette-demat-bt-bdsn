@@ -701,3 +701,66 @@ function openChangePasswordModal(supabaseClient) {
 
   console.log("✅ SupportStore prêt (console: SupportStore.loadToday(), SupportStore.saveTest())");
 })();
+
+// -------------------------
+// Brief Journée (VLG) — Snapshot Référent / Brief
+// -------------------------
+(function setupBriefStore() {
+  const SITE = "VLG";
+
+  function todayISO() {
+    return new Date().toLocaleDateString("fr-CA");
+  }
+
+  async function loadJournee({ jour = todayISO(), site = SITE } = {}) {
+    const { data, error } = await window.supabaseClient
+      .from("brief_journee")
+      .select("id, jour, site, statut, payload, updated_at, updated_by")
+      .eq("jour", jour)
+      .eq("site", site)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data || null;
+  }
+
+  async function saveJournee(payload, { jour = todayISO(), site = SITE, statut = "draft" } = {}) {
+    const authContext = await getAuthContextRobust();
+    if (!authContext.user) {
+      throw new Error("Utilisateur non connecté");
+    }
+
+    const nowIso = new Date().toISOString();
+    const { data, error } = await window.supabaseClient
+      .from("brief_journee")
+      .upsert(
+        {
+          jour,
+          site,
+          statut,
+          payload,
+          updated_at: nowIso,
+          updated_by: authContext.user.id,
+          created_by: authContext.user.id,
+        },
+        { onConflict: "jour,site" }
+      )
+      .select("id, jour, site, statut, payload, updated_at, updated_by")
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  window.BriefStore = {
+    SITE,
+    todayISO,
+    loadToday: () => loadJournee({ jour: todayISO(), site: SITE }),
+    saveToday: (payload) => saveJournee(payload, { jour: todayISO(), site: SITE }),
+    loadJournee: ({ jour = todayISO(), site = SITE } = {}) => loadJournee({ jour, site }),
+    saveJournee: (payload, { jour = todayISO(), site = SITE, statut = "draft" } = {}) =>
+      saveJournee(payload, { jour, site, statut }),
+  };
+
+  console.log("✅ BriefStore prêt (console: BriefStore.loadToday())");
+})();

@@ -483,6 +483,18 @@ async function processFile(file) {
 
     state.pdfFile = file;
     state.pdfName = file.name;
+    const importedDayFr = extractDayFromFilename(file.name);
+    const importedDayIso = importedDayFr
+      ? importedDayFr.replace(/^(\d{2})\/(\d{2})\/(\d{4})$/, "$3-$2-$1")
+      : "";
+    state.journee = {
+      ...state.journee,
+      jour: importedDayIso || state.journee?.jour || "",
+      source: {
+        pdfName: file.name,
+        importedAt: new Date().toISOString(),
+      },
+    };
 
     const buf = await file.arrayBuffer();
     const loadingTask = window.pdfjsLib.getDocument({ data: buf });
@@ -508,6 +520,9 @@ async function runExtraction() {
     window.setExtractEnabled(false);
     window.setProgress(0, "Extraction en cours…");
     await extractAll();
+    if (typeof window.saveCurrentBriefJournee === "function") {
+      await window.saveCurrentBriefJournee({ silent: true });
+    }
     window.setProgress(100, `Terminé : ${state.bts.length} BT détectés.`);
   } finally {
     window.setExtractEnabled(!!state.pdf);

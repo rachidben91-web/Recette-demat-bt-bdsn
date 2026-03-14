@@ -118,6 +118,72 @@ document.addEventListener('DOMContentLoaded', () => {
     window.renderAll = refreshAllViews;
     window.refreshAllViews = refreshAllViews;
 
+    async function tryLoadRemoteBriefJournee({ force = false } = {}) {
+        if (!window.BriefStore || !window.BriefJournee) return false;
+        if (window.__SUPPORT_AUTH_CONNECTED !== true) return false;
+        if (!force && Array.isArray(state.bts) && state.bts.length > 0) return false;
+
+        const jour = window.BriefJournee.getJourneeDate();
+        const site = state?.journee?.site || window.BriefStore.SITE || "VLG";
+
+        try {
+            const record = await window.BriefStore.loadJournee({ jour, site });
+            if (!record?.payload?.bts?.length) return false;
+
+            window.BriefJournee.hydrateRecord(record);
+            setProgress(0, `☁️ Journée chargée : ${record.payload.bts.length} BT`);
+            refreshAllViews();
+            return true;
+        } catch (err) {
+            console.warn("[MAIN] Chargement brief_journee impossible:", err);
+            return false;
+        }
+    }
+
+    async function saveCurrentBriefJournee({ silent = false } = {}) {
+        if (!window.BriefStore || !window.BriefJournee) return null;
+        if (window.__SUPPORT_AUTH_CONNECTED !== true) return null;
+        if (!Array.isArray(state.bts) || state.bts.length === 0) return null;
+
+        const jour = window.BriefJournee.getJourneeDate();
+        const site = state?.journee?.site || window.BriefStore.SITE || "VLG";
+        const payload = window.BriefJournee.buildPayload();
+
+        try {
+            const saved = await window.BriefStore.saveJournee(payload, { jour, site, statut: "draft" });
+            state.journee = {
+                ...state.journee,
+                jour: saved?.jour || jour,
+                site: saved?.site || site,
+                status: saved?.statut || "draft",
+                source: {
+                    pdfName: payload?.source?.pdfName || state?.pdfName || "",
+                    importedAt: payload?.source?.importedAt || null,
+                },
+                remote: {
+                    id: saved?.id || null,
+                    updatedAt: saved?.updated_at || null,
+                    updatedBy: saved?.updated_by || null,
+                    loadedAt: new Date().toISOString(),
+                }
+            };
+
+            if (!silent) {
+                setProgress(100, `💾 Journée sauvegardée : ${payload.meta.btCount} BT`);
+            }
+            return saved;
+        } catch (err) {
+            console.warn("[MAIN] Sauvegarde brief_journee impossible:", err);
+            if (!silent) {
+                alert(`Sauvegarde distante impossible : ${err?.message || err}`);
+            }
+            return null;
+        }
+    }
+
+    window.tryLoadRemoteBriefJournee = tryLoadRemoteBriefJournee;
+    window.saveCurrentBriefJournee = saveCurrentBriefJournee;
+
     // ============================================================
     // 3. NAVIGATION (Référent / Brief / Support)
     // ============================================================
@@ -375,6 +441,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (restored) {
                     console.log("[MAIN] ✅ Cache restauré, lancement du rendu");
                     refreshAllViews();
+                } else if (window.__SUPPORT_AUTH_CONNECTED === true) {
+                    tryLoadRemoteBriefJournee({ force: true });
                 }
             }).catch(err => console.warn("[MAIN] Cache non restauré:", err));
         }
@@ -382,5 +450,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Vue par défaut
         switchView('referent');
         console.log("[MAIN] ✅ Initialisation terminée");
+    });
+
+    window.addEventListener("demat:auth-changed", (event) => {
+        if (event?.detail?.connected) {
+            tryLoadRemoteBriefJournee({ force: false });
+        }
     });
 });
