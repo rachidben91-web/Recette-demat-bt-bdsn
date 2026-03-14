@@ -1,4 +1,4 @@
-/* js/brief-journee.js — DEMAT-BT v11.6.0 — 14/03/2026
+/* js/brief-journee.js — DEMAT-BT v11.7.0 — 14/03/2026
    Snapshot métier des vues Référent / Brief, sans PDF source.
 */
 
@@ -14,6 +14,29 @@
       nni: String(member?.nni || "").trim().toUpperCase(),
       name: norm(member?.name || ""),
     }));
+  }
+
+  function getAssignedTeam(bt) {
+    if (Array.isArray(bt?.teamCurrent) && bt.teamCurrent.length > 0) return cloneTeam(bt.teamCurrent);
+    if (Array.isArray(bt?.team) && bt.team.length > 0) return cloneTeam(bt.team);
+    return [];
+  }
+
+  function getOriginalTeam(bt) {
+    if (Array.isArray(bt?.teamOriginal) && bt.teamOriginal.length > 0) return cloneTeam(bt.teamOriginal);
+    return cloneTeam(bt?.team || []);
+  }
+
+  function areTeamsEqual(a, b) {
+    const left = cloneTeam(a);
+    const right = cloneTeam(b);
+    if (left.length !== right.length) return false;
+    const normList = (items) => items
+      .map((member) => `${member.nni}|${member.name}`.trim())
+      .sort((x, y) => x.localeCompare(y, "fr", { sensitivity: "base" }));
+    const la = normList(left);
+    const lb = normList(right);
+    return la.every((value, index) => value === lb[index]);
   }
 
   function normalizeDocs(docs) {
@@ -42,19 +65,26 @@
   }
 
   function buildBtSnapshot(bt) {
-    const teamOriginal = cloneTeam(bt?.teamOriginal || bt?.team || []);
-    const teamCurrent = cloneTeam(bt?.teamCurrent || bt?.team || []);
+    const teamOriginal = getOriginalTeam(bt);
+    const teamCurrent = getAssignedTeam(bt);
 
     return {
       id: String(bt?.id || "").trim(),
       pageStart: Number(bt?.pageStart || 0) || null,
       badges: Array.isArray(bt?.badges) ? [...bt.badges] : [],
+      datePrevue: norm(bt?.datePrevue || ""),
       objet: norm(bt?.objet || ""),
+      client: norm(bt?.client || ""),
       localisation: norm(bt?.localisation || ""),
+      atNum: norm(bt?.atNum || ""),
+      designation: norm(bt?.designation || ""),
+      duree: norm(bt?.duree || ""),
+      analyseDesRisques: norm(bt?.analyseDesRisques || ""),
+      observations: norm(bt?.observations || ""),
       docs: normalizeDocs(bt?.docs),
       teamOriginal,
       teamCurrent,
-      hasManualAssignmentChange: Boolean(bt?.hasManualAssignmentChange),
+      hasManualAssignmentChange: Boolean(bt?.hasManualAssignmentChange || !areTeamsEqual(teamOriginal, teamCurrent)),
       assignmentChangeReason: norm(bt?.assignmentChangeReason || ""),
     };
   }
@@ -82,19 +112,26 @@
   }
 
   function hydrateBt(bt) {
-    const teamOriginal = cloneTeam(bt?.teamOriginal || bt?.team || []);
-    const teamCurrent = cloneTeam(bt?.teamCurrent || bt?.team || []);
+    const teamOriginal = getOriginalTeam(bt);
+    const teamCurrent = getAssignedTeam(bt);
     const hasManualAssignmentChange = Boolean(
       bt?.hasManualAssignmentChange ||
-      JSON.stringify(teamOriginal) !== JSON.stringify(teamCurrent)
+      !areTeamsEqual(teamOriginal, teamCurrent)
     );
 
     return {
       ...bt,
       badges: Array.isArray(bt?.badges) ? [...bt.badges] : [],
       docs: normalizeDocs(bt?.docs),
+      datePrevue: norm(bt?.datePrevue || ""),
       objet: norm(bt?.objet || ""),
+      client: norm(bt?.client || ""),
       localisation: norm(bt?.localisation || ""),
+      atNum: norm(bt?.atNum || ""),
+      designation: norm(bt?.designation || ""),
+      duree: norm(bt?.duree || ""),
+      analyseDesRisques: norm(bt?.analyseDesRisques || ""),
+      observations: norm(bt?.observations || ""),
       teamOriginal,
       teamCurrent,
       team: teamCurrent,
@@ -143,9 +180,38 @@
     return bts;
   }
 
+  function setBtAssignment(bt, nextTeam, reason = "") {
+    if (!bt || typeof bt !== "object") return bt;
+    const original = getOriginalTeam(bt);
+    const current = cloneTeam(nextTeam);
+    bt.teamOriginal = original;
+    bt.teamCurrent = current;
+    bt.team = current;
+    bt.hasManualAssignmentChange = !areTeamsEqual(original, current);
+    bt.assignmentChangeReason = bt.hasManualAssignmentChange ? norm(reason || bt.assignmentChangeReason || "") : "";
+    return bt;
+  }
+
+  function resetBtAssignment(bt) {
+    if (!bt || typeof bt !== "object") return bt;
+    const original = getOriginalTeam(bt);
+    bt.teamOriginal = original;
+    bt.teamCurrent = original;
+    bt.team = original;
+    bt.hasManualAssignmentChange = false;
+    bt.assignmentChangeReason = "";
+    return bt;
+  }
+
   window.BriefJournee = {
     DEFAULT_SITE,
     todayISO,
+    cloneTeam,
+    getAssignedTeam,
+    getOriginalTeam,
+    areTeamsEqual,
+    setBtAssignment,
+    resetBtAssignment,
     getJourneeDate,
     buildPayload,
     hydrateRecord,

@@ -1,4 +1,4 @@
-/* js/ui/sidebar.js — DEMAT-BT v11.0.0 — 16/02/2026
+/* js/ui/sidebar.js — DEMAT-BT v11.7.0 — 14/03/2026
    Sidebar : liste techniciens, filtres par type de document, recherche et KPIs
 */
 
@@ -111,7 +111,10 @@ function filterBTs() {
 
     // Filtre 3 : Technicien spécifique
     if (state.filters.techId) {
-      const isPresent = (bt.team || []).some(m => techKey(mapTechByNni(m.nni)) === state.filters.techId);
+      const assignedTeam = (window.BriefJournee && typeof window.BriefJournee.getAssignedTeam === "function")
+        ? window.BriefJournee.getAssignedTeam(bt)
+        : (bt.team || []);
+      const isPresent = assignedTeam.some(m => techKey(mapTechByNni(m.nni)) === state.filters.techId);
       if (!isPresent) return false;
     }
 

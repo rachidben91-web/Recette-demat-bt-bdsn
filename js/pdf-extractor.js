@@ -334,7 +334,11 @@ function mergeTwoBT(base, incoming) {
   base.duree = pickBestText(base.duree, incoming.duree);
   base.analyseDesRisques = pickBestText(base.analyseDesRisques, incoming.analyseDesRisques);
   base.observations = pickBestText(base.observations, incoming.observations);
-  base.team = mergeTeamLists(base.team, incoming.team);
+  base.teamOriginal = mergeTeamLists(base.teamOriginal || base.team, incoming.teamOriginal || incoming.team);
+  base.teamCurrent = mergeTeamLists(base.teamCurrent || base.team, incoming.teamCurrent || incoming.team);
+  base.team = mergeTeamLists(base.teamCurrent, []);
+  base.hasManualAssignmentChange = Boolean(base.hasManualAssignmentChange || incoming.hasManualAssignmentChange);
+  base.assignmentChangeReason = pickBestText(base.assignmentChangeReason, incoming.assignmentChangeReason);
   base.docs = mergeDocs(base.docs, incoming.docs);
   if (typeof detectBadgesForBT === "function") {
     base.badges = detectBadgesForBT(base);
@@ -369,9 +373,13 @@ function mergeDuplicateBTs(btList) {
       if (!target) {
         acc.push({
           ...bt,
-          team: mergeTeamLists(bt.team, []),
+          teamOriginal: mergeTeamLists(bt.teamOriginal || bt.team, []),
+          teamCurrent: mergeTeamLists(bt.teamCurrent || bt.team, []),
+          team: mergeTeamLists(bt.teamCurrent || bt.team, []),
           docs: mergeDocs(bt.docs, []),
-          badges: Array.isArray(bt.badges) ? [...bt.badges] : []
+          badges: Array.isArray(bt.badges) ? [...bt.badges] : [],
+          hasManualAssignmentChange: Boolean(bt.hasManualAssignmentChange),
+          assignmentChangeReason: bt.assignmentChangeReason || ""
         });
       } else {
         mergeTwoBT(target, bt);
@@ -433,8 +441,14 @@ async function extractAll() {
         analyseDesRisques: norm(await extractTextInBBox(page, bb("ANALYSE_DES_RISQUES"))),
         observations: norm(await extractTextInBBox(page, bb("OBSERVATIONS"))),
         docs: [{ page: p, type: "BT" }],
-        badges: []
+        badges: [],
+        teamOriginal: mergeTeamLists(team, []),
+        teamCurrent: mergeTeamLists(team, []),
+        hasManualAssignmentChange: false,
+        assignmentChangeReason: ""
       };
+
+      currentBT.team = mergeTeamLists(currentBT.teamCurrent, []);
 
       currentBT.badges = detectBadgesForBT(currentBT);
       state.bts.push(currentBT);

@@ -1,4 +1,4 @@
-/* js/ui/brief.js — DEMAT-BT v11.0.0 — 16/02/2026
+/* js/ui/brief.js — DEMAT-BT v11.7.0 — 14/03/2026
    Vue Brief (optimisée Samsung Flip 55") — utilise les composants partagés
    Mise à jour : Intégration de la détection précise des types de documents
 */
@@ -29,6 +29,7 @@ function renderBrief(filtered) {
   for (const bt of filtered) {
     const card = document.createElement("div");
     card.className = "card briefCard";
+    if (bt.hasManualAssignmentChange) card.classList.add("briefCard--changed");
 
     // Titre : ID + badge catégorie métier + PTC/PTD
     const titleDiv = document.createElement("div");
@@ -43,10 +44,14 @@ function renderBrief(filtered) {
     
     // Ajout de la pastille métier (IS, DEP, etc.)
     titleDiv.appendChild(createCategoryBadge(bt, "md"));
+    if (bt.hasManualAssignmentChange) titleDiv.appendChild(createAssignmentBadge(bt, { label: "BT modifié" }));
 
     // Affichage des badges PTC/PTD du technicien concerné
-    if (bt.team) {
-      bt.team.forEach(member => {
+    const assignedTeam = (window.BriefJournee && typeof window.BriefJournee.getAssignedTeam === "function")
+      ? window.BriefJournee.getAssignedTeam(bt)
+      : (bt.team || []);
+    if (assignedTeam) {
+      assignedTeam.forEach(member => {
         const tech = mapTechByNni(member.nni);
         if (tech && (tech.ptc || tech.ptd)) {
           titleDiv.appendChild(createPtcPtdBadge(tech));
@@ -63,6 +68,8 @@ function renderBrief(filtered) {
     const mainInfo = document.createElement("div");
     mainInfo.className = "briefSub__main";
     mainInfo.appendChild(createBTMeta(bt));
+    const assignmentSummary = createAssignmentSummary(bt);
+    if (assignmentSummary) mainInfo.appendChild(assignmentSummary);
     subDiv.appendChild(mainInfo);
 
     // Analyse des risques + observations (blocs d'alerte Jaune/Bleu)

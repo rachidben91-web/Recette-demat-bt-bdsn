@@ -1189,6 +1189,11 @@ body{
   background:#fff;
 }
 
+.btCard--changed{
+  border-color:#f97316;
+  box-shadow:0 0 0 2px rgba(249,115,22,0.16), var(--shadow);
+}
+
 .btTop{ 
   display:flex; 
   justify-content:space-between; 
@@ -1287,6 +1292,103 @@ body{
   line-height:1.4;
 }
 
+.assignment-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:4px 10px;
+  border-radius:999px;
+  background:linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  color:#c2410c;
+  border:1px solid #fdba74;
+  font-size:11px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.assignment-badge--compact{
+  padding:3px 8px;
+  font-size:10px;
+}
+
+.assignment-summary{
+  margin-top:8px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid #fed7aa;
+  background:linear-gradient(135deg, #fffaf5 0%, #fff7ed 100%);
+  color:#9a3412;
+}
+
+.assignment-summary--compact{
+  padding:8px 10px;
+}
+
+.assignment-summary__title{
+  font-size:11px;
+  font-weight:800;
+  margin-bottom:4px;
+  text-transform:uppercase;
+  letter-spacing:0.3px;
+}
+
+.assignment-summary__line,
+.assignment-summary__reason{
+  font-size:11px;
+  line-height:1.45;
+}
+
+.assignment-editor{
+  margin-top:10px;
+  padding:12px;
+  border-radius:14px;
+  border:1px solid #cbd5e1;
+  background:linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.assignment-editor__title{
+  font-size:12px;
+  font-weight:800;
+  color:var(--txt);
+  margin-bottom:10px;
+}
+
+.assignment-editor__list{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:8px;
+  max-height:220px;
+  overflow:auto;
+  padding-right:4px;
+}
+
+.assignment-editor__option{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fff;
+  font-size:12px;
+  color:var(--txt);
+}
+
+.assignment-editor__option input{
+  margin:0;
+}
+
+.assignment-editor__reason{
+  margin-top:10px;
+}
+
+.assignment-editor__actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
 .btCard--small{
   padding:12px;
   min-height:164px;
@@ -1331,6 +1433,14 @@ body{
 .bt-list__table .team-line{ font-size:12px; gap:4px; }
 .bt-list__table .team-line__sep{ margin:0 1px; }
 .team-line--compact{ gap:4px; }
+.bt-list__editor-row td{
+  background:#fff7ed;
+}
+.bt-list__actions{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
 .list-docs{
   display:inline-flex;
   min-width:28px;
@@ -1418,6 +1528,11 @@ body{
 
 .briefCard{ 
   padding:18px; 
+}
+
+.briefCard--changed{
+  border-color:#f97316;
+  box-shadow:0 0 0 2px rgba(249,115,22,0.14), var(--shadow);
 }
 
 .briefTitle{ 

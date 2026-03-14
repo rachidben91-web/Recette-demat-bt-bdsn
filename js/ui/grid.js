@@ -1,4 +1,4 @@
-/* js/ui/grid.js — DEMAT-BT v11.5.5 — 09/03/2026
+/* js/ui/grid.js — DEMAT-BT v11.7.0 — 14/03/2026
    Vue Référent : grandes vignettes, petites vignettes, liste
 */
 
@@ -91,6 +91,7 @@ function renderGrid(filtered, grid) {
   function createBtCard(bt, cardMode = "large") {
     const card = document.createElement("div");
     card.className = `card btCard btCard--${cardMode}`;
+    if (bt.hasManualAssignmentChange) card.classList.add("btCard--changed");
 
     const topDiv = document.createElement("div");
     topDiv.className = "btTop";
@@ -104,6 +105,9 @@ function renderGrid(filtered, grid) {
 
     leftSection.appendChild(idDiv);
     leftSection.appendChild(createCategoryBadge(bt, "sm"));
+    if (bt.hasManualAssignmentChange) {
+      leftSection.appendChild(createAssignmentBadge(bt, { compact: cardMode === "small" }));
+    }
     topDiv.appendChild(leftSection);
 
     if (cardMode === "large") topDiv.appendChild(createDocBadges(bt));
@@ -114,6 +118,9 @@ function renderGrid(filtered, grid) {
     teamContainer.appendChild(createTeamLine(bt, { showIcon: cardMode !== "small", compact: cardMode === "small" }));
     metaDiv.appendChild(teamContainer);
 
+    const assignmentSummary = createAssignmentSummary(bt, { compact: cardMode === "small" });
+    if (assignmentSummary) metaDiv.appendChild(assignmentSummary);
+
     if (cardMode === "small") {
       const docsLine = document.createElement("div");
       docsLine.className = "bt-doc-count";
@@ -123,9 +130,126 @@ function renderGrid(filtered, grid) {
 
     card.appendChild(topDiv);
     card.appendChild(metaDiv);
-    card.appendChild(createDocButtons(bt, { className: "btActions", compact: cardMode === "small" }));
+    card.appendChild(createBtActionArea(bt, { compact: cardMode === "small" }));
 
     return card;
+  }
+
+  function createAssignmentEditor(bt) {
+    const wrap = document.createElement("div");
+    wrap.className = "assignment-editor";
+    wrap.hidden = true;
+
+    const title = document.createElement("div");
+    title.className = "assignment-editor__title";
+    title.textContent = "Modifier l'affectation";
+
+    const list = document.createElement("div");
+    list.className = "assignment-editor__list";
+
+    const selectedNnis = new Set(
+      ((window.BriefJournee?.getAssignedTeam(bt)) || []).map((member) => String(member.nni || "").trim().toUpperCase())
+    );
+
+    for (const tech of (window.TECHNICIANS || [])) {
+      const label = document.createElement("label");
+      label.className = "assignment-editor__option";
+
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = tech.nni;
+      input.checked = selectedNnis.has(tech.nni);
+
+      const text = document.createElement("span");
+      text.textContent = tech.name;
+
+      label.append(input, text);
+      list.appendChild(label);
+    }
+
+    const reasonInput = document.createElement("input");
+    reasonInput.className = "input assignment-editor__reason";
+    reasonInput.type = "text";
+    reasonInput.placeholder = "Motif optionnel (absence, arbitrage, surcharge...)";
+    reasonInput.value = bt.assignmentChangeReason || "";
+
+    const actions = document.createElement("div");
+    actions.className = "assignment-editor__actions";
+
+    const btnCancel = document.createElement("button");
+    btnCancel.className = "btn btn--secondary";
+    btnCancel.type = "button";
+    btnCancel.textContent = "Annuler";
+
+    const btnReset = document.createElement("button");
+    btnReset.className = "btn btn--secondary";
+    btnReset.type = "button";
+    btnReset.textContent = "Réinitialiser";
+
+    const btnSave = document.createElement("button");
+    btnSave.className = "btn";
+    btnSave.type = "button";
+    btnSave.textContent = "Enregistrer";
+
+    btnCancel.addEventListener("click", () => {
+      wrap.hidden = true;
+    });
+
+    btnReset.addEventListener("click", async () => {
+      if (!window.BriefJournee) return;
+      window.BriefJournee.resetBtAssignment(bt);
+      if (typeof rebuildTechCountsFromBts === "function") rebuildTechCountsFromBts();
+      if (typeof saveToCache === "function") await saveToCache();
+      if (typeof window.saveCurrentBriefJournee === "function") await window.saveCurrentBriefJournee({ silent: true });
+      if (typeof renderAll === "function") renderAll();
+    });
+
+    btnSave.addEventListener("click", async () => {
+      if (!window.BriefJournee) return;
+      const checked = [...list.querySelectorAll('input[type="checkbox"]:checked')];
+      const nextTeam = checked.map((input) => {
+        const tech = mapTechByNni(input.value);
+        return {
+          nni: tech?.nni || input.value,
+          name: tech?.name || input.value,
+        };
+      });
+
+      if (nextTeam.length === 0) {
+        alert("Sélectionne au moins un technicien pour cette affectation.");
+        return;
+      }
+
+      window.BriefJournee.setBtAssignment(bt, nextTeam, reasonInput.value || "");
+      if (typeof rebuildTechCountsFromBts === "function") rebuildTechCountsFromBts();
+      if (typeof saveToCache === "function") await saveToCache();
+      if (typeof window.saveCurrentBriefJournee === "function") await window.saveCurrentBriefJournee({ silent: true });
+      if (typeof renderAll === "function") renderAll();
+    });
+
+    actions.append(btnCancel, btnReset, btnSave);
+    wrap.append(title, list, reasonInput, actions);
+    return wrap;
+  }
+
+  function createBtActionArea(bt, opts = {}) {
+    const compact = opts.compact === true;
+    const root = document.createElement("div");
+
+    const actions = createDocButtons(bt, { className: "btActions", compact });
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn btn--secondary";
+    editBtn.type = "button";
+    editBtn.textContent = bt.hasManualAssignmentChange ? "Modifier affectation" : "Affectation";
+    actions.appendChild(editBtn);
+
+    const editor = createAssignmentEditor(bt);
+    editBtn.addEventListener("click", () => {
+      editor.hidden = !editor.hidden;
+    });
+
+    root.append(actions, editor);
+    return root;
   }
 
   function createListView(items) {
@@ -193,14 +317,38 @@ function renderGrid(filtered, grid) {
       docsCell.appendChild(docsSpan);
 
       const actionCell = document.createElement("td");
+      const actionWrap = document.createElement("div");
+      actionWrap.className = "bt-list__actions";
       const openBtn = document.createElement("button");
       openBtn.className = "btn btn--secondary btn-open-bt";
       openBtn.textContent = "Ouvrir";
       openBtn.addEventListener("click", () => openModal(bt, firstPage));
-      actionCell.appendChild(openBtn);
+      actionWrap.appendChild(openBtn);
+
+      const editBtn = document.createElement("button");
+      editBtn.className = "btn btn--secondary btn-open-bt";
+      editBtn.textContent = "Affectation";
+      editBtn.addEventListener("click", () => {
+        const rootCard = row.nextElementSibling;
+        if (rootCard && rootCard.classList.contains("bt-list__editor-row")) {
+          rootCard.hidden = !rootCard.hidden;
+        }
+      });
+      actionWrap.appendChild(editBtn);
+      actionCell.appendChild(actionWrap);
 
       row.append(timeCell, techCell, objetCell, clientCell, docsCell, actionCell);
       tbody.appendChild(row);
+
+      const editorRow = document.createElement("tr");
+      editorRow.className = "bt-list__editor-row";
+      editorRow.hidden = true;
+      const editorCell = document.createElement("td");
+      editorCell.colSpan = 6;
+      editorCell.appendChild(createAssignmentEditor(bt));
+      editorCell.firstChild.hidden = false;
+      editorRow.appendChild(editorCell);
+      tbody.appendChild(editorRow);
     }
 
     tableWrap.appendChild(table);

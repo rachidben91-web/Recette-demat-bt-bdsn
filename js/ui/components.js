@@ -1,4 +1,4 @@
-/* js/ui/components.js — DEMAT-BT v11.0.0 — 15/02/2026
+/* js/ui/components.js — DEMAT-BT v11.7.0 — 14/03/2026
    Composants UI partagés entre les vues (grid, timeline, brief)
    → Élimine la duplication de code entre les 3 rendus
 */
@@ -28,6 +28,9 @@ function createCategoryBadge(bt, size = "sm") {
 function createTeamLine(bt, opts = {}) {
   const showIcon = opts.showIcon !== false;
   const compact = opts.compact === true;
+  const team = (window.BriefJournee && typeof window.BriefJournee.getAssignedTeam === "function")
+    ? window.BriefJournee.getAssignedTeam(bt)
+    : (Array.isArray(bt?.team) ? bt.team : []);
 
   const line = document.createElement("div");
   line.className = "team-line";
@@ -39,14 +42,14 @@ function createTeamLine(bt, opts = {}) {
     line.appendChild(icon);
   }
 
-  if (!bt.team || bt.team.length === 0) {
+  if (!team || team.length === 0) {
     const empty = document.createElement("span");
     empty.textContent = "—";
     line.appendChild(empty);
     return line;
   }
 
-  bt.team.forEach((m, idx) => {
+  team.forEach((m, idx) => {
     const tech = mapTechByNni(m.nni);
 
     // Nom
@@ -66,7 +69,7 @@ function createTeamLine(bt, opts = {}) {
     }
 
     // Séparateur
-    if (idx < bt.team.length - 1) {
+    if (idx < team.length - 1) {
       const sep = document.createElement("span");
       sep.className = "team-line__sep";
       sep.textContent = " • ";
@@ -157,6 +160,51 @@ function createBTMeta(bt, opts = {}) {
   appendLine(`📍 ${bt.localisation || "—"}`);
   if (bt.atNum) appendLine(`🧾 ${bt.atNum}`);
   return div;
+}
+
+function createAssignmentBadge(bt, opts = {}) {
+  if (!bt?.hasManualAssignmentChange) return document.createDocumentFragment();
+  const badge = document.createElement("span");
+  badge.className = `assignment-badge${opts.compact ? " assignment-badge--compact" : ""}`;
+  badge.textContent = opts.label || "A reporter dans O2";
+  return badge;
+}
+
+function createAssignmentSummary(bt, opts = {}) {
+  if (!bt?.hasManualAssignmentChange || !window.BriefJournee) return null;
+
+  const original = window.BriefJournee.getOriginalTeam(bt);
+  const current = window.BriefJournee.getAssignedTeam(bt);
+  const formatTeam = (team) => {
+    if (!team.length) return "—";
+    return team.map((member) => mapTechByNni(member.nni)?.name || member.name || member.nni || "—").join(" / ");
+  };
+
+  const wrap = document.createElement("div");
+  wrap.className = `assignment-summary${opts.compact ? " assignment-summary--compact" : ""}`;
+
+  const title = document.createElement("div");
+  title.className = "assignment-summary__title";
+  title.textContent = "Affectation modifiée";
+
+  const initial = document.createElement("div");
+  initial.className = "assignment-summary__line";
+  initial.textContent = `Initial : ${formatTeam(original)}`;
+
+  const currentLine = document.createElement("div");
+  currentLine.className = "assignment-summary__line";
+  currentLine.textContent = `Actuel : ${formatTeam(current)}`;
+
+  wrap.append(title, initial, currentLine);
+
+  if (bt.assignmentChangeReason) {
+    const reason = document.createElement("div");
+    reason.className = "assignment-summary__reason";
+    reason.textContent = `Motif : ${bt.assignmentChangeReason}`;
+    wrap.appendChild(reason);
+  }
+
+  return wrap;
 }
 
 // -------------------------
