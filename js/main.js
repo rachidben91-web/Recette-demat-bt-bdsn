@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (gridEl && timelineEl) {
                 if (layout === 'grid') {
-                    gridEl.style.display = 'grid';
+                    gridEl.style.display = '';
                     timelineEl.style.display = 'none';
                 } else {
                     gridEl.style.display = 'none';

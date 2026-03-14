@@ -298,8 +298,17 @@ body{
   font-weight: 800;
 }
 
+.sidebar-support-btn:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-dark) 100%);
+  color: #fff;
+  border-color: transparent;
+}
+
 .sidebar-support-btn:not(:disabled):hover {
-  background: #ffffff;
+  background: linear-gradient(135deg, #4f86ff 0%, #2953c7 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: var(--shadow);
 }
 
 .sidebar-support-hint,
