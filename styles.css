@@ -346,6 +346,28 @@ body{
   line-height: 1.4;
 }
 
+.sidebar-inline-confirm{
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #fdba74;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+}
+
+.sidebar-inline-confirm__text{
+  font-size: 11px;
+  line-height: 1.45;
+  color: #9a3412;
+  font-weight: 700;
+}
+
+.sidebar-inline-confirm__actions{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 .sidebar::-webkit-scrollbar{ width:8px; }
 .sidebar::-webkit-scrollbar-track{ background:transparent; }
 .sidebar::-webkit-scrollbar-thumb{ 

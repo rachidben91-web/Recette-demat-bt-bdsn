@@ -1,10 +1,10 @@
-// js/main.js — DEMAT-BT v11.8.0 — 14/03/2026
+// js/main.js — DEMAT-BT v11.8.1 — 14/03/2026
 // Point d'entrée principal
 // FIX v11.2.0: renderAll alias, weather init, refreshAllViews
 // FIX v11.4.0: Modal event listeners + loadBadgeRules() + loadBadgeRules avant cache
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 DEMAT-BT v11.8.0 démarré.");
+    console.log("🚀 DEMAT-BT v11.8.1 démarré.");
 
     // ============================================================
     // HELPERS UI attendus par pdf-extractor.js
@@ -157,6 +157,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.textContent = text;
     }
 
+    let pendingJourneeLoad = null;
+
+    function hideSavedJourneeConfirm() {
+        const box = document.getElementById('savedJourneeConfirm');
+        if (box) box.hidden = true;
+        pendingJourneeLoad = null;
+    }
+
+    function showSavedJourneeConfirm(message, payload) {
+        const box = document.getElementById('savedJourneeConfirm');
+        const text = document.getElementById('savedJourneeConfirmText');
+        if (!box || !text) return;
+        text.textContent = message;
+        pendingJourneeLoad = payload;
+        box.hidden = false;
+    }
+
     function fillSavedJourneeOptions(items) {
         const select = document.getElementById('savedJourneeSelect');
         const btnLoad = document.getElementById('btnLoadJournee');
@@ -200,6 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `Dernière sélection : ${formatJourneeLabel(current.jour)} — ${current.btCount} BT, ${current.modifiedBtCount} modifié(s), ${current.pendingO2Count} à reporter, ${current.doneO2Count} O2 OK.`
             );
         }
+        hideSavedJourneeConfirm();
     }
 
     async function refreshSavedJournees() {
@@ -538,16 +556,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnLoadJournee = document.getElementById('btnLoadJournee');
     if (btnLoadJournee) {
-        btnLoadJournee.addEventListener('click', async () => {
-            const select = document.getElementById('savedJourneeSelect');
-            const jour = select?.value || "";
-            const site = state?.journee?.site || window.BriefStore?.SITE || "VLG";
+        const executeLoadJournee = async (jour, site) => {
             if (!jour || !window.BriefStore || !window.BriefJournee) return;
-
-            if (Array.isArray(state.bts) && state.bts.length > 0) {
-                const ok = confirm("Charger une autre journée remplacera l'affichage courant. Continuer ?");
-                if (!ok) return;
-            }
+            hideSavedJourneeConfirm();
 
             try {
                 updateSavedJourneeStatus(`Chargement de la journée ${formatJourneeLabel(jour)}…`);
@@ -564,7 +575,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn("[MAIN] Chargement manuel brief_journee impossible:", err);
                 updateSavedJourneeStatus(`Erreur de chargement : ${err?.message || err}`);
             }
+        };
+
+        btnLoadJournee.addEventListener('click', async () => {
+            const select = document.getElementById('savedJourneeSelect');
+            const jour = select?.value || "";
+            const site = state?.journee?.site || window.BriefStore?.SITE || "VLG";
+            if (!jour || !window.BriefStore || !window.BriefJournee) return;
+
+            if (Array.isArray(state.bts) && state.bts.length > 0 && jour !== state?.journee?.jour) {
+                showSavedJourneeConfirm(
+                    `Charger la journée ${formatJourneeLabel(jour)} remplacera l'affichage courant.`,
+                    { jour, site }
+                );
+                return;
+            }
+
+            await executeLoadJournee(jour, site);
         });
+
+        const btnConfirmLoadJournee = document.getElementById('btnConfirmLoadJournee');
+        if (btnConfirmLoadJournee) {
+            btnConfirmLoadJournee.addEventListener('click', async () => {
+                if (!pendingJourneeLoad) return;
+                await executeLoadJournee(pendingJourneeLoad.jour, pendingJourneeLoad.site);
+            });
+        }
+
+        const btnCancelLoadJournee = document.getElementById('btnCancelLoadJournee');
+        if (btnCancelLoadJournee) {
+            btnCancelLoadJournee.addEventListener('click', () => {
+                hideSavedJourneeConfirm();
+            });
+        }
     }
 
     // Fullscreen
