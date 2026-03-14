@@ -1,4 +1,4 @@
-/* js/brief-journee.js — DEMAT-BT v11.7.0 — 14/03/2026
+/* js/brief-journee.js — DEMAT-BT v11.7.3 — 14/03/2026
    Snapshot métier des vues Référent / Brief, sans PDF source.
 */
 
@@ -203,6 +203,42 @@
     return bt;
   }
 
+  function preserveBtAssignment(targetBt, sourceBt) {
+    if (!targetBt || !sourceBt) return targetBt;
+    const sourceOriginal = getOriginalTeam(sourceBt);
+    const sourceCurrent = getAssignedTeam(sourceBt);
+    targetBt.teamOriginal = sourceOriginal;
+    targetBt.teamCurrent = sourceCurrent;
+    targetBt.team = cloneTeam(sourceCurrent);
+    targetBt.hasManualAssignmentChange = Boolean(
+      sourceBt.hasManualAssignmentChange || !areTeamsEqual(sourceOriginal, sourceCurrent)
+    );
+    targetBt.assignmentChangeReason = norm(sourceBt.assignmentChangeReason || "");
+    return targetBt;
+  }
+
+  function mergeAssignmentsFromExisting(nextBts, existingBts) {
+    const incoming = Array.isArray(nextBts) ? nextBts : [];
+    const existing = Array.isArray(existingBts) ? existingBts : [];
+    if (incoming.length === 0 || existing.length === 0) return incoming;
+
+    const byId = new Map();
+    for (const bt of existing) {
+      const id = String(bt?.id || "").trim().toUpperCase();
+      if (!id) continue;
+      if (!byId.has(id)) byId.set(id, bt);
+    }
+
+    for (const bt of incoming) {
+      const id = String(bt?.id || "").trim().toUpperCase();
+      const previous = byId.get(id);
+      if (!previous) continue;
+      preserveBtAssignment(bt, previous);
+    }
+
+    return incoming;
+  }
+
   window.BriefJournee = {
     DEFAULT_SITE,
     todayISO,
@@ -212,6 +248,8 @@
     areTeamsEqual,
     setBtAssignment,
     resetBtAssignment,
+    preserveBtAssignment,
+    mergeAssignmentsFromExisting,
     getJourneeDate,
     buildPayload,
     hydrateRecord,

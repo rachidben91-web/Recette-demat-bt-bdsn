@@ -539,9 +539,17 @@ async function runExtraction() {
   if (!state.pdf) throw new Error("PDF non chargé.");
   if (!ZONES) await loadZones();
   try {
+    const preservedBts = Array.isArray(state.bts)
+      ? state.bts.map((bt) => ({ ...bt }))
+      : [];
     window.setExtractEnabled(false);
     window.setProgress(0, "Extraction en cours…");
     await extractAll();
+    if (window.BriefJournee && typeof window.BriefJournee.mergeAssignmentsFromExisting === "function") {
+      state.bts = window.BriefJournee.mergeAssignmentsFromExisting(state.bts, preservedBts);
+      if (typeof rebuildTechCountsFromBts === "function") rebuildTechCountsFromBts();
+      if (typeof saveToCache === "function") await saveToCache();
+    }
     if (typeof window.saveCurrentBriefJournee === "function") {
       await window.saveCurrentBriefJournee({ silent: true });
     }
