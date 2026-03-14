@@ -15,7 +15,7 @@ async function ensureJsPDF() {
 
   await new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+    script.src = "./libs/jspdf/jspdf.umd.min.js";
     script.onload = resolve;
     script.onerror = () => reject(new Error("Impossible de charger la librairie jsPDF."));
     document.head.appendChild(script);
