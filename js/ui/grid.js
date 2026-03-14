@@ -202,7 +202,9 @@ function renderGrid(filtered, grid) {
       window.BriefJournee.resetBtAssignment(bt);
       if (typeof rebuildTechCountsFromBts === "function") rebuildTechCountsFromBts();
       if (typeof saveToCache === "function") await saveToCache();
-      if (typeof window.saveCurrentBriefJournee === "function") await window.saveCurrentBriefJournee({ silent: true });
+      if (typeof window.saveCurrentBriefJournee === "function") {
+        await window.saveCurrentBriefJournee({ silent: true, source: "reset affectation" });
+      }
       if (typeof renderAll === "function") renderAll();
     });
 
@@ -225,7 +227,9 @@ function renderGrid(filtered, grid) {
       window.BriefJournee.setBtAssignment(bt, nextTeam, reasonInput.value || "");
       if (typeof rebuildTechCountsFromBts === "function") rebuildTechCountsFromBts();
       if (typeof saveToCache === "function") await saveToCache();
-      if (typeof window.saveCurrentBriefJournee === "function") await window.saveCurrentBriefJournee({ silent: true });
+      if (typeof window.saveCurrentBriefJournee === "function") {
+        await window.saveCurrentBriefJournee({ silent: true, source: "modification affectation" });
+      }
       if (typeof renderAll === "function") renderAll();
     });
 
@@ -252,7 +256,9 @@ function renderGrid(filtered, grid) {
         window.BriefJournee.markBtO2Done(bt);
       }
       if (typeof saveToCache === "function") await saveToCache();
-      if (typeof window.saveCurrentBriefJournee === "function") await window.saveCurrentBriefJournee({ silent: true });
+      if (typeof window.saveCurrentBriefJournee === "function") {
+        await window.saveCurrentBriefJournee({ silent: true, source: "statut O2" });
+      }
       if (typeof renderAll === "function") renderAll();
     });
 
@@ -389,7 +395,9 @@ function renderGrid(filtered, grid) {
             window.BriefJournee.markBtO2Done(bt);
           }
           if (typeof saveToCache === "function") await saveToCache();
-          if (typeof window.saveCurrentBriefJournee === "function") await window.saveCurrentBriefJournee({ silent: true });
+          if (typeof window.saveCurrentBriefJournee === "function") {
+            await window.saveCurrentBriefJournee({ silent: true, source: "statut O2" });
+          }
           if (typeof renderAll === "function") renderAll();
         });
         actionWrap.appendChild(o2Btn);

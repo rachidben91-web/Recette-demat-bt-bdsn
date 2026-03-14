@@ -346,6 +346,21 @@ body{
   line-height: 1.4;
 }
 
+.sidebar-saved-hint[data-level="ok"]{
+  color: #166534;
+  font-weight: 700;
+}
+
+.sidebar-saved-hint[data-level="warn"]{
+  color: #9a3412;
+  font-weight: 700;
+}
+
+.sidebar-saved-hint[data-level="error"]{
+  color: #b91c1c;
+  font-weight: 700;
+}
+
 .sidebar-inline-confirm{
   margin-top: 10px;
   padding: 10px;

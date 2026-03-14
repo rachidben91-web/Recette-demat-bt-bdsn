@@ -583,7 +583,7 @@ async function runExtraction() {
       if (typeof saveToCache === "function") await saveToCache();
     }
     if (typeof window.saveCurrentBriefJournee === "function") {
-      await window.saveCurrentBriefJournee({ silent: true });
+      await window.saveCurrentBriefJournee({ silent: true, source: "extraction" });
     }
     window.setProgress(100, `Terminé : ${state.bts.length} BT détectés.`);
   } finally {

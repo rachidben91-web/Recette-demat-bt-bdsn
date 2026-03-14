@@ -152,12 +152,51 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${match[3]}/${match[2]}/${match[1]}`;
     }
 
-    function updateSavedJourneeStatus(text) {
+    function updateSavedJourneeStatus(text, level = "info") {
         const el = document.getElementById('savedJourneeStatus');
-        if (el) el.textContent = text;
+        if (!el) return;
+        el.textContent = text;
+        el.dataset.level = level;
+    }
+
+    function formatSyncTime(value) {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        return date.toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+        });
+    }
+
+    function mapBriefSaveError(err) {
+        const message = String(err?.message || err || "").trim();
+        const normalized = message.toLowerCase();
+        if (!message) return "Erreur inconnue de synchronisation Supabase.";
+        if (normalized.includes("non connecté") || normalized.includes("auth") || normalized.includes("session")) {
+            return "Synchronisation impossible : connexion Supabase requise.";
+        }
+        if (normalized.includes("failed to fetch") || normalized.includes("network")) {
+            return "Synchronisation impossible : problème réseau Supabase.";
+        }
+        return `Synchronisation Supabase en échec : ${message}`;
+    }
+
+    function updateBriefSyncStatus({ stateLabel = "idle", message = "", updatedAt = null } = {}) {
+        const suffix = updatedAt ? ` (${formatSyncTime(updatedAt)})` : "";
+        const safeMessage = String(message || "").trim() || "Aucune journée chargée.";
+        const levels = {
+            syncing: "warn",
+            success: "ok",
+            error: "error",
+            idle: "info",
+        };
+        updateSavedJourneeStatus(safeMessage + suffix, levels[stateLabel] || "info");
     }
 
     let pendingJourneeLoad = null;
+    let briefSaveQueue = Promise.resolve();
 
     function hideSavedJourneeConfirm() {
         const box = document.getElementById('savedJourneeConfirm');
@@ -237,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         btnRefresh.disabled = true;
-        updateSavedJourneeStatus("Chargement des journées sauvegardées…");
+        updateSavedJourneeStatus("Chargement des journées sauvegardées…", "warn");
 
         try {
             const rows = await window.BriefStore.listJournees({
@@ -253,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
             select.disabled = true;
             btnRefresh.disabled = false;
             btnLoad.disabled = true;
-            updateSavedJourneeStatus(`Erreur de chargement : ${err?.message || err}`);
+            updateSavedJourneeStatus(`Erreur de chargement : ${err?.message || err}`, "error");
             return [];
         }
     }
@@ -273,6 +312,11 @@ document.addEventListener('DOMContentLoaded', () => {
             window.BriefJournee.hydrateRecord(record);
             setProgress(0, `☁️ Journée chargée : ${record.payload.bts.length} BT`);
             refreshAllViews();
+            updateBriefSyncStatus({
+                stateLabel: "success",
+                message: `Journée chargée depuis Supabase : ${record.payload.bts.length} BT`,
+                updatedAt: record?.updated_at || null,
+            });
             refreshSavedJournees();
             return true;
         } catch (err) {
@@ -281,46 +325,73 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function saveCurrentBriefJournee({ silent = false } = {}) {
+    async function saveCurrentBriefJournee({ silent = false, source = "manual" } = {}) {
         if (!window.BriefStore || !window.BriefJournee) return null;
         if (window.__SUPPORT_AUTH_CONNECTED !== true) return null;
         if (!Array.isArray(state.bts) || state.bts.length === 0) return null;
 
         const jour = window.BriefJournee.getJourneeDate();
         const site = state?.journee?.site || window.BriefStore.SITE || "VLG";
-        const payload = window.BriefJournee.buildPayload();
+        const saveTask = async () => {
+            const payload = window.BriefJournee.buildPayload();
+            updateBriefSyncStatus({
+                stateLabel: "syncing",
+                message: `Synchronisation Supabase en cours (${source})...`,
+            });
 
-        try {
-            const saved = await window.BriefStore.saveJournee(payload, { jour, site, statut: "draft" });
-            state.journee = {
-                ...state.journee,
-                jour: saved?.jour || jour,
-                site: saved?.site || site,
-                status: saved?.statut || "draft",
-                source: {
-                    pdfName: payload?.source?.pdfName || state?.pdfName || "",
-                    importedAt: payload?.source?.importedAt || null,
-                },
-                remote: {
-                    id: saved?.id || null,
+            try {
+                const saved = await window.BriefStore.saveJournee(payload, { jour, site, statut: "draft" });
+                state.journee = {
+                    ...state.journee,
+                    jour: saved?.jour || jour,
+                    site: saved?.site || site,
+                    status: saved?.statut || "draft",
+                    source: {
+                        pdfName: payload?.source?.pdfName || state?.pdfName || "",
+                        importedAt: payload?.source?.importedAt || null,
+                    },
+                    remote: {
+                        id: saved?.id || null,
+                        updatedAt: saved?.updated_at || null,
+                        updatedBy: saved?.updated_by || null,
+                        loadedAt: new Date().toISOString(),
+                    }
+                };
+
+                updateBriefSyncStatus({
+                    stateLabel: "success",
+                    message: `Synchronisé Supabase : ${payload.meta.btCount} BT, ${payload.meta.modifiedBtCount} modifié(s), ${payload.meta.pendingO2Count} à reporter`,
                     updatedAt: saved?.updated_at || null,
-                    updatedBy: saved?.updated_by || null,
-                    loadedAt: new Date().toISOString(),
+                });
+                if (!silent) {
+                    setProgress(100, `💾 Journée sauvegardée : ${payload.meta.btCount} BT`);
                 }
-            };
+                refreshSavedJournees();
+                if (typeof window.setSupabaseConnectionStatus === "function") {
+                    window.setSupabaseConnectionStatus(true, "Supabase connecté");
+                }
+                return saved;
+            } catch (err) {
+                console.warn("[MAIN] Sauvegarde brief_journee impossible:", err);
+                updateBriefSyncStatus({
+                    stateLabel: "error",
+                    message: mapBriefSaveError(err),
+                });
+                if (typeof window.setSupabaseConnectionStatus === "function") {
+                    window.setSupabaseConnectionStatus(false, "Synchronisation brief_journee échouée");
+                }
+                if (!silent) {
+                    alert(`Sauvegarde distante impossible : ${err?.message || err}`);
+                }
+                return null;
+            }
+        };
 
-            if (!silent) {
-                setProgress(100, `💾 Journée sauvegardée : ${payload.meta.btCount} BT`);
-            }
-            refreshSavedJournees();
-            return saved;
-        } catch (err) {
-            console.warn("[MAIN] Sauvegarde brief_journee impossible:", err);
-            if (!silent) {
-                alert(`Sauvegarde distante impossible : ${err?.message || err}`);
-            }
-            return null;
-        }
+        briefSaveQueue = briefSaveQueue
+            .catch(() => null)
+            .then(saveTask);
+
+        return briefSaveQueue;
     }
 
     window.tryLoadRemoteBriefJournee = tryLoadRemoteBriefJournee;
