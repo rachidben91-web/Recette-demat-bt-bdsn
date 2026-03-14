@@ -28,6 +28,7 @@ function createCategoryBadge(bt, size = "sm") {
 function createTeamLine(bt, opts = {}) {
   const showIcon = opts.showIcon !== false;
   const compact = opts.compact === true;
+  const maxVisible = Number.isFinite(opts.maxVisible) ? opts.maxVisible : 4;
   const team = (window.BriefJournee && typeof window.BriefJournee.getAssignedTeam === "function")
     ? window.BriefJournee.getAssignedTeam(bt)
     : (Array.isArray(bt?.team) ? bt.team : []);
@@ -49,7 +50,12 @@ function createTeamLine(bt, opts = {}) {
     return line;
   }
 
-  team.forEach((m, idx) => {
+  const fullTeamNames = team.map((m) => mapTechByNni(m.nni)?.name || m.name || m.nni || "—");
+  line.title = fullTeamNames.join(" / ");
+
+  const visibleTeam = maxVisible > 0 ? team.slice(0, maxVisible) : team;
+
+  visibleTeam.forEach((m, idx) => {
     const tech = mapTechByNni(m.nni);
 
     // Nom
@@ -69,13 +75,29 @@ function createTeamLine(bt, opts = {}) {
     }
 
     // Séparateur
-    if (idx < team.length - 1) {
+    if (idx < visibleTeam.length - 1) {
       const sep = document.createElement("span");
       sep.className = "team-line__sep";
       sep.textContent = " • ";
       line.appendChild(sep);
     }
   });
+
+  const hiddenCount = Math.max(0, team.length - visibleTeam.length);
+  if (hiddenCount > 0) {
+    if (visibleTeam.length > 0) {
+      const sep = document.createElement("span");
+      sep.className = "team-line__sep";
+      sep.textContent = " • ";
+      line.appendChild(sep);
+    }
+
+    const more = document.createElement("span");
+    more.className = "team-line__more";
+    more.textContent = `+${hiddenCount}`;
+    more.title = line.title;
+    line.appendChild(more);
+  }
 
   return line;
 }

@@ -1517,6 +1517,17 @@ body{
 .bt-list__table .team-line{ font-size:12px; gap:4px; }
 .bt-list__table .team-line__sep{ margin:0 1px; }
 .team-line--compact{ gap:4px; }
+.team-line__more{
+  display:inline-flex;
+  align-items:center;
+  padding:1px 6px;
+  border-radius:999px;
+  background:#e8f0ff;
+  color:#17499c;
+  font-size:11px;
+  font-weight:800;
+  line-height:1.2;
+}
 .bt-list__assignment-flag{
   margin-top:6px;
 }
