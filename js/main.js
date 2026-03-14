@@ -1,10 +1,10 @@
-// js/main.js — DEMAT-BT v11.5.5 — 19/02/2026
+// js/main.js — DEMAT-BT v11.6.0 — 14/03/2026
 // Point d'entrée principal
 // FIX v11.2.0: renderAll alias, weather init, refreshAllViews
 // FIX v11.4.0: Modal event listeners + loadBadgeRules() + loadBadgeRules avant cache
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 DEMAT-BT v11.5.5 démarré.");
+    console.log("🚀 DEMAT-BT v11.6.0 démarré.");
 
     // ============================================================
     // HELPERS UI attendus par pdf-extractor.js
@@ -118,6 +118,98 @@ document.addEventListener('DOMContentLoaded', () => {
     window.renderAll = refreshAllViews;
     window.refreshAllViews = refreshAllViews;
 
+    function formatJourneeLabel(jourIso) {
+        const match = String(jourIso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) return jourIso || "Date inconnue";
+        return `${match[3]}/${match[2]}/${match[1]}`;
+    }
+
+    function updateSavedJourneeStatus(text) {
+        const el = document.getElementById('savedJourneeStatus');
+        if (el) el.textContent = text;
+    }
+
+    function fillSavedJourneeOptions(items) {
+        const select = document.getElementById('savedJourneeSelect');
+        const btnLoad = document.getElementById('btnLoadJournee');
+        if (!select) return;
+
+        const rows = Array.isArray(items) ? items : [];
+        select.innerHTML = "";
+
+        if (rows.length === 0) {
+            select.innerHTML = '<option value="">— Aucune journée sauvegardée —</option>';
+            select.disabled = true;
+            if (btnLoad) btnLoad.disabled = true;
+            updateSavedJourneeStatus("Aucune journée sauvegardée pour ce site.");
+            return;
+        }
+
+        for (const row of rows) {
+            const option = document.createElement('option');
+            option.value = row.jour;
+            option.textContent = `${formatJourneeLabel(row.jour)} — ${row.btCount} BT`;
+            option.dataset.btCount = String(row.btCount || 0);
+            option.dataset.modifiedBtCount = String(row.modifiedBtCount || 0);
+            select.appendChild(option);
+        }
+
+        if (state?.journee?.jour) {
+            select.value = state.journee.jour;
+        }
+        if (!select.value && rows[0]?.jour) {
+            select.value = rows[0].jour;
+        }
+
+        select.disabled = false;
+        if (btnLoad) btnLoad.disabled = !select.value;
+
+        const current = rows.find((row) => row.jour === select.value) || rows[0];
+        if (current) {
+            updateSavedJourneeStatus(
+                `Dernière sélection : ${formatJourneeLabel(current.jour)} — ${current.btCount} BT, ${current.modifiedBtCount} modifié(s).`
+            );
+        }
+    }
+
+    async function refreshSavedJournees() {
+        const select = document.getElementById('savedJourneeSelect');
+        const btnRefresh = document.getElementById('btnRefreshJournees');
+        const btnLoad = document.getElementById('btnLoadJournee');
+
+        if (!select || !btnRefresh || !btnLoad) return [];
+
+        if (!window.BriefStore || window.__SUPPORT_AUTH_CONNECTED !== true) {
+            select.innerHTML = '<option value="">— Connecte-toi pour afficher les journées —</option>';
+            select.disabled = true;
+            btnRefresh.disabled = true;
+            btnLoad.disabled = true;
+            updateSavedJourneeStatus("Connecte-toi pour lister les journées sauvegardées.");
+            return [];
+        }
+
+        btnRefresh.disabled = true;
+        updateSavedJourneeStatus("Chargement des journées sauvegardées…");
+
+        try {
+            const rows = await window.BriefStore.listJournees({
+                site: state?.journee?.site || window.BriefStore.SITE || "VLG",
+                limit: 60,
+            });
+            fillSavedJourneeOptions(rows);
+            btnRefresh.disabled = false;
+            return rows;
+        } catch (err) {
+            console.warn("[MAIN] Liste brief_journee impossible:", err);
+            select.innerHTML = '<option value="">— Erreur de chargement —</option>';
+            select.disabled = true;
+            btnRefresh.disabled = false;
+            btnLoad.disabled = true;
+            updateSavedJourneeStatus(`Erreur de chargement : ${err?.message || err}`);
+            return [];
+        }
+    }
+
     async function tryLoadRemoteBriefJournee({ force = false } = {}) {
         if (!window.BriefStore || !window.BriefJournee) return false;
         if (window.__SUPPORT_AUTH_CONNECTED !== true) return false;
@@ -133,6 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.BriefJournee.hydrateRecord(record);
             setProgress(0, `☁️ Journée chargée : ${record.payload.bts.length} BT`);
             refreshAllViews();
+            refreshSavedJournees();
             return true;
         } catch (err) {
             console.warn("[MAIN] Chargement brief_journee impossible:", err);
@@ -171,6 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!silent) {
                 setProgress(100, `💾 Journée sauvegardée : ${payload.meta.btCount} BT`);
             }
+            refreshSavedJournees();
             return saved;
         } catch (err) {
             console.warn("[MAIN] Sauvegarde brief_journee impossible:", err);
@@ -183,6 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.tryLoadRemoteBriefJournee = tryLoadRemoteBriefJournee;
     window.saveCurrentBriefJournee = saveCurrentBriefJournee;
+    window.refreshSavedJournees = refreshSavedJournees;
 
     // ============================================================
     // 3. NAVIGATION (Référent / Brief / Support)
@@ -363,6 +458,60 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const savedJourneeSelect = document.getElementById('savedJourneeSelect');
+    if (savedJourneeSelect) {
+        savedJourneeSelect.addEventListener('change', (e) => {
+            const value = e.target.value || "";
+            const btnLoad = document.getElementById('btnLoadJournee');
+            if (btnLoad) btnLoad.disabled = !value;
+
+            const option = e.target.selectedOptions?.[0];
+            if (option && value) {
+                updateSavedJourneeStatus(
+                    `Sélection : ${formatJourneeLabel(value)} — ${option.dataset.btCount || "0"} BT, ${option.dataset.modifiedBtCount || "0"} modifié(s).`
+                );
+            }
+        });
+    }
+
+    const btnRefreshJournees = document.getElementById('btnRefreshJournees');
+    if (btnRefreshJournees) {
+        btnRefreshJournees.addEventListener('click', () => {
+            refreshSavedJournees();
+        });
+    }
+
+    const btnLoadJournee = document.getElementById('btnLoadJournee');
+    if (btnLoadJournee) {
+        btnLoadJournee.addEventListener('click', async () => {
+            const select = document.getElementById('savedJourneeSelect');
+            const jour = select?.value || "";
+            const site = state?.journee?.site || window.BriefStore?.SITE || "VLG";
+            if (!jour || !window.BriefStore || !window.BriefJournee) return;
+
+            if (Array.isArray(state.bts) && state.bts.length > 0) {
+                const ok = confirm("Charger une autre journée remplacera l'affichage courant. Continuer ?");
+                if (!ok) return;
+            }
+
+            try {
+                updateSavedJourneeStatus(`Chargement de la journée ${formatJourneeLabel(jour)}…`);
+                const record = await window.BriefStore.loadJournee({ jour, site });
+                if (!record?.payload?.bts?.length) {
+                    updateSavedJourneeStatus("Aucune donnée BT trouvée pour cette journée.");
+                    return;
+                }
+                window.BriefJournee.hydrateRecord(record);
+                setProgress(0, `☁️ Journée chargée : ${record.payload.bts.length} BT`);
+                refreshAllViews();
+                refreshSavedJournees();
+            } catch (err) {
+                console.warn("[MAIN] Chargement manuel brief_journee impossible:", err);
+                updateSavedJourneeStatus(`Erreur de chargement : ${err?.message || err}`);
+            }
+        });
+    }
+
     // Fullscreen
     const btnFullscreen = document.getElementById('btnFullscreen');
     if (btnFullscreen) {
@@ -444,6 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (window.__SUPPORT_AUTH_CONNECTED === true) {
                     tryLoadRemoteBriefJournee({ force: true });
                 }
+                refreshSavedJournees();
             }).catch(err => console.warn("[MAIN] Cache non restauré:", err));
         }
 
@@ -455,6 +605,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener("demat:auth-changed", (event) => {
         if (event?.detail?.connected) {
             tryLoadRemoteBriefJournee({ force: false });
+            refreshSavedJournees();
+        } else {
+            refreshSavedJournees();
         }
     });
 });

@@ -724,6 +724,29 @@ function openChangePasswordModal(supabaseClient) {
     return data || null;
   }
 
+  async function listJournees({ site = SITE, limit = 30 } = {}) {
+    const safeLimit = Math.max(1, Math.min(Number(limit) || 30, 120));
+    const { data, error } = await window.supabaseClient
+      .from("brief_journee")
+      .select("id, jour, site, statut, payload, updated_at, updated_by")
+      .eq("site", site)
+      .order("jour", { ascending: false })
+      .limit(safeLimit);
+
+    if (error) throw error;
+
+    return (data || []).map((row) => {
+      const payload = (row?.payload && typeof row.payload === "object") ? row.payload : {};
+      const meta = (payload?.meta && typeof payload.meta === "object") ? payload.meta : {};
+      const bts = Array.isArray(payload?.bts) ? payload.bts : [];
+      return {
+        ...row,
+        btCount: Number(meta.btCount || bts.length || 0),
+        modifiedBtCount: Number(meta.modifiedBtCount || 0),
+      };
+    });
+  }
+
   async function saveJournee(payload, { jour = todayISO(), site = SITE, statut = "draft" } = {}) {
     const authContext = await getAuthContextRobust();
     if (!authContext.user) {
@@ -757,6 +780,7 @@ function openChangePasswordModal(supabaseClient) {
     todayISO,
     loadToday: () => loadJournee({ jour: todayISO(), site: SITE }),
     saveToday: (payload) => saveJournee(payload, { jour: todayISO(), site: SITE }),
+    listJournees: ({ site = SITE, limit = 30 } = {}) => listJournees({ site, limit }),
     loadJournee: ({ jour = todayISO(), site = SITE } = {}) => loadJournee({ jour, site }),
     saveJournee: (payload, { jour = todayISO(), site = SITE, statut = "draft" } = {}) =>
       saveJournee(payload, { jour, site, statut }),

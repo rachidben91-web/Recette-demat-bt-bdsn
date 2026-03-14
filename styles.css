@@ -317,6 +317,23 @@ body{
   font-size: 11px;
 }
 
+.sidebar-saved-actions{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:8px;
+  margin-top: 10px;
+}
+
+.sidebar-saved-actions .btn{
+  justify-content:center;
+}
+
+.sidebar-saved-hint{
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .sidebar::-webkit-scrollbar{ width:8px; }
 .sidebar::-webkit-scrollbar-track{ background:transparent; }
 .sidebar::-webkit-scrollbar-thumb{ 
