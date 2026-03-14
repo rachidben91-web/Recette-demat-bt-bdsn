@@ -1038,8 +1038,12 @@ body{
 }
 
 .referent-group__name{
+  flex:1 1 auto;
   min-width:0;
   font-weight:800;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .referent-group__count{
