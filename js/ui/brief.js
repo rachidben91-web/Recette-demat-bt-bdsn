@@ -1,4 +1,4 @@
-/* js/ui/brief.js — DEMAT-BT v11.7.0 — 14/03/2026
+/* js/ui/brief.js — DEMAT-BT v11.8.0 — 14/03/2026
    Vue Brief (optimisée Samsung Flip 55") — utilise les composants partagés
    Mise à jour : Intégration de la détection précise des types de documents
 */
@@ -29,7 +29,7 @@ function renderBrief(filtered) {
   for (const bt of filtered) {
     const card = document.createElement("div");
     card.className = "card briefCard";
-    if (bt.hasManualAssignmentChange) card.classList.add("briefCard--changed");
+    if (bt.hasManualAssignmentChange) card.classList.add(bt.o2SyncStatus === "done" ? "briefCard--o2-done" : "briefCard--changed");
 
     // Titre : ID + badge catégorie métier + PTC/PTD
     const titleDiv = document.createElement("div");
@@ -44,7 +44,7 @@ function renderBrief(filtered) {
     
     // Ajout de la pastille métier (IS, DEP, etc.)
     titleDiv.appendChild(createCategoryBadge(bt, "md"));
-    if (bt.hasManualAssignmentChange) titleDiv.appendChild(createAssignmentBadge(bt, { label: "BT modifié" }));
+    if (bt.hasManualAssignmentChange) titleDiv.appendChild(createAssignmentBadge(bt));
 
     // Affichage des badges PTC/PTD du technicien concerné
     const assignedTeam = (window.BriefJournee && typeof window.BriefJournee.getAssignedTeam === "function")

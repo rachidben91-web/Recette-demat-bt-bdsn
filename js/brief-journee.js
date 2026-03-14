@@ -1,4 +1,4 @@
-/* js/brief-journee.js — DEMAT-BT v11.7.3 — 14/03/2026
+/* js/brief-journee.js — DEMAT-BT v11.8.0 — 14/03/2026
    Snapshot métier des vues Référent / Brief, sans PDF source.
 */
 
@@ -67,6 +67,7 @@
   function buildBtSnapshot(bt) {
     const teamOriginal = getOriginalTeam(bt);
     const teamCurrent = getAssignedTeam(bt);
+    const o2SyncStatus = String(bt?.o2SyncStatus || "").trim().toLowerCase();
 
     return {
       id: String(bt?.id || "").trim(),
@@ -86,6 +87,10 @@
       teamCurrent,
       hasManualAssignmentChange: Boolean(bt?.hasManualAssignmentChange || !areTeamsEqual(teamOriginal, teamCurrent)),
       assignmentChangeReason: norm(bt?.assignmentChangeReason || ""),
+      o2SyncStatus: ["pending", "done"].includes(o2SyncStatus)
+        ? o2SyncStatus
+        : ((bt?.hasManualAssignmentChange || !areTeamsEqual(teamOriginal, teamCurrent)) ? "pending" : "none"),
+      o2SyncedAt: bt?.o2SyncedAt || null,
     };
   }
 
@@ -93,6 +98,8 @@
     const jour = getJourneeDate();
     const bts = (Array.isArray(state?.bts) ? state.bts : []).map(buildBtSnapshot);
     const modifiedBtCount = bts.filter((bt) => bt.hasManualAssignmentChange).length;
+    const pendingO2Count = bts.filter((bt) => bt.o2SyncStatus === "pending").length;
+    const doneO2Count = bts.filter((bt) => bt.o2SyncStatus === "done").length;
     const nowIso = new Date().toISOString();
 
     return {
@@ -106,6 +113,8 @@
         site: state?.journee?.site || DEFAULT_SITE,
         btCount: bts.length,
         modifiedBtCount,
+        pendingO2Count,
+        doneO2Count,
         lastBriefUpdateAt: nowIso,
       },
     };
@@ -118,6 +127,10 @@
       bt?.hasManualAssignmentChange ||
       !areTeamsEqual(teamOriginal, teamCurrent)
     );
+    const rawO2Status = String(bt?.o2SyncStatus || "").trim().toLowerCase();
+    const o2SyncStatus = !hasManualAssignmentChange
+      ? "none"
+      : (rawO2Status === "done" ? "done" : "pending");
 
     return {
       ...bt,
@@ -137,6 +150,8 @@
       team: teamCurrent,
       hasManualAssignmentChange,
       assignmentChangeReason: norm(bt?.assignmentChangeReason || ""),
+      o2SyncStatus,
+      o2SyncedAt: bt?.o2SyncedAt || null,
     };
   }
 
@@ -189,6 +204,8 @@
     bt.team = current;
     bt.hasManualAssignmentChange = !areTeamsEqual(original, current);
     bt.assignmentChangeReason = bt.hasManualAssignmentChange ? norm(reason || bt.assignmentChangeReason || "") : "";
+    bt.o2SyncStatus = bt.hasManualAssignmentChange ? "pending" : "none";
+    bt.o2SyncedAt = null;
     return bt;
   }
 
@@ -200,6 +217,8 @@
     bt.team = original;
     bt.hasManualAssignmentChange = false;
     bt.assignmentChangeReason = "";
+    bt.o2SyncStatus = "none";
+    bt.o2SyncedAt = null;
     return bt;
   }
 
@@ -214,6 +233,10 @@
       sourceBt.hasManualAssignmentChange || !areTeamsEqual(sourceOriginal, sourceCurrent)
     );
     targetBt.assignmentChangeReason = norm(sourceBt.assignmentChangeReason || "");
+    targetBt.o2SyncStatus = targetBt.hasManualAssignmentChange
+      ? (String(sourceBt.o2SyncStatus || "").trim().toLowerCase() === "done" ? "done" : "pending")
+      : "none";
+    targetBt.o2SyncedAt = sourceBt.o2SyncedAt || null;
     return targetBt;
   }
 
@@ -239,6 +262,20 @@
     return incoming;
   }
 
+  function markBtO2Done(bt) {
+    if (!bt || !bt.hasManualAssignmentChange) return bt;
+    bt.o2SyncStatus = "done";
+    bt.o2SyncedAt = new Date().toISOString();
+    return bt;
+  }
+
+  function markBtO2Pending(bt) {
+    if (!bt || !bt.hasManualAssignmentChange) return bt;
+    bt.o2SyncStatus = "pending";
+    bt.o2SyncedAt = null;
+    return bt;
+  }
+
   window.BriefJournee = {
     DEFAULT_SITE,
     todayISO,
@@ -250,6 +287,8 @@
     resetBtAssignment,
     preserveBtAssignment,
     mergeAssignmentsFromExisting,
+    markBtO2Done,
+    markBtO2Pending,
     getJourneeDate,
     buildPayload,
     hydrateRecord,

@@ -743,6 +743,8 @@ function openChangePasswordModal(supabaseClient) {
         ...row,
         btCount: Number(meta.btCount || bts.length || 0),
         modifiedBtCount: Number(meta.modifiedBtCount || 0),
+        pendingO2Count: Number(meta.pendingO2Count || 0),
+        doneO2Count: Number(meta.doneO2Count || 0),
       };
     });
   }

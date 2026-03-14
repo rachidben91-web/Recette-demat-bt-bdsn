@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Recette DEMAT-BT v11.7.3 — Référent & Brief</title>
+  <title>Recette DEMAT-BT v11.8.0 — Référent & Brief</title>
   <link rel="icon" type="image/x-icon" href="./favicon.ico" />
   <link rel="icon" type="image/png" href="./assets/favicon.png" />
   <link rel="stylesheet" href="./styles.css" />
@@ -17,7 +17,7 @@
       <img class="brand__logo" src="./assets/logo-topbar.png" alt="Logo DEMAT-BT" />
       <div class="brand__text">
         <div class="brand__title">DEMAT-BT <span style="color:#ff1100;">RECETTE</span></div>
-        <div class="brand__sub">Dématérialisation BT — Référent d'équipe <strong style="color:#17499c;">v11.7.3</strong></div>
+        <div class="brand__sub">Dématérialisation BT — Référent d'équipe <strong style="color:#17499c;">v11.8.0</strong></div>
       </div>
     </div>
 
@@ -147,6 +147,17 @@
           <option value="">— Tous —</option>
         </select>
         <div class="hint">Pour le Brief, sélectionne un technicien → ses BT s'affichent.</div>
+      </div>
+
+      <div class="field field--tight">
+        <div class="label">Suivi O2</div>
+        <select id="o2StatusSelect" class="select">
+          <option value="all">— Tous les BT —</option>
+          <option value="modified">BT modifiés</option>
+          <option value="pending">À reporter dans O2</option>
+          <option value="done">Modifiés dans O2</option>
+        </select>
+        <div class="hint">Permet d'isoler les BT à traiter ou déjà reportés dans O2.</div>
       </div>
       </div>
     </aside>

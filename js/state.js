@@ -3,7 +3,7 @@
    Mis à jour : Intégration FOR-113 et nouveaux types de pièces jointes
 */
 
-const APP_VERSION = "V11.7.3";
+const APP_VERSION = "V11.8.0";
 
 /**
  * Configuration des types de documents détectables.
@@ -46,7 +46,8 @@ const state = {
   filters: {
     q: "",             // Recherche textuelle (ID, Client, Adresse...)
     types: new Set(),  // Types de documents sélectionnés (BT, AT, FOR113...)
-    techId: ""         // ID (NNI) du technicien sélectionné pour le filtrage
+    techId: "",        // ID (NNI) du technicien sélectionné pour le filtrage
+    o2Status: "all"    // all | modified | pending | done
   },
   
   // Statistiques calculées

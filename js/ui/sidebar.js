@@ -1,4 +1,4 @@
-/* js/ui/sidebar.js — DEMAT-BT v11.7.0 — 14/03/2026
+/* js/ui/sidebar.js — DEMAT-BT v11.8.0 — 14/03/2026
    Sidebar : liste techniciens, filtres par type de document, recherche et KPIs
 */
 
@@ -83,10 +83,16 @@ function renderKpis(filtered) {
 
   const totalBT = filtered.length;
   const totalPages = filtered.reduce((acc, bt) => acc + (bt.docs?.length || 0), 0);
+  const modifiedCount = filtered.filter((bt) => bt.hasManualAssignmentChange).length;
+  const pendingCount = filtered.filter((bt) => bt.o2SyncStatus === "pending").length;
+  const doneCount = filtered.filter((bt) => bt.o2SyncStatus === "done").length;
 
   kpis.innerHTML = `
     <div class="kpi"><b>${totalBT}</b> BT</div>
     <div class="kpi"><b>${totalPages}</b> Pages</div>
+    <div class="kpi"><b>${modifiedCount}</b> Modifiés</div>
+    <div class="kpi"><b>${pendingCount}</b> À reporter</div>
+    <div class="kpi"><b>${doneCount}</b> O2 OK</div>
   `;
 }
 
@@ -117,6 +123,11 @@ function filterBTs() {
       const isPresent = assignedTeam.some(m => techKey(mapTechByNni(m.nni)) === state.filters.techId);
       if (!isPresent) return false;
     }
+
+    // Filtre 4 : Suivi O2
+    if (state.filters.o2Status === "modified" && !bt.hasManualAssignmentChange) return false;
+    if (state.filters.o2Status === "pending" && bt.o2SyncStatus !== "pending") return false;
+    if (state.filters.o2Status === "done" && bt.o2SyncStatus !== "done") return false;
 
     return true;
   });

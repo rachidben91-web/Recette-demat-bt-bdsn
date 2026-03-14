@@ -1,4 +1,4 @@
-/* js/ui/grid.js — DEMAT-BT v11.7.1 — 14/03/2026
+/* js/ui/grid.js — DEMAT-BT v11.8.0 — 14/03/2026
    Vue Référent : grandes vignettes, petites vignettes, liste
 */
 
@@ -91,7 +91,9 @@ function renderGrid(filtered, grid) {
   function createBtCard(bt, cardMode = "large") {
     const card = document.createElement("div");
     card.className = `card btCard btCard--${cardMode}`;
-    if (bt.hasManualAssignmentChange) card.classList.add("btCard--changed");
+    if (bt.hasManualAssignmentChange) {
+      card.classList.add(bt.o2SyncStatus === "done" ? "btCard--o2-done" : "btCard--changed");
+    }
 
     const topDiv = document.createElement("div");
     topDiv.className = "btTop";
@@ -232,6 +234,31 @@ function renderGrid(filtered, grid) {
     return wrap;
   }
 
+  function createO2ActionButton(bt) {
+    if (!bt.hasManualAssignmentChange || !window.BriefJournee) return document.createDocumentFragment();
+
+    const btn = document.createElement("button");
+    btn.className = "btn btn--secondary";
+    btn.type = "button";
+
+    const isDone = bt.o2SyncStatus === "done";
+    btn.textContent = isDone ? "Remettre à reporter" : "Marquer O2 fait";
+    btn.classList.toggle("btn--success", isDone);
+
+    btn.addEventListener("click", async () => {
+      if (bt.o2SyncStatus === "done") {
+        window.BriefJournee.markBtO2Pending(bt);
+      } else {
+        window.BriefJournee.markBtO2Done(bt);
+      }
+      if (typeof saveToCache === "function") await saveToCache();
+      if (typeof window.saveCurrentBriefJournee === "function") await window.saveCurrentBriefJournee({ silent: true });
+      if (typeof renderAll === "function") renderAll();
+    });
+
+    return btn;
+  }
+
   function createBtActionArea(bt, opts = {}) {
     const compact = opts.compact === true;
     const root = document.createElement("div");
@@ -242,6 +269,7 @@ function renderGrid(filtered, grid) {
     editBtn.type = "button";
     editBtn.textContent = bt.hasManualAssignmentChange ? "Modifier affectation" : "Affectation";
     actions.appendChild(editBtn);
+    actions.appendChild(createO2ActionButton(bt));
 
     const editor = createAssignmentEditor(bt);
     editBtn.addEventListener("click", () => {
@@ -276,7 +304,9 @@ function renderGrid(filtered, grid) {
 
     for (const bt of items) {
       const row = document.createElement("tr");
-      if (bt.hasManualAssignmentChange) row.classList.add("bt-list__row--changed");
+      if (bt.hasManualAssignmentChange) {
+        row.classList.add(bt.o2SyncStatus === "done" ? "bt-list__row--o2-done" : "bt-list__row--changed");
+      }
       const slot = (typeof extractTimeSlot === "function") ? extractTimeSlot(bt) : null;
       const timeText = slot?.label || bt.datePrevue || "—";
       const duration = formatDuree(bt.duree);
@@ -346,6 +376,24 @@ function renderGrid(filtered, grid) {
         }
       });
       actionWrap.appendChild(editBtn);
+
+      if (bt.hasManualAssignmentChange) {
+        const o2Btn = document.createElement("button");
+        o2Btn.className = `btn btn--secondary btn-open-bt${bt.o2SyncStatus === "done" ? " btn--success" : ""}`;
+        o2Btn.textContent = bt.o2SyncStatus === "done" ? "O2 OK" : "O2 fait";
+        o2Btn.addEventListener("click", async () => {
+          if (!window.BriefJournee) return;
+          if (bt.o2SyncStatus === "done") {
+            window.BriefJournee.markBtO2Pending(bt);
+          } else {
+            window.BriefJournee.markBtO2Done(bt);
+          }
+          if (typeof saveToCache === "function") await saveToCache();
+          if (typeof window.saveCurrentBriefJournee === "function") await window.saveCurrentBriefJournee({ silent: true });
+          if (typeof renderAll === "function") renderAll();
+        });
+        actionWrap.appendChild(o2Btn);
+      }
       actionCell.appendChild(actionWrap);
 
       row.append(timeCell, techCell, objetCell, clientCell, docsCell, actionCell);
@@ -353,7 +401,7 @@ function renderGrid(filtered, grid) {
 
       const editorRow = document.createElement("tr");
       editorRow.className = "bt-list__editor-row";
-      if (bt.hasManualAssignmentChange) editorRow.classList.add("bt-list__editor-row--changed");
+      if (bt.hasManualAssignmentChange) editorRow.classList.add(bt.o2SyncStatus === "done" ? "bt-list__editor-row--o2-done" : "bt-list__editor-row--changed");
       editorRow.hidden = true;
       const editorCell = document.createElement("td");
       editorCell.colSpan = 6;

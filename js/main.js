@@ -1,10 +1,10 @@
-// js/main.js — DEMAT-BT v11.7.3 — 14/03/2026
+// js/main.js — DEMAT-BT v11.8.0 — 14/03/2026
 // Point d'entrée principal
 // FIX v11.2.0: renderAll alias, weather init, refreshAllViews
 // FIX v11.4.0: Modal event listeners + loadBadgeRules() + loadBadgeRules avant cache
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 DEMAT-BT v11.7.3 démarré.");
+    console.log("🚀 DEMAT-BT v11.8.0 démarré.");
 
     // ============================================================
     // HELPERS UI attendus par pdf-extractor.js
@@ -179,6 +179,8 @@ document.addEventListener('DOMContentLoaded', () => {
             option.textContent = `${formatJourneeLabel(row.jour)} — ${row.btCount} BT`;
             option.dataset.btCount = String(row.btCount || 0);
             option.dataset.modifiedBtCount = String(row.modifiedBtCount || 0);
+            option.dataset.pendingO2Count = String(row.pendingO2Count || 0);
+            option.dataset.doneO2Count = String(row.doneO2Count || 0);
             select.appendChild(option);
         }
 
@@ -195,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const current = rows.find((row) => row.jour === select.value) || rows[0];
         if (current) {
             updateSavedJourneeStatus(
-                `Dernière sélection : ${formatJourneeLabel(current.jour)} — ${current.btCount} BT, ${current.modifiedBtCount} modifié(s).`
+                `Dernière sélection : ${formatJourneeLabel(current.jour)} — ${current.btCount} BT, ${current.modifiedBtCount} modifié(s), ${current.pendingO2Count} à reporter, ${current.doneO2Count} O2 OK.`
             );
         }
     }
@@ -502,6 +504,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const o2StatusSelect = document.getElementById('o2StatusSelect');
+    if (o2StatusSelect) {
+        o2StatusSelect.value = state.filters.o2Status || 'all';
+        o2StatusSelect.addEventListener('change', (e) => {
+            state.filters.o2Status = e.target.value || 'all';
+            refreshAllViews();
+        });
+    }
+
     const savedJourneeSelect = document.getElementById('savedJourneeSelect');
     if (savedJourneeSelect) {
         savedJourneeSelect.addEventListener('change', (e) => {
@@ -512,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const option = e.target.selectedOptions?.[0];
             if (option && value) {
                 updateSavedJourneeStatus(
-                    `Sélection : ${formatJourneeLabel(value)} — ${option.dataset.btCount || "0"} BT, ${option.dataset.modifiedBtCount || "0"} modifié(s).`
+                    `Sélection : ${formatJourneeLabel(value)} — ${option.dataset.btCount || "0"} BT, ${option.dataset.modifiedBtCount || "0"} modifié(s), ${option.dataset.pendingO2Count || "0"} à reporter, ${option.dataset.doneO2Count || "0"} O2 OK.`
                 );
             }
         });

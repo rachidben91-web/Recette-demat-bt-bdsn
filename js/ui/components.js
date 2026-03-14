@@ -165,8 +165,9 @@ function createBTMeta(bt, opts = {}) {
 function createAssignmentBadge(bt, opts = {}) {
   if (!bt?.hasManualAssignmentChange) return document.createDocumentFragment();
   const badge = document.createElement("span");
-  badge.className = `assignment-badge${opts.compact ? " assignment-badge--compact" : ""}`;
-  badge.textContent = opts.label || "A reporter dans O2";
+  const status = String(bt?.o2SyncStatus || "pending").toLowerCase();
+  badge.className = `assignment-badge assignment-badge--${status === "done" ? "done" : "pending"}${opts.compact ? " assignment-badge--compact" : ""}`;
+  badge.textContent = opts.label || (status === "done" ? "Modifié dans O2" : "A reporter dans O2");
   return badge;
 }
 
@@ -181,11 +182,12 @@ function createAssignmentSummary(bt, opts = {}) {
   };
 
   const wrap = document.createElement("div");
-  wrap.className = `assignment-summary${opts.compact ? " assignment-summary--compact" : ""}`;
+  const status = String(bt?.o2SyncStatus || "pending").toLowerCase();
+  wrap.className = `assignment-summary assignment-summary--${status === "done" ? "done" : "pending"}${opts.compact ? " assignment-summary--compact" : ""}`;
 
   const title = document.createElement("div");
   title.className = "assignment-summary__title";
-  title.textContent = "Affectation modifiée";
+  title.textContent = status === "done" ? "Modification faite dans O2" : "Affectation modifiée";
 
   const initial = document.createElement("div");
   initial.className = "assignment-summary__line";
@@ -202,6 +204,13 @@ function createAssignmentSummary(bt, opts = {}) {
     reason.className = "assignment-summary__reason";
     reason.textContent = `Motif : ${bt.assignmentChangeReason}`;
     wrap.appendChild(reason);
+  }
+
+  if (bt.o2SyncedAt) {
+    const synced = document.createElement("div");
+    synced.className = "assignment-summary__reason";
+    synced.textContent = `O2 mis à jour : ${new Date(bt.o2SyncedAt).toLocaleString("fr-FR")}`;
+    wrap.appendChild(synced);
   }
 
   return wrap;
