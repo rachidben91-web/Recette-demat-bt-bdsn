@@ -1107,57 +1107,123 @@ window.SupportModule = (function() {
             console.log('[ACTIVITY] search filter active');
         }
 
-        grid.innerHTML = filteredActivities.map(({ a, index }) => {
-            const safeLabel = escapeHtml(activityDisplayLabel(a));
-            return `
-            <div class="param-card ${editingActivityIndex === index ? 'param-card--editing' : ''}">
-                <div class="param-card__color-zone">
-                    <input type="color" value="${sanitizeActivityColor(a?.color, DEFAULT_ACTIVITY_COLOR)}" 
-                           onchange="SupportModule.updateActivityColor(${index}, this.value)"
-                           class="param-color-input"
-                           title="Changer la couleur">
-                </div>
+        grid.replaceChildren();
 
-                <div class="param-card__main-zone">
-                    ${editingActivityIndex === index
-                        ? `
-                        <div class="param-edit-grid">
-                            <input id="editActName_${index}" type="text" class="input" value="${safeLabel}" placeholder="Nom activité">
-                            <select id="editActAttendanceType_${index}" class="select">
-                                <option value="present" ${(sanitizeAttendanceType(a?.attendanceType, activityDisplayLabel(a)) === 'present') ? 'selected' : ''}>Présent</option>
-                                <option value="absent" ${(sanitizeAttendanceType(a?.attendanceType, activityDisplayLabel(a)) === 'absent') ? 'selected' : ''}>Absent</option>
-                                <option value="neutral" ${(sanitizeAttendanceType(a?.attendanceType, activityDisplayLabel(a)) === 'neutral') ? 'selected' : ''}>Neutre</option>
-                            </select>
-                        </div>
-                        `
-                        : `
-                        <div class="param-card__label">${safeLabel}</div>
-                        ${(() => {
-                            const badge = attendanceBadge(a?.attendanceType || 'present');
-                            return `<span class="param-badge" style="background:${badge.bg}; color:${badge.fg};">${badge.text}</span>`;
-                        })()}
-                        `
-                    }
-                </div>
+        const buildAttendanceOption = (value, label, selectedValue) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            option.selected = selectedValue === value;
+            return option;
+        };
 
-                <div class="param-card__actions">
-                    ${editingActivityIndex === index
-                        ? `
-                        <button class="btn btn--secondary param-action-btn" onclick="SupportModule.cancelEditActivity()" title="Annuler">Annuler</button>
-                        <button class="btn param-action-btn" onclick="SupportModule.saveEditedActivity(${index})" title="Valider">Enregistrer</button>
-                        `
-                        : `
-                        <button class="btn btn--secondary param-action-btn" onclick="SupportModule.startEditActivity(${index})" title="Modifier cette activité">Modifier</button>
-                        <button class="btn btn--secondary param-action-btn param-action-btn--danger" onclick="SupportModule.deleteActivity(${index})" title="Supprimer cette activité">Supprimer</button>
-                        `
-                    }
-                </div>
-            </div>
-        `;
-        }).join('');
+        for (const { a, index } of filteredActivities) {
+            const card = document.createElement('div');
+            card.className = 'param-card';
+            if (editingActivityIndex === index) card.classList.add('param-card--editing');
 
-        if (!grid.innerHTML) {
-            grid.innerHTML = `<div class="param-card"><div class="param-card__main-zone"><div class="param-card__label">Aucune activité trouvée.</div></div></div>`;
+            const colorZone = document.createElement('div');
+            colorZone.className = 'param-card__color-zone';
+
+            const colorInput = document.createElement('input');
+            colorInput.type = 'color';
+            colorInput.value = sanitizeActivityColor(a?.color, DEFAULT_ACTIVITY_COLOR);
+            colorInput.className = 'param-color-input';
+            colorInput.title = 'Changer la couleur';
+            colorInput.addEventListener('change', () => {
+                SupportModule.updateActivityColor(index, colorInput.value);
+            });
+            colorZone.appendChild(colorInput);
+
+            const mainZone = document.createElement('div');
+            mainZone.className = 'param-card__main-zone';
+
+            if (editingActivityIndex === index) {
+                const editGrid = document.createElement('div');
+                editGrid.className = 'param-edit-grid';
+
+                const nameInput = document.createElement('input');
+                nameInput.id = `editActName_${index}`;
+                nameInput.type = 'text';
+                nameInput.className = 'input';
+                nameInput.value = activityDisplayLabel(a);
+                nameInput.placeholder = 'Nom activité';
+
+                const attendanceSelect = document.createElement('select');
+                attendanceSelect.id = `editActAttendanceType_${index}`;
+                attendanceSelect.className = 'select';
+                const attendanceValue = sanitizeAttendanceType(a?.attendanceType, activityDisplayLabel(a));
+                attendanceSelect.append(
+                    buildAttendanceOption('present', 'Présent', attendanceValue),
+                    buildAttendanceOption('absent', 'Absent', attendanceValue),
+                    buildAttendanceOption('neutral', 'Neutre', attendanceValue)
+                );
+
+                editGrid.append(nameInput, attendanceSelect);
+                mainZone.appendChild(editGrid);
+            } else {
+                const label = document.createElement('div');
+                label.className = 'param-card__label';
+                label.textContent = activityDisplayLabel(a);
+
+                const badgeCfg = attendanceBadge(a?.attendanceType || 'present');
+                const badge = document.createElement('span');
+                badge.className = 'param-badge';
+                badge.style.background = badgeCfg.bg;
+                badge.style.color = badgeCfg.fg;
+                badge.textContent = badgeCfg.text;
+
+                mainZone.append(label, badge);
+            }
+
+            const actions = document.createElement('div');
+            actions.className = 'param-card__actions';
+
+            if (editingActivityIndex === index) {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'btn btn--secondary param-action-btn';
+                cancelBtn.title = 'Annuler';
+                cancelBtn.textContent = 'Annuler';
+                cancelBtn.addEventListener('click', () => SupportModule.cancelEditActivity());
+
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'btn param-action-btn';
+                saveBtn.title = 'Valider';
+                saveBtn.textContent = 'Enregistrer';
+                saveBtn.addEventListener('click', () => SupportModule.saveEditedActivity(index));
+
+                actions.append(cancelBtn, saveBtn);
+            } else {
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn--secondary param-action-btn';
+                editBtn.title = 'Modifier cette activité';
+                editBtn.textContent = 'Modifier';
+                editBtn.addEventListener('click', () => SupportModule.startEditActivity(index));
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn--secondary param-action-btn param-action-btn--danger';
+                deleteBtn.title = 'Supprimer cette activité';
+                deleteBtn.textContent = 'Supprimer';
+                deleteBtn.addEventListener('click', () => SupportModule.deleteActivity(index));
+
+                actions.append(editBtn, deleteBtn);
+            }
+
+            card.append(colorZone, mainZone, actions);
+            grid.appendChild(card);
+        }
+
+        if (!grid.firstChild) {
+            const emptyCard = document.createElement('div');
+            emptyCard.className = 'param-card';
+            const mainZone = document.createElement('div');
+            mainZone.className = 'param-card__main-zone';
+            const label = document.createElement('div');
+            label.className = 'param-card__label';
+            label.textContent = 'Aucune activité trouvée.';
+            mainZone.appendChild(label);
+            emptyCard.appendChild(mainZone);
+            grid.appendChild(emptyCard);
         }
     }
 
@@ -1562,19 +1628,47 @@ window.SupportModule = (function() {
 
         const renderSafeText = (value, fallback = '') => {
             const normalized = String(value || '').trim();
-            return normalized ? escapeHtml(normalized) : fallback;
+            return normalized ? normalized : fallback;
         };
 
-        tbody.innerHTML = data.map(h => `
-            <tr>
-                <td>${renderSafeText(h.date, '-')}</td>
-                <td style="font-weight:bold;">${renderSafeText(h.agent, '-')}</td>
-                <td><span style="padding:2px 6px; border-radius:4px; background:#f1f5f9; font-size:11px;">${renderSafeText(h.act, '-')}</span></td>
-                <td style="color:var(--muted); font-style:italic; font-size:11px;">${renderSafeText(h.obs, '')}</td>
-                <td style="text-align:center;">${renderSafeText(h.brief, '')}</td>
-                <td style="text-align:center;">${renderSafeText(h.debrief, '')}</td>
-            </tr>
-        `).join('');
+        tbody.replaceChildren();
+
+        for (const h of data) {
+            const tr = document.createElement('tr');
+
+            const dateTd = document.createElement('td');
+            dateTd.textContent = renderSafeText(h.date, '-');
+
+            const agentTd = document.createElement('td');
+            agentTd.style.fontWeight = 'bold';
+            agentTd.textContent = renderSafeText(h.agent, '-');
+
+            const actTd = document.createElement('td');
+            const actBadge = document.createElement('span');
+            actBadge.style.padding = '2px 6px';
+            actBadge.style.borderRadius = '4px';
+            actBadge.style.background = '#f1f5f9';
+            actBadge.style.fontSize = '11px';
+            actBadge.textContent = renderSafeText(h.act, '-');
+            actTd.appendChild(actBadge);
+
+            const obsTd = document.createElement('td');
+            obsTd.style.color = 'var(--muted)';
+            obsTd.style.fontStyle = 'italic';
+            obsTd.style.fontSize = '11px';
+            obsTd.textContent = renderSafeText(h.obs, '');
+
+            const briefTd = document.createElement('td');
+            briefTd.style.textAlign = 'center';
+            briefTd.textContent = renderSafeText(h.brief, '');
+
+            const debriefTd = document.createElement('td');
+            debriefTd.style.textAlign = 'center';
+            debriefTd.textContent = renderSafeText(h.debrief, '');
+
+            tr.append(dateTd, agentTd, actTd, obsTd, briefTd, debriefTd);
+            tbody.appendChild(tr);
+        }
         
         renderStats();
     }
