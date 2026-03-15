@@ -504,6 +504,26 @@ window.SupportModule = (function() {
         })
         : null;
 
+    const supportActivitiesModule = typeof window.createSupportActivitiesModule === 'function'
+        ? window.createSupportActivitiesModule({
+            getActivities: () => activities,
+            setEditingActivityIndex: (value) => { editingActivityIndex = value; },
+            getEditingActivityIndex: () => editingActivityIndex,
+            getActivitySearchTerm: () => activitySearchTerm,
+            setActivitySearchTerm: (value) => { activitySearchTerm = String(value || ''); },
+            activityDisplayLabel,
+            sanitizeActivityColor,
+            sanitizeAttendanceType,
+            attendanceBadge,
+            normalizeActivity,
+            slugify,
+            defaultActivityColor: DEFAULT_ACTIVITY_COLOR,
+            renderTable,
+            saveActivities,
+            showActivityToast,
+        })
+        : null;
+
     // ============================================================
     // 3. INITIALISATION & NAVIGATION
     // ============================================================
@@ -1184,241 +1204,43 @@ window.SupportModule = (function() {
     // ============================================================
 
     function renderParams() {
-        renderActivitiesGrid();
+        if (!supportActivitiesModule?.renderParams) return;
+        supportActivitiesModule.renderParams();
     }
 
     function renderActivitiesGrid() {
-        const grid = document.getElementById('paramGrid');
-        if(!grid) return;
-
-        if (editingActivityIndex !== null && !activities[editingActivityIndex]) {
-            editingActivityIndex = null;
-        }
-
-        const filteredActivities = activities
-            .map((a, index) => ({ a, index }))
-            .filter(({ a }) => !activitySearchTerm || activityDisplayLabel(a).toLowerCase().includes(activitySearchTerm));
-
-        if (activitySearchTerm) {
-            console.log('[ACTIVITY] search filter active');
-        }
-
-        grid.replaceChildren();
-
-        const buildAttendanceOption = (value, label, selectedValue) => {
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = label;
-            option.selected = selectedValue === value;
-            return option;
-        };
-
-        for (const { a, index } of filteredActivities) {
-            const card = document.createElement('div');
-            card.className = 'param-card';
-            if (editingActivityIndex === index) card.classList.add('param-card--editing');
-
-            const colorZone = document.createElement('div');
-            colorZone.className = 'param-card__color-zone';
-
-            const colorInput = document.createElement('input');
-            colorInput.type = 'color';
-            colorInput.value = sanitizeActivityColor(a?.color, DEFAULT_ACTIVITY_COLOR);
-            colorInput.className = 'param-color-input';
-            colorInput.title = 'Changer la couleur';
-            colorInput.addEventListener('change', () => {
-                SupportModule.updateActivityColor(index, colorInput.value);
-            });
-            colorZone.appendChild(colorInput);
-
-            const mainZone = document.createElement('div');
-            mainZone.className = 'param-card__main-zone';
-
-            if (editingActivityIndex === index) {
-                const editGrid = document.createElement('div');
-                editGrid.className = 'param-edit-grid';
-
-                const nameInput = document.createElement('input');
-                nameInput.id = `editActName_${index}`;
-                nameInput.type = 'text';
-                nameInput.className = 'input';
-                nameInput.value = activityDisplayLabel(a);
-                nameInput.placeholder = 'Nom activité';
-
-                const attendanceSelect = document.createElement('select');
-                attendanceSelect.id = `editActAttendanceType_${index}`;
-                attendanceSelect.className = 'select';
-                const attendanceValue = sanitizeAttendanceType(a?.attendanceType, activityDisplayLabel(a));
-                attendanceSelect.append(
-                    buildAttendanceOption('present', 'Présent', attendanceValue),
-                    buildAttendanceOption('absent', 'Absent', attendanceValue),
-                    buildAttendanceOption('neutral', 'Neutre', attendanceValue)
-                );
-
-                editGrid.append(nameInput, attendanceSelect);
-                mainZone.appendChild(editGrid);
-            } else {
-                const label = document.createElement('div');
-                label.className = 'param-card__label';
-                label.textContent = activityDisplayLabel(a);
-
-                const badgeCfg = attendanceBadge(a?.attendanceType || 'present');
-                const badge = document.createElement('span');
-                badge.className = 'param-badge';
-                badge.style.background = badgeCfg.bg;
-                badge.style.color = badgeCfg.fg;
-                badge.textContent = badgeCfg.text;
-
-                mainZone.append(label, badge);
-            }
-
-            const actions = document.createElement('div');
-            actions.className = 'param-card__actions';
-
-            if (editingActivityIndex === index) {
-                const cancelBtn = document.createElement('button');
-                cancelBtn.className = 'btn btn--secondary param-action-btn';
-                cancelBtn.title = 'Annuler';
-                cancelBtn.textContent = 'Annuler';
-                cancelBtn.addEventListener('click', () => SupportModule.cancelEditActivity());
-
-                const saveBtn = document.createElement('button');
-                saveBtn.className = 'btn param-action-btn';
-                saveBtn.title = 'Valider';
-                saveBtn.textContent = 'Enregistrer';
-                saveBtn.addEventListener('click', () => SupportModule.saveEditedActivity(index));
-
-                actions.append(cancelBtn, saveBtn);
-            } else {
-                const editBtn = document.createElement('button');
-                editBtn.className = 'btn btn--secondary param-action-btn';
-                editBtn.title = 'Modifier cette activité';
-                editBtn.textContent = 'Modifier';
-                editBtn.addEventListener('click', () => SupportModule.startEditActivity(index));
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'btn btn--secondary param-action-btn param-action-btn--danger';
-                deleteBtn.title = 'Supprimer cette activité';
-                deleteBtn.textContent = 'Supprimer';
-                deleteBtn.addEventListener('click', () => SupportModule.deleteActivity(index));
-
-                actions.append(editBtn, deleteBtn);
-            }
-
-            card.append(colorZone, mainZone, actions);
-            grid.appendChild(card);
-        }
-
-        if (!grid.firstChild) {
-            const emptyCard = document.createElement('div');
-            emptyCard.className = 'param-card';
-            const mainZone = document.createElement('div');
-            mainZone.className = 'param-card__main-zone';
-            const label = document.createElement('div');
-            label.className = 'param-card__label';
-            label.textContent = 'Aucune activité trouvée.';
-            mainZone.appendChild(label);
-            emptyCard.appendChild(mainZone);
-            grid.appendChild(emptyCard);
-        }
+        if (!supportActivitiesModule?.renderActivitiesGrid) return;
+        supportActivitiesModule.renderActivitiesGrid();
     }
 
     function addActivity() {
-        const nameInput = document.getElementById('newActName');
-        const colorInput = document.getElementById('newActColor');
-        const attendanceInput = document.getElementById('newActAttendanceType');
-        
-        const label = nameInput?.value?.trim() || '';
-        const color = sanitizeActivityColor(colorInput?.value, DEFAULT_ACTIVITY_COLOR);
-        const selectedType = sanitizeAttendanceType(attendanceInput?.value, label);
-
-        if(label) {
-            const candidate = normalizeActivity({
-                label,
-                color,
-                attendanceType: selectedType,
-                code: `${slugify(label)}_${Date.now()}`
-            });
-            const duplicate = activities.some(a => {
-                const sameCode = String(a?.code || '').toLowerCase() === String(candidate?.code || '').toLowerCase();
-                const sameLabel = activityDisplayLabel(a).toLowerCase() === activityDisplayLabel(candidate).toLowerCase();
-                return sameCode || sameLabel;
-            });
-            if(duplicate) {
-                showActivityToast("Cette activité existe déjà.", 'warn');
-                return;
-            }
-            activities.push(candidate);
-            saveActivities({ successMessage: "Activité enregistrée dans la base." });
-            nameInput.value = ''; // Reset champ
-        } else {
-            showActivityToast("Veuillez entrer un nom d'activité.", 'warn');
-        }
+        if (!supportActivitiesModule?.addActivity) return;
+        supportActivitiesModule.addActivity();
     }
 
     function deleteActivity(index) {
-        if (!activities[index]) {
-            console.warn(`[ACTIVITY] delete ignored: invalid index=${index}, size=${activities.length}`);
-            return;
-        }
-        const actName = activityDisplayLabel(activities[index]);
-        if(confirm(`Supprimer définitivement l'activité "${actName}" ?`)) {
-            activities.splice(index, 1);
-            if (editingActivityIndex === index) editingActivityIndex = null;
-            if (editingActivityIndex !== null && editingActivityIndex > index) editingActivityIndex -= 1;
-            saveActivities({ successMessage: "Activité supprimée." });
-        }
+        if (!supportActivitiesModule?.deleteActivity) return;
+        supportActivitiesModule.deleteActivity(index);
     }
 
     function startEditActivity(index) {
-        if (!activities[index]) return;
-        editingActivityIndex = index;
-        renderParams();
+        if (!supportActivitiesModule?.startEditActivity) return;
+        supportActivitiesModule.startEditActivity(index);
     }
 
     function cancelEditActivity() {
-        editingActivityIndex = null;
-        renderParams();
+        if (!supportActivitiesModule?.cancelEditActivity) return;
+        supportActivitiesModule.cancelEditActivity();
     }
 
     function saveEditedActivity(index) {
-        if (!activities[index]) return;
-
-        const nameInput = document.getElementById(`editActName_${index}`);
-        const attendanceInput = document.getElementById(`editActAttendanceType_${index}`);
-        const nextLabel = nameInput?.value?.trim() || '';
-        const nextAttendance = sanitizeAttendanceType(attendanceInput?.value, nextLabel);
-
-        if (!nextLabel) {
-            showActivityToast("Le nom de l'activité ne peut pas être vide.", 'warn');
-            return;
-        }
-
-        const duplicate = activities.some((a, idx) => {
-            if (idx === index) return false;
-            return activityDisplayLabel(a).toLowerCase() === nextLabel.toLowerCase();
-        });
-
-        if (duplicate) {
-            showActivityToast("Une activité avec ce nom existe déjà.", 'warn');
-            return;
-        }
-
-        activities[index] = normalizeActivity({
-            ...activities[index],
-            label: nextLabel,
-            name: nextLabel,
-            attendanceType: nextAttendance,
-        }, activities[index]?.color || DEFAULT_ACTIVITY_COLOR);
-
-        editingActivityIndex = null;
-        saveActivities({ successMessage: "Activité mise à jour dans la base." });
+        if (!supportActivitiesModule?.saveEditedActivity) return;
+        supportActivitiesModule.saveEditedActivity(index);
     }
 
     function updateActivityColor(index, newColor) {
-        if (!activities[index]) return;
-        activities[index].color = sanitizeActivityColor(newColor, activities[index]?.color || DEFAULT_ACTIVITY_COLOR);
-        saveActivities({ successMessage: "Activité mise à jour dans la base." });
+        if (!supportActivitiesModule?.updateActivityColor) return;
+        supportActivitiesModule.updateActivityColor(index, newColor);
     }
 
     async function saveActivities({ successMessage = '' } = {}) {
@@ -1512,15 +1334,13 @@ window.SupportModule = (function() {
     }
 
     function filterActivities(search) {
-        activitySearchTerm = String(search || '').trim().toLowerCase();
-        renderActivitiesGrid();
+        if (!supportActivitiesModule?.filterActivities) return;
+        supportActivitiesModule.filterActivities(search);
     }
 
     function clearActivitiesFilter() {
-        activitySearchTerm = '';
-        const input = document.getElementById('paramSearchInput');
-        if (input) input.value = '';
-        renderActivitiesGrid();
+        if (!supportActivitiesModule?.clearActivitiesFilter) return;
+        supportActivitiesModule.clearActivitiesFilter();
     }
 
     // V3.4 — Chargement paramètres activités:
