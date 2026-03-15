@@ -819,9 +819,8 @@ window.SupportModule = (function() {
         // 2. Sauvegarde des données
         saveDay();
         
-        // 3. Si c'est une activité, on doit re-rendre le tableau 
-        // pour mettre à jour la ligne (rouge si absent) et les KPIs
-        if(el.classList.contains('input-act')) {
+        // 3. Re-rendre si l'activite ou la greve impacte les KPI/etats de ligne
+        if(el.classList.contains('input-act') || el.dataset.field === 'Grv') {
             renderTable();
         }
     }
