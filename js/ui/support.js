@@ -1576,6 +1576,17 @@ window.SupportModule = (function() {
     // 8. EXPORT & IMPRESSION
     // ============================================================
 
+    function sanitizeCsvCell(value) {
+        const cleaned = String(value ?? '')
+            .replace(/\r?\n/g, ' ')
+            .replace(/;/g, ',')
+            .trim();
+        const neutralized = /^[\s\t]*[=+\-@]/.test(cleaned)
+            ? `'${cleaned}`
+            : cleaned;
+        return `"${neutralized.replace(/"/g, '""')}"`;
+    }
+
     function exportCSV() {
         const key = formatDateKey(currentDate);
         const dayData = JSON.parse(localStorage.getItem('demat_day_' + key) || '{}');
@@ -1586,11 +1597,18 @@ window.SupportModule = (function() {
         Object.keys(dayData).forEach(agentName => {
             if(agentName === '__GLOBAL_OBS' || agentName === '__PARAM_ACTIVITIES') return;
             const d = dayData[agentName];
-            
-            // On nettoie les observations pour éviter les erreurs CSV (points virgules, sauts de ligne)
-            const obsClean = (d.obs || '').replace(/;/g, ',').replace(/\n/g, ' ');
-            
-            csv += `${key};${agentName};${d.act};${obsClean};${d.briefA};${d.briefD};${d.debriefA};${d.debriefD};${d.Grv}\n`;
+
+            csv += [
+                sanitizeCsvCell(key),
+                sanitizeCsvCell(agentName),
+                sanitizeCsvCell(d.act || ''),
+                sanitizeCsvCell(d.obs || ''),
+                sanitizeCsvCell(d.briefA || ''),
+                sanitizeCsvCell(d.briefD || ''),
+                sanitizeCsvCell(d.debriefA || ''),
+                sanitizeCsvCell(d.debriefD || ''),
+                sanitizeCsvCell(d.Grv || '')
+            ].join(';') + '\n';
         });
         
         // Création du lien de téléchargement
