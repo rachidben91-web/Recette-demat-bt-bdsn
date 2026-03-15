@@ -151,9 +151,91 @@ window.SupportModule = (function() {
         const gridEl = document.getElementById('supportWeatherGrid');
         if (summaryEl) summaryEl.textContent = String(message || '');
         if (gridEl) {
-            const safeMessage = escapeHtml(message || (isError ? 'Prévisions indisponibles.' : 'Chargement...'));
-            gridEl.innerHTML = `<div class="support-weather-card support-weather-card--loading">${safeMessage}</div>`;
+            gridEl.replaceChildren(createWeatherLoadingCard(
+                message || (isError ? 'Prévisions indisponibles.' : 'Chargement...')
+            ));
         }
+    }
+
+    function createWeatherLoadingCard(message) {
+        const card = document.createElement('div');
+        card.className = 'support-weather-card support-weather-card--loading';
+        card.textContent = String(message || '');
+        return card;
+    }
+
+    function createWeatherMetric(label, value) {
+        const metric = document.createElement('div');
+        metric.className = 'support-weather-card__metric';
+
+        const span = document.createElement('span');
+        span.textContent = label;
+        metric.appendChild(span);
+
+        const strong = document.createElement('strong');
+        strong.textContent = value;
+        metric.appendChild(strong);
+
+        return metric;
+    }
+
+    function createWeatherCard(item) {
+        const card = document.createElement('div');
+        card.className = 'support-weather-card';
+
+        const top = document.createElement('div');
+        top.className = 'support-weather-card__top';
+
+        const city = document.createElement('div');
+        city.className = 'support-weather-card__city';
+        city.textContent = window.WeatherModule.prettyName(item?.name) || '';
+        top.appendChild(city);
+
+        const icon = document.createElement('div');
+        icon.className = 'support-weather-card__icon';
+        top.appendChild(icon);
+
+        card.appendChild(top);
+
+        const temp = document.createElement('div');
+        temp.className = 'support-weather-card__temp';
+        card.appendChild(temp);
+
+        const metrics = document.createElement('div');
+        metrics.className = 'support-weather-card__metrics';
+        card.appendChild(metrics);
+
+        const forecast = item?.forecast;
+        if (!forecast) {
+            icon.textContent = '🌡️';
+            temp.textContent = '—';
+            metrics.appendChild(createWeatherMetric('Prévision', 'Indisponible'));
+            return card;
+        }
+
+        const badge = forecast.rsf || { level: 'warn', label: 'RSF a surveiller', summary: 'Prevision incomplete' };
+        const badgeClass = badge.level === 'risk'
+            ? 'support-weather-card__badge--risk'
+            : (badge.level === 'warn' ? 'support-weather-card__badge--warn' : 'support-weather-card__badge--good');
+
+        const min = Number.isFinite(forecast.tempMin) ? `${forecast.tempMin}°` : '—';
+        const max = Number.isFinite(forecast.tempMax) ? `${forecast.tempMax}°` : '—';
+        const rainProb = Number.isFinite(forecast.rainProbMax) ? `${forecast.rainProbMax}%` : '—';
+        const rainMm = Number.isFinite(forecast.rainMm) ? `${forecast.rainMm.toFixed(forecast.rainMm >= 1 ? 1 : 0)} mm` : '—';
+        const rainHours = Number.isFinite(forecast.rainHours) ? `${String(forecast.rainHours).replace('.', ',')} h` : '—';
+
+        icon.textContent = forecast.icon || '🌡️';
+        temp.textContent = `${min} / ${max}`;
+        metrics.appendChild(createWeatherMetric('Prob. pluie', rainProb));
+        metrics.appendChild(createWeatherMetric('Cumul pluie', rainMm));
+        metrics.appendChild(createWeatherMetric('Heures humides', rainHours));
+
+        const badgeEl = document.createElement('div');
+        badgeEl.className = `support-weather-card__badge ${badgeClass}`;
+        badgeEl.textContent = `${String(badge.label || '')} · ${String(badge.summary || '')}`;
+        card.appendChild(badgeEl);
+
+        return card;
     }
 
     async function renderSupportWeatherForecast() {
@@ -186,51 +268,7 @@ window.SupportModule = (function() {
             else if (warnCount > 0) summaryEl.textContent = `${dateLabel} : humidité possible sur ${warnCount} commune(s).`;
             else summaryEl.textContent = `${dateLabel} : conditions plutôt favorables pour la RSF.`;
 
-            gridEl.innerHTML = (result.communes || []).map((item) => {
-                const city = escapeHtml(window.WeatherModule.prettyName(item.name));
-                const forecast = item.forecast;
-                if (!forecast) {
-                    return `
-                        <div class="support-weather-card">
-                            <div class="support-weather-card__top">
-                                <div class="support-weather-card__city">${city}</div>
-                                <div class="support-weather-card__icon">🌡️</div>
-                            </div>
-                            <div class="support-weather-card__temp">—</div>
-                            <div class="support-weather-card__metrics">
-                                <div class="support-weather-card__metric"><span>Prévision</span><strong>Indisponible</strong></div>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                const badge = forecast.rsf || { level: 'warn', label: 'RSF a surveiller', summary: 'Prevision incomplete' };
-                const badgeClass = badge.level === 'risk'
-                    ? 'support-weather-card__badge--risk'
-                    : (badge.level === 'warn' ? 'support-weather-card__badge--warn' : 'support-weather-card__badge--good');
-
-                const min = Number.isFinite(forecast.tempMin) ? `${forecast.tempMin}°` : '—';
-                const max = Number.isFinite(forecast.tempMax) ? `${forecast.tempMax}°` : '—';
-                const rainProb = Number.isFinite(forecast.rainProbMax) ? `${forecast.rainProbMax}%` : '—';
-                const rainMm = Number.isFinite(forecast.rainMm) ? `${forecast.rainMm.toFixed(forecast.rainMm >= 1 ? 1 : 0)} mm` : '—';
-                const rainHours = Number.isFinite(forecast.rainHours) ? `${String(forecast.rainHours).replace('.', ',')} h` : '—';
-
-                return `
-                    <div class="support-weather-card">
-                        <div class="support-weather-card__top">
-                            <div class="support-weather-card__city">${city}</div>
-                            <div class="support-weather-card__icon">${forecast.icon || '🌡️'}</div>
-                        </div>
-                        <div class="support-weather-card__temp">${min} / ${max}</div>
-                        <div class="support-weather-card__metrics">
-                            <div class="support-weather-card__metric"><span>Prob. pluie</span><strong>${rainProb}</strong></div>
-                            <div class="support-weather-card__metric"><span>Cumul pluie</span><strong>${rainMm}</strong></div>
-                            <div class="support-weather-card__metric"><span>Heures humides</span><strong>${rainHours}</strong></div>
-                        </div>
-                        <div class="support-weather-card__badge ${badgeClass}">${escapeHtml(badge.label)} · ${escapeHtml(badge.summary)}</div>
-                    </div>
-                `;
-            }).join('');
+            gridEl.replaceChildren(...(result.communes || []).map((item) => createWeatherCard(item)));
         } catch (e) {
             console.warn('[SUPPORT] météo prévisionnelle indisponible:', e?.message || e);
             if (formatDateKey(screenDate) !== formatDateKey(currentDate)) return;
@@ -789,45 +827,48 @@ window.SupportModule = (function() {
             else if (tech.ptc === 'PTC - PTD') qualif = 'PTC-PTD';
             else if (tech.ptc) qualif = 'PTC';
 
-            const safeTechName = escapeHtml(tech.name);
-            const safeQualif = escapeHtml(qualif);
-            const safeObs = escapeHtml(rowData.obs || '');
-            const activityOptions = activities.map(a => {
-                const label = activityDisplayLabel(a);
-                const safeLabel = escapeHtml(label);
-                return `<option value="${safeLabel}" ${actLabel===label?'selected':''}>${safeLabel}</option>`;
-            }).join('');
-            const missingActivityOption = actLabel && !activities.some(a => activityDisplayLabel(a) === actLabel)
-                ? `<option value="${escapeHtml(actLabel)}" selected>${escapeHtml(actLabel)}</option>`
-                : '';
+            const indexCell = document.createElement('td');
+            indexCell.style.textAlign = 'center';
+            indexCell.style.color = '#94a3b8';
+            indexCell.style.fontSize = '10px';
+            indexCell.textContent = String(idx + 1);
+            tr.appendChild(indexCell);
 
-            tr.innerHTML = `
-                <td style="text-align:center; color:#94a3b8; font-size:10px;">${idx + 1}</td>
-                <td class="cell-name">${safeTechName}</td>
-                <td class="cell-ptc">${safeQualif}</td>
-                                 
-                <td>
-                    <select class="editable-select input-act" data-tech="${safeTechName}" 
-                            style="background-color:${bgColor}; color:${fgColor}; border-color:${borderColor};">
-                        <option value="">-</option>
-                        ${activityOptions}
-                        ${missingActivityOption}
-                    </select>
-                </td>
-                
-                <td>
-                    <input class="editable-input input-obs" data-tech="${safeTechName}" 
-                           value="${safeObs}" placeholder="...">
-                </td>
-                
-                <td>${renderSelect('briefA', rowData.briefA, tech.name)}</td>
-                <td>${renderSelect('briefD', rowData.briefD, tech.name)}</td>
-                
-                <td>${renderSelect('debriefA', rowData.debriefA, tech.name)}</td>
-                <td>${renderSelect('debriefD', rowData.debriefD, tech.name)}</td>
-                
-                <td>${renderYesNo('Grv', rowData.Grv, tech.name)}</td>
-            `;
+            const nameCell = document.createElement('td');
+            nameCell.className = 'cell-name';
+            nameCell.textContent = tech.name || '';
+            tr.appendChild(nameCell);
+
+            const qualifCell = document.createElement('td');
+            qualifCell.className = 'cell-ptc';
+            qualifCell.textContent = qualif;
+            tr.appendChild(qualifCell);
+
+            const activityCell = document.createElement('td');
+            activityCell.appendChild(createActivitySelect({
+                techName: tech.name,
+                selectedLabel: actLabel,
+                backgroundColor: bgColor,
+                foregroundColor: fgColor,
+                borderColor,
+            }));
+            tr.appendChild(activityCell);
+
+            const obsCell = document.createElement('td');
+            const obsInput = document.createElement('input');
+            obsInput.className = 'editable-input input-obs';
+            obsInput.dataset.tech = tech.name || '';
+            obsInput.value = sanitizeActivityText(rowData.obs || '');
+            obsInput.placeholder = '...';
+            obsCell.appendChild(obsInput);
+            tr.appendChild(obsCell);
+
+            tr.appendChild(createTableControlCell(createBinarySelect('briefA', rowData.briefA, tech.name)));
+            tr.appendChild(createTableControlCell(createBinarySelect('briefD', rowData.briefD, tech.name)));
+            tr.appendChild(createTableControlCell(createBinarySelect('debriefA', rowData.debriefA, tech.name)));
+            tr.appendChild(createTableControlCell(createBinarySelect('debriefD', rowData.debriefD, tech.name)));
+            tr.appendChild(createTableControlCell(createSingleYesSelect('Grv', rowData.Grv, tech.name)));
+
             tbody.appendChild(tr);
         });
 
@@ -847,27 +888,96 @@ window.SupportModule = (function() {
         if(elGrv) elGrv.textContent = cptGrv;
     }
 
-    // Helper pour générer les selects OUI/NON avec couleur
-    function renderSelect(field, val, techName) {
-        let cls = '';
-        if(val === 'OUI') cls = 'val-oui';
-        else if(val === 'NON') cls = 'val-non';
-
-        const safeTechName = escapeHtml(techName);
-        return `<select class="editable-select ${cls}" data-tech="${safeTechName}" data-field="${field}">
-            <option value="">-</option>
-            <option value="OUI" ${val==='OUI'?'selected':''}>OUI</option>
-            <option value="NON" ${val==='NON'?'selected':''}>NON</option>
-        </select>`;
+    function createTableControlCell(control) {
+        const cell = document.createElement('td');
+        cell.appendChild(control);
+        return cell;
     }
 
-    // Helper pour générer les selects OUI (simple)
-    function renderYesNo(field, val, techName) {
-         const safeTechName = escapeHtml(techName);
-         return `<select class="editable-select" data-tech="${safeTechName}" data-field="${field}" style="font-size:10px; width:50px;">
-            <option value="">-</option>
-            <option value="OUI" ${val==='OUI'?'selected':''}>OUI</option>
-        </select>`;
+    function createActivitySelect({ techName, selectedLabel, backgroundColor, foregroundColor, borderColor }) {
+        const select = document.createElement('select');
+        select.className = 'editable-select input-act';
+        select.dataset.tech = techName || '';
+        select.style.backgroundColor = backgroundColor || '';
+        select.style.color = foregroundColor || '';
+        select.style.borderColor = borderColor || '#e2e8f0';
+
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = '-';
+        select.appendChild(emptyOption);
+
+        const knownLabels = new Set();
+        activities.forEach((activity) => {
+            const label = activityDisplayLabel(activity);
+            if (!label || knownLabels.has(label)) return;
+            knownLabels.add(label);
+            const option = document.createElement('option');
+            option.value = label;
+            option.textContent = label;
+            option.selected = selectedLabel === label;
+            select.appendChild(option);
+        });
+
+        if (selectedLabel && !knownLabels.has(selectedLabel)) {
+            const option = document.createElement('option');
+            option.value = selectedLabel;
+            option.textContent = selectedLabel;
+            option.selected = true;
+            select.appendChild(option);
+        }
+
+        return select;
+    }
+
+    function createBinarySelect(field, val, techName) {
+        const select = document.createElement('select');
+        select.className = 'editable-select';
+        if(val === 'OUI') select.classList.add('val-oui');
+        else if(val === 'NON') select.classList.add('val-non');
+        select.dataset.tech = techName || '';
+        select.dataset.field = field;
+
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = '-';
+        select.appendChild(emptyOption);
+
+        const yesOption = document.createElement('option');
+        yesOption.value = 'OUI';
+        yesOption.textContent = 'OUI';
+        yesOption.selected = val === 'OUI';
+        select.appendChild(yesOption);
+
+        const noOption = document.createElement('option');
+        noOption.value = 'NON';
+        noOption.textContent = 'NON';
+        noOption.selected = val === 'NON';
+        select.appendChild(noOption);
+
+        return select;
+    }
+
+    function createSingleYesSelect(field, val, techName) {
+        const select = document.createElement('select');
+        select.className = 'editable-select';
+        select.dataset.tech = techName || '';
+        select.dataset.field = field;
+        select.style.fontSize = '10px';
+        select.style.width = '50px';
+
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = '-';
+        select.appendChild(emptyOption);
+
+        const yesOption = document.createElement('option');
+        yesOption.value = 'OUI';
+        yesOption.textContent = 'OUI';
+        yesOption.selected = val === 'OUI';
+        select.appendChild(yesOption);
+
+        return select;
     }
 
     // ============================================================
@@ -922,7 +1032,7 @@ window.SupportModule = (function() {
                 return el ? el.value : '';
             };
             
-            // Pour les champs générés via renderSelect/renderYesNo
+            // Pour les champs select du tableau support
             const getFieldVal = (field) => {
                 const el = tr.querySelector(`[data-field="${field}"]`);
                 return el ? el.value : '';
@@ -1598,7 +1708,12 @@ window.SupportModule = (function() {
         const select = document.getElementById('histFilterAgent');
         if(select && select.options.length <= 1) { // Eviter de dupliquer si déjà rempli
              if(window.TECHNICIANS) {
-                window.TECHNICIANS.forEach(t => select.innerHTML += `<option value="${t.name}">${t.name}</option>`);
+                window.TECHNICIANS.forEach((t) => {
+                    const option = document.createElement('option');
+                    option.value = t.name || '';
+                    option.textContent = t.name || '';
+                    select.appendChild(option);
+                });
             }
         }
     }
