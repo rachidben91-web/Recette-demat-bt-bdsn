@@ -308,7 +308,17 @@ function openChangePasswordModal(supabaseClient) {
   // Bouton connexion / déconnexion
   btn.addEventListener("click", async () => {
     if (btn.dataset.state === "out") {
-      await client.auth.signOut();
+      btn.disabled = true;
+      try {
+        await client.auth.signOut();
+      } catch (err) {
+        console.warn("Déconnexion Supabase incomplète:", err?.message || err);
+      } finally {
+        if (typeof window.purgeLocalSessionData === "function") {
+          await window.purgeLocalSessionData();
+        }
+        location.reload();
+      }
       return;
     }
     openLoginModal(client);

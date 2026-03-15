@@ -206,6 +206,61 @@ async function clearCache() {
   console.log("[CACHE] Cache vidé (localStorage + IndexedDB)");
 }
 
+function resetInMemoryAppState() {
+  state.pdf = null;
+  state.pdfFile = null;
+  state.pdfName = "";
+  state.totalPages = 0;
+  state.pdfSourceCache = new Map();
+  state.bts = [];
+  state.view = "referent";
+  state.layout = "grid";
+  state.referentDisplayMode = "large";
+  state.filters = {
+    q: "",
+    types: new Set(),
+    techId: "",
+    o2Status: "all"
+  };
+  state.countsByTechId = new Map();
+  state.techDailyStatusByNni = new Map();
+  state.techDailyStatusJour = "";
+  state.journee = {
+    jour: "",
+    site: "VLG",
+    status: "draft",
+    source: {
+      pdfName: "",
+      importedAt: null
+    },
+    remote: {
+      id: null,
+      updatedAt: null,
+      updatedBy: null,
+      loadedAt: null
+    }
+  };
+  state.modal = {
+    open: false,
+    currentBT: null,
+    currentPage: 1
+  };
+}
+
+async function purgeLocalSessionData() {
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i) || "";
+    if (key.startsWith("demat_") || key.startsWith("dematbt_")) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
+  await clearCache();
+  resetInMemoryAppState();
+  console.log("[CACHE] Données locales de session purgées ✅");
+}
+
 function getCacheInfo() {
   try {
     const cached = localStorage.getItem('dematbt_cache');
@@ -228,3 +283,4 @@ function getCacheInfo() {
 window.loadPdfDocumentByStorageKey = loadPdfDocumentByStorageKey;
 window.getPdfDocumentForBt = getPdfDocumentForBt;
 window.savePDFToIndexedDB = savePDFToIndexedDB;
+window.purgeLocalSessionData = purgeLocalSessionData;

@@ -635,15 +635,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnClearCache) {
         btnClearCache.addEventListener('click', async () => {
             if (confirm("Attention : Cela effacera toutes les données importées (PDF, Zones). Continuer ?")) {
-                const keysToRemove = [];
-                for (let i = 0; i < localStorage.length; i += 1) {
-                    const key = localStorage.key(i) || "";
-                    if (key.startsWith("demat_") || key.startsWith("dematbt_")) {
-                        keysToRemove.push(key);
-                    }
-                }
-                keysToRemove.forEach((k) => localStorage.removeItem(k));
-                if (typeof clearCache === "function") {
+                if (typeof window.purgeLocalSessionData === "function") {
+                    await window.purgeLocalSessionData();
+                } else if (typeof clearCache === "function") {
                     await clearCache();
                 }
                 location.reload();
