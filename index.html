@@ -28,8 +28,8 @@
 
     <div class="topbar__actions">
       <div class="seg">
-        <button class="seg__btn seg__btn--active" onclick="switchView('referent')" data-view="referent">Référent</button>
-        <button class="seg__btn" onclick="switchView('brief')" data-view="brief">Brief (Flip)</button>
+        <button class="seg__btn seg__btn--active" data-view-switch="referent" data-view="referent">Référent</button>
+        <button class="seg__btn" data-view-switch="brief" data-view="brief">Brief (Flip)</button>
       </div>
 
       <button id="btnFullscreen" class="btn btn--secondary" title="Plein écran">
@@ -77,7 +77,7 @@
       </div>
 
       <div class="sidebar-section sidebar-section--support">
-        <button id="btnSupportView" class="btn btn--disabled sidebar-support-btn" disabled onclick="switchView('support')">
+        <button id="btnSupportView" class="btn btn--disabled sidebar-support-btn" disabled data-view-switch="support">
            <span>📊</span> Support Journée
         </button>
         <div class="hint sidebar-support-hint">Accède au pilotage quotidien après connexion.</div>
@@ -249,9 +249,9 @@
         </div>
 
         <nav class="support-tabs screen-only">
-            <button class="support-tab active" onclick="SupportModule.switchTab('tabBrief')">📝 Brief / Débrief</button>
-            <button class="support-tab" onclick="SupportModule.switchTab('tabParam')">🎨 Param Activités</button>
-            <button class="support-tab" onclick="SupportModule.switchTab('tabHistory')">📊 Données & Historique</button>
+            <button class="support-tab active" data-support-tab="tabBrief">📝 Brief / Débrief</button>
+            <button class="support-tab" data-support-tab="tabParam">🎨 Param Activités</button>
+            <button class="support-tab" data-support-tab="tabHistory">📊 Données & Historique</button>
         </nav>
 
         <div id="tabBrief" class="support-panel active">
@@ -274,10 +274,10 @@
 
             <div class="day-nav screen-only">
                 <div style="display:flex; gap:10px;">
-                    <button class="btn btn--secondary" onclick="SupportModule.changeDay(-1)">◀ J-1</button>
-                    <button class="btn btn--secondary" onclick="SupportModule.goToday()">Auj.</button>
-                    <button class="btn btn--secondary" onclick="SupportModule.changeDay(1)">J+1 ▶</button>
-                    <input type="date" id="supportDatePicker" class="input" style="width:auto;" onchange="SupportModule.goToDate(this.value)">
+                    <button class="btn btn--secondary" data-support-day-shift="-1">◀ J-1</button>
+                    <button class="btn btn--secondary" id="btnSupportToday">Auj.</button>
+                    <button class="btn btn--secondary" data-support-day-shift="1">J+1 ▶</button>
+                    <input type="date" id="supportDatePicker" class="input" style="width:auto;">
                 </div>
                 
                 <div class="day-title-group">
@@ -307,11 +307,11 @@
             </div>
 
             <div class="support-toolbar screen-only">
-                <button class="btn" onclick="SupportModule.saveDay()">💾 Enregistrer</button>
-                <button class="btn btn--secondary" onclick="SupportModule.printDay()">🖨️ Imprimer</button>
-                <button class="btn btn--secondary" onclick="SupportModule.exportCSV()">📤 CSV</button>
+                <button class="btn" id="btnSupportSave">💾 Enregistrer</button>
+                <button class="btn btn--secondary" id="btnSupportPrint">🖨️ Imprimer</button>
+                <button class="btn btn--secondary" id="btnSupportExportCsv">📤 CSV</button>
                 <div style="flex:1"></div>
-                <button class="btn" style="background:#fee2e2; color:#991b1b; border:none;" onclick="SupportModule.clearDay()">🗑️ Vider</button>
+                <button class="btn" id="btnSupportClear" style="background:#fee2e2; color:#991b1b; border:none;">🗑️ Vider</button>
             </div>
 
             <div class="brief-table-container">
@@ -380,12 +380,12 @@
                     <option value="absent">Absent</option>
                     <option value="neutral">Neutre</option>
                 </select>
-                <button class="btn" onclick="SupportModule.addActivity()">➕ Ajouter</button>
+                <button class="btn" id="btnAddActivity">➕ Ajouter</button>
             </div>
 
             <div class="param-search-row">
-                <input type="search" id="paramSearchInput" class="input" placeholder="🔎 Rechercher activité..." oninput="SupportModule.filterActivities(this.value)">
-                <button class="btn btn--secondary" onclick="SupportModule.clearActivitiesFilter()">Réinitialiser</button>
+                <input type="search" id="paramSearchInput" class="input" placeholder="🔎 Rechercher activité...">
+                <button class="btn btn--secondary" id="btnClearActivitiesFilter">Réinitialiser</button>
             </div>
 
             <div id="paramGrid" class="param-grid"></div>
@@ -415,15 +415,15 @@
                 <span style="align-self:center">à</span>
                 <input type="date" id="histDateTo" class="input" style="width:auto;">
                 <select id="histFilterAgent" class="select" style="width:auto;"><option value="">Tous agents</option></select>
-                <button class="btn" onclick="SupportModule.renderHistory()">🔍 Filtrer</button>
+                <button class="btn" id="btnSupportHistoryFilter">🔍 Filtrer</button>
             </div>
 
             <div class="brief-table-container" style="max-height:600px;">
                 <table class="history-table">
                     <thead>
                         <tr>
-                            <th onclick="SupportModule.sortHistory('date')">Date ↕</th>
-                            <th onclick="SupportModule.sortHistory('agent')">Agent ↕</th>
+                            <th data-support-sort="date">Date ↕</th>
+                            <th data-support-sort="agent">Agent ↕</th>
                             <th>Activité</th>
                             <th>Obs</th>
                             <th>Brief</th>
@@ -490,8 +490,6 @@
             placeholder="prenom.nom@grdf.fr"
             required
             style="border:1px solid #d1d5db; border-radius:6px; padding:9px 12px; font-size:.9rem; outline:none; transition:border .15s;"
-            onfocus="this.style.borderColor='#6366f1'"
-            onblur="this.style.borderColor='#d1d5db'"
           />
         </div>
         <div style="display:flex; flex-direction:column; gap:4px;">
@@ -504,8 +502,6 @@
             placeholder="••••••••"
             required
             style="border:1px solid #d1d5db; border-radius:6px; padding:9px 12px; font-size:.9rem; outline:none; transition:border .15s;"
-            onfocus="this.style.borderColor='#6366f1'"
-            onblur="this.style.borderColor='#d1d5db'"
           />
         </div>
         <div id="loginError" style="display:none; background:#fef2f2; border:1px solid #fca5a5; color:#b91c1c; border-radius:6px; padding:8px 12px; font-size:.82rem;"></div>
@@ -514,8 +510,6 @@
             type="submit"
             id="loginSubmit"
             style="flex:1; background:#6366f1; color:#fff; border:none; border-radius:6px; padding:10px; font-size:.9rem; font-weight:600; cursor:pointer; transition:background .15s;"
-            onmouseover="this.style.background='#4f46e5'"
-            onmouseout="this.style.background='#6366f1'"
           >Se connecter</button>
           <button
             type="button"
@@ -545,15 +539,13 @@
           <label for="newPassword" style="font-size:.8rem; font-weight:600; color:#374151;">Nouveau mot de passe</label>
           <input id="newPassword" name="new-password" type="password" autocomplete="new-password"
             placeholder="Au moins 8 caractères" required minlength="8"
-            style="border:1px solid #d1d5db; border-radius:6px; padding:9px 12px; font-size:.9rem; outline:none; transition:border .15s;"
-            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#d1d5db'" />
+            style="border:1px solid #d1d5db; border-radius:6px; padding:9px 12px; font-size:.9rem; outline:none; transition:border .15s;" />
         </div>
         <div style="display:flex; flex-direction:column; gap:4px;">
           <label for="confirmPassword" style="font-size:.8rem; font-weight:600; color:#374151;">Confirmer le mot de passe</label>
           <input id="confirmPassword" name="confirm-password" type="password" autocomplete="new-password"
             placeholder="Répétez le mot de passe" required minlength="8"
-            style="border:1px solid #d1d5db; border-radius:6px; padding:9px 12px; font-size:.9rem; outline:none; transition:border .15s;"
-            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#d1d5db'" />
+            style="border:1px solid #d1d5db; border-radius:6px; padding:9px 12px; font-size:.9rem; outline:none; transition:border .15s;" />
         </div>
         <!-- Indicateur de force -->
         <div id="pwStrengthBar" style="height:4px; border-radius:4px; background:#e5e7eb; overflow:hidden; margin-top:-6px;">
@@ -562,8 +554,7 @@
         <div id="pwStrengthLabel" style="font-size:.75rem; color:#9ca3af; margin-top:-8px;"></div>
         <div id="changePasswordError" style="display:none; background:#fef2f2; border:1px solid #fca5a5; color:#b91c1c; border-radius:6px; padding:8px 12px; font-size:.82rem;"></div>
         <button type="submit" id="changePasswordSubmit"
-          style="background:#10b981; color:#fff; border:none; border-radius:6px; padding:11px; font-size:.9rem; font-weight:700; cursor:pointer; margin-top:4px; transition:background .15s;"
-          onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+          style="background:#10b981; color:#fff; border:none; border-radius:6px; padding:11px; font-size:.9rem; font-weight:700; cursor:pointer; margin-top:4px; transition:background .15s;">
           ✅ Enregistrer mon mot de passe
         </button>
       </form>

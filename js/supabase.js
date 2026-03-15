@@ -96,12 +96,25 @@ function openLoginModal(supabaseClient) {
   const errEl     = document.getElementById("loginError");
   const submitBtn = document.getElementById("loginSubmit");
   const cancelBtn = document.getElementById("loginCancel");
+  const emailInput = document.getElementById("loginEmail");
+  const passwordInput = document.getElementById("loginPassword");
   if (!modal || !form) return;
 
   errEl.style.display = "none";
   errEl.textContent   = "";
   modal.style.display = "flex";
-  setTimeout(() => document.getElementById("loginEmail")?.focus(), 80);
+  setTimeout(() => emailInput?.focus(), 80);
+
+  [emailInput, passwordInput].forEach((input) => {
+    if (!input) return;
+    input.onfocus = () => { input.style.borderColor = "#6366f1"; };
+    input.onblur = () => { input.style.borderColor = "#d1d5db"; };
+  });
+
+  if (submitBtn) {
+    submitBtn.onmouseover = () => { submitBtn.style.background = "#4f46e5"; };
+    submitBtn.onmouseout = () => { submitBtn.style.background = "#6366f1"; };
+  }
 
   function closeModal() {
     modal.style.display = "none";
@@ -158,6 +171,17 @@ function openChangePasswordModal(supabaseClient) {
 
   modal.style.display = "flex";
   setTimeout(() => newPwEl?.focus(), 80);
+
+  [newPwEl, confPwEl].forEach((input) => {
+    if (!input) return;
+    input.onfocus = () => { input.style.borderColor = "#6366f1"; };
+    input.onblur = () => { input.style.borderColor = "#d1d5db"; };
+  });
+
+  if (submitBtn) {
+    submitBtn.onmouseover = () => { submitBtn.style.background = "#059669"; };
+    submitBtn.onmouseout = () => { submitBtn.style.background = "#10b981"; };
+  }
 
   // Indicateur de force du mot de passe
   function passwordStrength(pw) {

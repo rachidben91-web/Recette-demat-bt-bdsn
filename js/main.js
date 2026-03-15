@@ -790,6 +790,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    document.querySelectorAll('[data-view-switch]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const viewName = button.dataset.viewSwitch;
+            if (viewName && typeof window.switchView === 'function') {
+                window.switchView(viewName);
+            }
+        });
+    });
+
     // ============================================================
     // 5. MODAL — Événements des boutons (FIX v11.4.0)
     // ============================================================

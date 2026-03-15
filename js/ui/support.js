@@ -683,6 +683,63 @@ window.SupportModule = (function() {
         if(tbody) {
             tbody.addEventListener('change', handleTableChange);
         }
+
+        document.querySelectorAll('[data-support-tab]').forEach((button) => {
+            button.addEventListener('click', () => {
+                switchTab(button.dataset.supportTab);
+            });
+        });
+
+        document.querySelectorAll('[data-support-day-shift]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const delta = Number(button.dataset.supportDayShift || 0);
+                changeDay(delta);
+            });
+        });
+
+        const btnSupportToday = document.getElementById('btnSupportToday');
+        if (btnSupportToday) btnSupportToday.addEventListener('click', () => goToday());
+
+        const supportDatePicker = document.getElementById('supportDatePicker');
+        if (supportDatePicker) {
+            supportDatePicker.addEventListener('change', (event) => {
+                goToDate(event.target?.value);
+            });
+        }
+
+        const btnSupportSave = document.getElementById('btnSupportSave');
+        if (btnSupportSave) btnSupportSave.addEventListener('click', () => saveDay());
+
+        const btnSupportPrint = document.getElementById('btnSupportPrint');
+        if (btnSupportPrint) btnSupportPrint.addEventListener('click', () => printDay());
+
+        const btnSupportExportCsv = document.getElementById('btnSupportExportCsv');
+        if (btnSupportExportCsv) btnSupportExportCsv.addEventListener('click', () => exportCSV());
+
+        const btnSupportClear = document.getElementById('btnSupportClear');
+        if (btnSupportClear) btnSupportClear.addEventListener('click', () => clearDay());
+
+        const btnAddActivity = document.getElementById('btnAddActivity');
+        if (btnAddActivity) btnAddActivity.addEventListener('click', () => addActivity());
+
+        const paramSearchInput = document.getElementById('paramSearchInput');
+        if (paramSearchInput) {
+            paramSearchInput.addEventListener('input', (event) => {
+                filterActivities(event.target?.value || '');
+            });
+        }
+
+        const btnClearActivitiesFilter = document.getElementById('btnClearActivitiesFilter');
+        if (btnClearActivitiesFilter) btnClearActivitiesFilter.addEventListener('click', () => clearActivitiesFilter());
+
+        const btnSupportHistoryFilter = document.getElementById('btnSupportHistoryFilter');
+        if (btnSupportHistoryFilter) btnSupportHistoryFilter.addEventListener('click', () => renderHistory());
+
+        document.querySelectorAll('[data-support-sort]').forEach((header) => {
+            header.addEventListener('click', () => {
+                sortHistory(header.dataset.supportSort);
+            });
+        });
     }
 
     function switchTab(tabId) {
@@ -691,7 +748,7 @@ window.SupportModule = (function() {
         document.querySelectorAll('.support-panel').forEach(p => p.classList.remove('active'));
         
         // Trouver le bouton qui a appelé la fonction et l'activer
-        const btn = document.querySelector(`button[onclick="SupportModule.switchTab('${tabId}')"]`);
+        const btn = document.querySelector(`[data-support-tab="${tabId}"]`);
         if(btn) btn.classList.add('active');
         
         // Afficher le panneau
@@ -1117,7 +1174,7 @@ window.SupportModule = (function() {
                     if (lockObj?.token) currentDayLockToken = lockObj.token;
                     renderLockStatus('acquired', lockObj);
                     // Feedback visuel discret
-                    const btn = document.querySelector('button[onclick*="saveDay"], button[onclick*="SupportModule.saveDay"]');
+                    const btn = document.getElementById('btnSupportSave');
                     if(btn) {
                         const orig = btn.textContent;
                         btn.textContent = "✅ Enregistré";
