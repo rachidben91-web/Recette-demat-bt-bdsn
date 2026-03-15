@@ -166,8 +166,14 @@ document.addEventListener('DOMContentLoaded', () => {
     window.renderAll = refreshAllViews;
     window.refreshAllViews = refreshAllViews;
     window.updatePreparationControls = updatePreparationControls;
+    function normalizeTechStatusNni(value) {
+        const raw = String(value || "").trim().toUpperCase();
+        if (!raw) return "";
+        return raw.replace(/[A-Z]+$/, "");
+    }
+
     window.getTechDailyStatus = function (nni) {
-        const key = String(nni || "").trim().toUpperCase();
+        const key = normalizeTechStatusNni(nni);
         return state.techDailyStatusByNni.get(key) || null;
     };
 
@@ -189,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rows = await window.TechDailyStatusStore.listStatuses({ jour: safeJour });
             const byNni = new Map();
             for (const row of (rows || [])) {
-                const nni = String(row?.nni || "").trim().toUpperCase();
+                const nni = normalizeTechStatusNni(row?.nni);
                 if (!nni || byNni.has(nni)) continue;
                 byNni.set(nni, row);
             }
