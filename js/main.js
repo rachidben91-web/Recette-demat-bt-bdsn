@@ -132,6 +132,13 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("[MAIN] refreshAllViews()");
 
         const filtered = (typeof filterBTs === 'function') ? filterBTs() : (state.bts || []);
+        const activeJour = state?.journee?.jour || "";
+
+        if (window.__SUPPORT_AUTH_CONNECTED === true && activeJour && state.techDailyStatusJour !== activeJour) {
+            refreshTechDailyStatuses({ jour: activeJour }).catch(err => {
+                console.warn("[MAIN] Statuts techniciens indisponibles:", err);
+            });
+        }
 
         // Sidebar
         if (typeof renderKpis === 'function') renderKpis(filtered);
@@ -159,6 +166,40 @@ document.addEventListener('DOMContentLoaded', () => {
     window.renderAll = refreshAllViews;
     window.refreshAllViews = refreshAllViews;
     window.updatePreparationControls = updatePreparationControls;
+    window.getTechDailyStatus = function (nni) {
+        const key = String(nni || "").trim().toUpperCase();
+        return state.techDailyStatusByNni.get(key) || null;
+    };
+
+    let techDailyStatusLoadingJour = "";
+
+    async function refreshTechDailyStatuses({ jour = state?.journee?.jour || "", force = false } = {}) {
+        const safeJour = String(jour || "").trim();
+        if (!safeJour || !window.TechDailyStatusStore || window.__SUPPORT_AUTH_CONNECTED !== true) {
+            state.techDailyStatusByNni = new Map();
+            state.techDailyStatusJour = "";
+            return;
+        }
+
+        if (!force && state.techDailyStatusJour === safeJour) return;
+        if (techDailyStatusLoadingJour === safeJour) return;
+        techDailyStatusLoadingJour = safeJour;
+
+        try {
+            const rows = await window.TechDailyStatusStore.listStatuses({ jour: safeJour });
+            const byNni = new Map();
+            for (const row of (rows || [])) {
+                const nni = String(row?.nni || "").trim().toUpperCase();
+                if (!nni || byNni.has(nni)) continue;
+                byNni.set(nni, row);
+            }
+            state.techDailyStatusByNni = byNni;
+            state.techDailyStatusJour = safeJour;
+            refreshAllViews();
+        } finally {
+            techDailyStatusLoadingJour = "";
+        }
+    }
 
     function formatJourneeLabel(jourIso) {
         const match = String(jourIso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -325,6 +366,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             window.BriefJournee.hydrateRecord(record);
             setProgress(0, `☁️ Journée chargée : ${record.payload.bts.length} BT`);
+            refreshTechDailyStatuses({ jour: record.jour, force: true }).catch(err => {
+                console.warn("[MAIN] Statuts techniciens indisponibles après chargement distant:", err);
+            });
             refreshAllViews();
             updateBriefSyncStatus({
                 stateLabel: "success",
@@ -690,6 +734,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 window.BriefJournee.hydrateRecord(record);
                 setProgress(0, `☁️ Journée chargée : ${record.payload.bts.length} BT`);
+                refreshTechDailyStatuses({ jour, force: true }).catch(err => {
+                    console.warn("[MAIN] Statuts techniciens indisponibles après chargement manuel:", err);
+                });
                 refreshAllViews();
                 refreshSavedJournees();
             } catch (err) {
@@ -809,6 +856,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 updatePreparationControls();
                 if (restored) {
                     console.log("[MAIN] ✅ Cache restauré, lancement du rendu");
+                    refreshTechDailyStatuses({ force: true }).catch(err => {
+                        console.warn("[MAIN] Statuts techniciens indisponibles après restauration cache:", err);
+                    });
                     refreshAllViews();
                 } else if (window.__SUPPORT_AUTH_CONNECTED === true) {
                     tryLoadRemoteBriefJournee({ force: true });
@@ -826,10 +876,16 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener("demat:auth-changed", (event) => {
         updatePreparationControls();
         if (event?.detail?.connected) {
+            refreshTechDailyStatuses({ force: true }).catch(err => {
+                console.warn("[MAIN] Statuts techniciens indisponibles après connexion:", err);
+            });
             tryLoadRemoteBriefJournee({ force: false });
             refreshSavedJournees();
         } else {
+            state.techDailyStatusByNni = new Map();
+            state.techDailyStatusJour = "";
             refreshSavedJournees();
+            refreshAllViews();
         }
     });
 });

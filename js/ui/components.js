@@ -57,6 +57,9 @@ function createTeamLine(bt, opts = {}) {
 
   visibleTeam.forEach((m, idx) => {
     const tech = mapTechByNni(m.nni);
+    const dailyStatus = typeof window.getTechDailyStatus === "function"
+      ? window.getTechDailyStatus(m.nni)
+      : null;
 
     // Nom
     const nameSpan = document.createElement("span");
@@ -68,6 +71,16 @@ function createTeamLine(bt, opts = {}) {
       nameSpan.title = "Technicien non répertorié dans la base";
     }
     line.appendChild(nameSpan);
+
+    if (dailyStatus?.status === "loaded") {
+      const statusBadge = document.createElement("span");
+      statusBadge.className = "tech-day-status tech-day-status--loaded";
+      statusBadge.textContent = "Journée chargée";
+      statusBadge.title = dailyStatus.loaded_at
+        ? `Journée chargée le ${new Date(dailyStatus.loaded_at).toLocaleString("fr-FR")}`
+        : "Journée chargée";
+      line.appendChild(statusBadge);
+    }
 
     // Badge PTC/PTD
     if (tech && (tech.ptc || tech.ptd)) {

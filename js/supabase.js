@@ -790,3 +790,27 @@ function openChangePasswordModal(supabaseClient) {
 
   console.log("✅ BriefStore prêt (console: BriefStore.loadToday())");
 })();
+
+// -------------------------
+// Tech Daily Status — remontée chargement journée technicien
+// -------------------------
+(function setupTechDailyStatusStore() {
+  async function listStatuses({ jour } = {}) {
+    if (!jour) throw new Error("jour requis");
+
+    const { data, error } = await window.supabaseClient
+      .from("tech_daily_status")
+      .select("id, jour, nni, status, source_pdf, loaded_at, updated_at")
+      .eq("jour", jour)
+      .order("loaded_at", { ascending: false });
+
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+  }
+
+  window.TechDailyStatusStore = {
+    listStatuses,
+  };
+
+  console.log("✅ TechDailyStatusStore prêt (console: TechDailyStatusStore.listStatuses({ jour: '2026-03-16' }))");
+})();

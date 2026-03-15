@@ -53,6 +53,8 @@ const state = {
   
   // Statistiques calculées
   countsByTechId: new Map(), // Nombre de BT par technicien (clé: NNI)
+  techDailyStatusByNni: new Map(), // Statut du jour remonté par la vue technicien
+  techDailyStatusJour: "",
 
   // Journée BT persistée
   journee: {

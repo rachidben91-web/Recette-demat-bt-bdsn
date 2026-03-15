@@ -141,6 +141,16 @@
         line-height: 1;
       }
 
+      .techChipStatus{
+        background: rgba(34,197,94,0.14);
+        color: #166534;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-weight: 900;
+        font-size: 11px;
+        line-height: 1;
+      }
+
       .empty{
         font-size:12px;
         font-weight:900;
@@ -433,12 +443,24 @@
             right.appendChild(empty);
           } else {
             for (const t of techEntries) {
+              const dailyStatus = typeof window.getTechDailyStatus === "function"
+                ? window.getTechDailyStatus(t.id)
+                : null;
               const chip = document.createElement("button");
               chip.className = "techChip";
               chip.type = "button";
               chip.title = `Filtrer sur ${t.name}`;
               const chipName = document.createElement("span");
               chipName.textContent = t.name;
+              if (dailyStatus?.status === "loaded") {
+                const statusPill = document.createElement("span");
+                statusPill.className = "techChipStatus";
+                statusPill.textContent = "Journée chargée";
+                statusPill.title = dailyStatus.loaded_at
+                  ? `Journée chargée le ${new Date(dailyStatus.loaded_at).toLocaleString("fr-FR")}`
+                  : "Journée chargée";
+                chip.appendChild(statusPill);
+              }
               const chipCount = document.createElement("span");
               chipCount.className = "techChipCount";
               chipCount.textContent = String(t.count);
