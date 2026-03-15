@@ -23,7 +23,7 @@ function renderGrid(filtered, grid) {
         </div>
         <div class="empty-state__content">
           <div class="empty-state__eyebrow">Bienvenue</div>
-          <h3 class="empty-state__title">Dématérialisez les BT, facilitez les briefings et pilotez la journée terrain.</h3>
+          <h3 class="empty-state__title">Dématérialisez les BT, renforcez la qualité des briefs et pilotez la journée terrain.</h3>
           <p class="empty-state__text">
             Importez le PDF du jour pour alimenter automatiquement la vue Référent et le Brief équipe.
             Vous pouvez aussi utiliser directement le Support Journée, même sans import PDF, pour préparer et suivre l'activité du jour.

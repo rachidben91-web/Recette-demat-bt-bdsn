@@ -77,6 +77,46 @@ window.SupportModule = (function() {
 
     // FIX v11.1 : utilise l'heure locale (fr-CA) pour éviter décalage UTC en fin de journée
     const formatDateKey = d => d.toLocaleDateString("fr-CA");
+
+    function normalizeSupportTechId(value) {
+        return String(value || '').trim().toUpperCase();
+    }
+
+    function getSupportTechnicians() {
+        return Array.isArray(window.TECHNICIANS) ? window.TECHNICIANS : [];
+    }
+
+    function getSupportTechStableId(tech) {
+        return normalizeSupportTechId(tech?.id || tech?.nni || '');
+    }
+
+    function findSupportTechByKey(key) {
+        const normalizedKey = normalizeSupportTechId(key);
+        const rawKey = String(key || '').trim();
+        return getSupportTechnicians().find((tech) => (
+            getSupportTechStableId(tech) === normalizedKey ||
+            String(tech?.name || '').trim() === rawKey
+        )) || null;
+    }
+
+    function getSupportTechDisplayName(techId, fallback = '') {
+        const tech = findSupportTechByKey(techId);
+        if (tech?.name) return tech.name;
+        return String(fallback || techId || '').trim();
+    }
+
+    function getSupportRowData(savedDay, tech) {
+        if (!savedDay || typeof savedDay !== 'object') return {};
+        const stableId = getSupportTechStableId(tech);
+        if (stableId && savedDay[stableId] && typeof savedDay[stableId] === 'object') {
+            return savedDay[stableId];
+        }
+        const legacyName = String(tech?.name || '').trim();
+        if (legacyName && savedDay[legacyName] && typeof savedDay[legacyName] === 'object') {
+            return savedDay[legacyName];
+        }
+        return {};
+    }
     
     const getWeekNum = d => {
         const date = new Date(d.getTime());
@@ -784,7 +824,8 @@ window.SupportModule = (function() {
         let cptPres = 0, cptAbs = 0, cptGrv = 0;
 
         techs.forEach((tech, idx) => {
-            const rowData = savedDay[tech.name] || {};
+            const techId = getSupportTechStableId(tech);
+            const rowData = getSupportRowData(savedDay, tech);
             
             // Récupération de l'activité
             const actName = String(rowData.act || '').trim();
@@ -839,6 +880,9 @@ window.SupportModule = (function() {
             nameCell.textContent = tech.name || '';
             tr.appendChild(nameCell);
 
+            tr.dataset.techId = techId;
+            tr.dataset.techName = tech.name || '';
+
             const qualifCell = document.createElement('td');
             qualifCell.className = 'cell-ptc';
             qualifCell.textContent = qualif;
@@ -846,7 +890,7 @@ window.SupportModule = (function() {
 
             const activityCell = document.createElement('td');
             activityCell.appendChild(createActivitySelect({
-                techName: tech.name,
+                techId,
                 selectedLabel: actLabel,
                 backgroundColor: bgColor,
                 foregroundColor: fgColor,
@@ -857,17 +901,17 @@ window.SupportModule = (function() {
             const obsCell = document.createElement('td');
             const obsInput = document.createElement('input');
             obsInput.className = 'editable-input input-obs';
-            obsInput.dataset.tech = tech.name || '';
+            obsInput.dataset.tech = techId;
             obsInput.value = sanitizeActivityText(rowData.obs || '');
             obsInput.placeholder = '...';
             obsCell.appendChild(obsInput);
             tr.appendChild(obsCell);
 
-            tr.appendChild(createTableControlCell(createBinarySelect('briefA', rowData.briefA, tech.name)));
-            tr.appendChild(createTableControlCell(createBinarySelect('briefD', rowData.briefD, tech.name)));
-            tr.appendChild(createTableControlCell(createBinarySelect('debriefA', rowData.debriefA, tech.name)));
-            tr.appendChild(createTableControlCell(createBinarySelect('debriefD', rowData.debriefD, tech.name)));
-            tr.appendChild(createTableControlCell(createSingleYesSelect('Grv', rowData.Grv, tech.name)));
+            tr.appendChild(createTableControlCell(createBinarySelect('briefA', rowData.briefA, techId)));
+            tr.appendChild(createTableControlCell(createBinarySelect('briefD', rowData.briefD, techId)));
+            tr.appendChild(createTableControlCell(createBinarySelect('debriefA', rowData.debriefA, techId)));
+            tr.appendChild(createTableControlCell(createBinarySelect('debriefD', rowData.debriefD, techId)));
+            tr.appendChild(createTableControlCell(createSingleYesSelect('Grv', rowData.Grv, techId)));
 
             tbody.appendChild(tr);
         });
@@ -894,10 +938,10 @@ window.SupportModule = (function() {
         return cell;
     }
 
-    function createActivitySelect({ techName, selectedLabel, backgroundColor, foregroundColor, borderColor }) {
+    function createActivitySelect({ techId, selectedLabel, backgroundColor, foregroundColor, borderColor }) {
         const select = document.createElement('select');
         select.className = 'editable-select input-act';
-        select.dataset.tech = techName || '';
+        select.dataset.tech = techId || '';
         select.style.backgroundColor = backgroundColor || '';
         select.style.color = foregroundColor || '';
         select.style.borderColor = borderColor || '#e2e8f0';
@@ -930,12 +974,12 @@ window.SupportModule = (function() {
         return select;
     }
 
-    function createBinarySelect(field, val, techName) {
+    function createBinarySelect(field, val, techId) {
         const select = document.createElement('select');
         select.className = 'editable-select';
         if(val === 'OUI') select.classList.add('val-oui');
         else if(val === 'NON') select.classList.add('val-non');
-        select.dataset.tech = techName || '';
+        select.dataset.tech = techId || '';
         select.dataset.field = field;
 
         const emptyOption = document.createElement('option');
@@ -958,10 +1002,10 @@ window.SupportModule = (function() {
         return select;
     }
 
-    function createSingleYesSelect(field, val, techName) {
+    function createSingleYesSelect(field, val, techId) {
         const select = document.createElement('select');
         select.className = 'editable-select';
-        select.dataset.tech = techName || '';
+        select.dataset.tech = techId || '';
         select.dataset.field = field;
         select.style.fontSize = '10px';
         select.style.width = '50px';
@@ -1024,7 +1068,8 @@ window.SupportModule = (function() {
         // Sauvegarde Lignes
         const rows = document.getElementById('briefTableBody').querySelectorAll('tr');
         rows.forEach(tr => {
-            const name = tr.querySelector('.cell-name').textContent;
+            const techId = normalizeSupportTechId(tr.dataset.techId);
+            if (!techId) return;
             
             // Récupération sécurisée des valeurs
             const getVal = (selector) => {
@@ -1038,7 +1083,7 @@ window.SupportModule = (function() {
                 return el ? el.value : '';
             };
 
-            dayData[name] = {
+            dayData[techId] = {
                 act: getVal('.input-act'),
                 obs: getVal('.input-obs'),
                 briefA: getFieldVal('briefA'),
@@ -1120,15 +1165,16 @@ window.SupportModule = (function() {
         history = history.filter(h => h.date !== dateKey);
         
         // On ajoute les nouvelles données significatives
-        Object.keys(data).forEach(agentName => {
-            if(agentName === '__GLOBAL_OBS' || agentName === '__PARAM_ACTIVITIES') return;
+        Object.keys(data).forEach(agentKey => {
+            if(agentKey === '__GLOBAL_OBS' || agentKey === '__PARAM_ACTIVITIES' || agentKey === '_meta' || agentKey === '_lock') return;
             
-            const d = data[agentName];
+            const d = data[agentKey];
             // On ne garde en historique que si il y a une activité ou une obs
             if(d.act || d.obs || d.briefA === 'OUI' || d.Grv === 'OUI') {
                 history.push({
                     date: dateKey,
-                    agent: agentName,
+                    agent: getSupportTechDisplayName(agentKey, agentKey),
+                    agentId: normalizeSupportTechId(agentKey),
                     act: d.act,
                     obs: d.obs,
                     brief: (d.briefA === 'OUI' || d.briefD === 'OUI') ? 'OK' : '',
@@ -1655,13 +1701,14 @@ window.SupportModule = (function() {
             for (const row of rows) {
                 const data = row.payload || {};
                 const jour = row.jour;
-                Object.keys(data).forEach(agentName => {
-                    if (agentName === '__GLOBAL_OBS' || agentName === '__PARAM_ACTIVITIES') return;
-                    const d = data[agentName];
-                    if (d && (d.act || d.obs || d.briefA === 'OUI' || d.greve === 'OUI')) {
+                Object.keys(data).forEach(agentKey => {
+                    if (agentKey === '__GLOBAL_OBS' || agentKey === '__PARAM_ACTIVITIES' || agentKey === '_meta' || agentKey === '_lock') return;
+                    const d = data[agentKey];
+                    if (d && (d.act || d.obs || d.briefA === 'OUI' || d.Grv === 'OUI' || d.greve === 'OUI')) {
                         newHistory.push({
                             date:    jour,
-                            agent:   agentName,
+                            agent:   getSupportTechDisplayName(agentKey, agentKey),
+                            agentId: normalizeSupportTechId(agentKey),
                             act:     d.act    || '',
                             obs:     d.obs    || '',
                             brief:   (d.briefA === 'OUI' || d.briefD === 'OUI')   ? 'OK' : '',
@@ -1820,13 +1867,13 @@ window.SupportModule = (function() {
         // En-tête CSV
         let csv = "Date;Agent;Activite;Observation;Brief_Agence;Brief_Dist;Debrief_Agence;Debrief_Dist;Grv\n";
         
-        Object.keys(dayData).forEach(agentName => {
-            if(agentName === '__GLOBAL_OBS' || agentName === '__PARAM_ACTIVITIES') return;
-            const d = dayData[agentName];
+        Object.keys(dayData).forEach(agentKey => {
+            if(agentKey === '__GLOBAL_OBS' || agentKey === '__PARAM_ACTIVITIES' || agentKey === '_meta' || agentKey === '_lock') return;
+            const d = dayData[agentKey];
 
             csv += [
                 sanitizeCsvCell(key),
-                sanitizeCsvCell(agentName),
+                sanitizeCsvCell(getSupportTechDisplayName(agentKey, agentKey)),
                 sanitizeCsvCell(d.act || ''),
                 sanitizeCsvCell(d.obs || ''),
                 sanitizeCsvCell(d.briefA || ''),
