@@ -200,68 +200,6 @@ async function exportDayPDF() {
   }
 }
 
-let TECH_EMAILS_CACHE = null;
-
-function normalizeForMatch(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[\s\-']/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-}
-
-async function loadTechnicianEmailsVlg() {
-  if (Array.isArray(TECH_EMAILS_CACHE)) return TECH_EMAILS_CACHE;
-
-  const res = await fetch("./data/agents-mails-techniciens-vlg.json", { cache: "no-store" });
-  if (!res.ok) {
-    throw new Error(`Impossible de charger la source emails (HTTP ${res.status}).`);
-  }
-
-  const data = await res.json();
-  if (!Array.isArray(data)) {
-    throw new Error("Format invalide pour la source emails techniciens.");
-  }
-
-  TECH_EMAILS_CACHE = data;
-  return TECH_EMAILS_CACHE;
-}
-
-function findTechnicianEmail(tech, emailRows) {
-  if (!tech || !Array.isArray(emailRows)) return null;
-
-  const techNni = String(tech.nni || tech.id || "").trim().toUpperCase();
-  if (techNni) {
-    const byNni = emailRows.find(row => {
-      const nniSimple = String(row?.nni_simplifie || "").trim().toUpperCase();
-      const nniFull = String(row?.nni || "").trim().toUpperCase().replace(/[A-Z]+$/, "");
-      return nniSimple === techNni || nniFull === techNni;
-    });
-    if (byNni && byNni.mail) return byNni.mail;
-  }
-
-  const techLast = normalizeForMatch(tech.lastName);
-  const techFirst = normalizeForMatch(tech.firstName);
-  if (techLast && techFirst) {
-    const byName = emailRows.find(row => {
-      const rowLast = normalizeForMatch(row?.nom);
-      const rowFirst = normalizeForMatch(row?.prenom);
-      return rowLast === techLast && rowFirst === techFirst;
-    });
-    if (byName && byName.mail) return byName.mail;
-  }
-
-  const techFull = normalizeForMatch(tech.name);
-  if (techFull) {
-    const byFullName = emailRows.find(row => normalizeForMatch(row?.search_salarie || row?.salarie) === techFull);
-    if (byFullName && byFullName.mail) return byFullName.mail;
-  }
-
-  return null;
-}
-
 function getDisplayedBriefDate() {
   const topDatetime = document.getElementById("topDatetime");
   const displayed = String(topDatetime?.textContent || "");
@@ -271,8 +209,9 @@ function getDisplayedBriefDate() {
   return new Date().toLocaleDateString("fr-FR");
 }
 
-function buildMailtoUrl({ to, subject, body }) {
-  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+function buildMailtoUrl({ to = "", subject, body }) {
+  const recipient = String(to || "").trim();
+  return `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 async function exportDayPdfAndPrepareMail() {
@@ -286,21 +225,6 @@ async function exportDayPdfAndPrepareMail() {
   const tech = techs.find(t => techKey(t) === techId);
   if (!tech) {
     alert("Technicien sélectionné introuvable.");
-    return;
-  }
-
-  let emailRows;
-  try {
-    emailRows = await loadTechnicianEmailsVlg();
-  } catch (err) {
-    console.error("Erreur chargement emails techniciens:", err);
-    alert("Impossible de charger la liste des emails techniciens (RECETTE).");
-    return;
-  }
-
-  const technicianEmail = findTechnicianEmail(tech, emailRows);
-  if (!technicianEmail) {
-    alert("Aucun email trouvé pour ce technicien dans data/agents-mails-techniciens-vlg.json.");
     return;
   }
 
@@ -328,8 +252,16 @@ Dans le cas contraire, merci de vous rapprocher de votre RE pour réaliser le br
 ❓ Pour toute question ou besoin de précision, veuillez contacter votre RE ou votre ME.
 
 Cordialement,`;
+
+  const proceed = confirm(
+    `Le destinataire n'est plus pré-rempli pour éviter d'exposer l'annuaire RH dans l'application.\n\n` +
+    `Un brouillon de mail va s'ouvrir sans destinataire.\n` +
+    `Ajoutez manuellement : ${techDisplayName}\n\n` +
+    `Continuer ?`
+  );
+  if (!proceed) return;
+
   const mailtoUrl = buildMailtoUrl({
-    to: technicianEmail,
     subject,
     body
   });

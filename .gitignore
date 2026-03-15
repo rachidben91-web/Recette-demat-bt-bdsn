@@ -1,0 +1,3 @@
+# Donnees RH sensibles - ne jamais versionner dans le front public
+data/agents-mails.json
+data/agents-mails-techniciens-vlg.json
