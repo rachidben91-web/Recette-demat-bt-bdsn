@@ -400,10 +400,26 @@ window.SupportModule = (function() {
 
     const DEFAULT_ACTIVITY_COLOR = '#94a3b8';
     const ABSENT_LABELS = new Set(["ABS","RTT","CP","MALADIE","GREVE"]);
+    const HEX_COLOR_RE = /^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
 
     const slugify = (text) => String(text || '')
         .normalize('NFD').replace(/[̀-ͯ]/g, '')
         .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'activity';
+
+    function sanitizeActivityText(value, fallback = '') {
+        const text = String(value ?? fallback)
+            .replace(/[\u0000-\u001F\u007F]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        return text.slice(0, 120);
+    }
+
+    function sanitizeActivityColor(value, fallback = DEFAULT_ACTIVITY_COLOR) {
+        const candidate = String(value || '').trim();
+        if (HEX_COLOR_RE.test(candidate)) return candidate;
+        const safeFallback = String(fallback || '').trim();
+        return HEX_COLOR_RE.test(safeFallback) ? safeFallback : DEFAULT_ACTIVITY_COLOR;
+    }
 
     function inferAttendanceType(label) {
         const key = String(label || '').trim().toUpperCase();
@@ -427,16 +443,17 @@ window.SupportModule = (function() {
         if (!raw) return null;
         const base = (typeof raw === 'string') ? { label: raw } : raw;
 
-        const label = String(base.label || base.name || base.code || '').trim();
+        const label = sanitizeActivityText(base.label || base.name || base.code || '');
         if (!label) return null;
 
-        const code = String(base.code || slugify(label)).trim();
-        const color = String(base.color || fallbackColor).trim() || DEFAULT_ACTIVITY_COLOR;
+        const code = slugify(sanitizeActivityText(base.code || label, label));
+        const color = sanitizeActivityColor(base.color, fallbackColor);
+        const name = sanitizeActivityText(base.name || label, label) || label;
 
         return {
             code,
             label,
-            name: String(base.name || label).trim() || label,
+            name,
             color,
             attendanceType: sanitizeAttendanceType(base.attendanceType, label),
         };
@@ -747,7 +764,7 @@ window.SupportModule = (function() {
             const actLabel = actObj ? activityDisplayLabel(actObj) : actName;
             
             // Gestion Couleur
-            const bgColor = actObj?.color || DEFAULT_ACTIVITY_COLOR;
+            const bgColor = sanitizeActivityColor(actObj?.color, DEFAULT_ACTIVITY_COLOR);
             const fgColor = isLight(bgColor) ? '#000' : '#fff';
             const borderColor = bgColor || '#e2e8f0';
 
@@ -1095,7 +1112,7 @@ window.SupportModule = (function() {
             return `
             <div class="param-card ${editingActivityIndex === index ? 'param-card--editing' : ''}">
                 <div class="param-card__color-zone">
-                    <input type="color" value="${a?.color || DEFAULT_ACTIVITY_COLOR}" 
+                    <input type="color" value="${sanitizeActivityColor(a?.color, DEFAULT_ACTIVITY_COLOR)}" 
                            onchange="SupportModule.updateActivityColor(${index}, this.value)"
                            class="param-color-input"
                            title="Changer la couleur">
@@ -1150,7 +1167,7 @@ window.SupportModule = (function() {
         const attendanceInput = document.getElementById('newActAttendanceType');
         
         const label = nameInput?.value?.trim() || '';
-        const color = colorInput?.value || DEFAULT_ACTIVITY_COLOR;
+        const color = sanitizeActivityColor(colorInput?.value, DEFAULT_ACTIVITY_COLOR);
         const selectedType = sanitizeAttendanceType(attendanceInput?.value, label);
 
         if(label) {
@@ -1238,7 +1255,7 @@ window.SupportModule = (function() {
 
     function updateActivityColor(index, newColor) {
         if (!activities[index]) return;
-        activities[index].color = newColor || DEFAULT_ACTIVITY_COLOR;
+        activities[index].color = sanitizeActivityColor(newColor, activities[index]?.color || DEFAULT_ACTIVITY_COLOR);
         saveActivities({ successMessage: "Activité mise à jour dans la base." });
     }
 
