@@ -1,10 +1,16 @@
-// js/main.js — DEMAT-BT v11.8.3 — 14/03/2026
+// js/main.js — DEMAT-BT v11.8.4 — 15/03/2026
 // Point d'entrée principal
 // FIX v11.2.0: renderAll alias, weather init, refreshAllViews
 // FIX v11.4.0: Modal event listeners + loadBadgeRules() + loadBadgeRules avant cache
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 DEMAT-BT v11.8.3 démarré.");
+    console.log(`🚀 DEMAT-BT ${APP_VERSION} demarre.`);
+
+    const versionBadge = document.getElementById('appVersionBadge');
+    if (versionBadge) {
+        versionBadge.textContent = APP_VERSION;
+    }
+    document.title = `Recette DEMAT-BT ${APP_VERSION} — Référent & Brief`;
 
     // ============================================================
     // HELPERS UI attendus par pdf-extractor.js

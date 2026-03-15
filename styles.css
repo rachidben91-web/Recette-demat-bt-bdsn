@@ -106,6 +106,17 @@ body{
   font-weight:500;
 }
 
+.brand__version{
+  display:inline-block;
+  margin-left:6px;
+  padding:2px 8px;
+  border-radius:999px;
+  background:#dbeafe;
+  color:#1d4ed8;
+  border:1px solid #93c5fd;
+  font-weight:800;
+}
+
 .topbar__actions{ 
   display:flex; 
   gap:10px; 

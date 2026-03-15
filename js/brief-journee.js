@@ -1,4 +1,4 @@
-/* js/brief-journee.js — DEMAT-BT v11.8.3 — 14/03/2026
+/* js/brief-journee.js — DEMAT-BT v11.8.4 — 15/03/2026
    Snapshot métier des vues Référent / Brief, sans PDF source.
 */
 
